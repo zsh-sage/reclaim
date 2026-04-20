@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Login - GLM SMART</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "outline": "#747779",
+                        "error": "#b41340",
+                        "surface-tint": "#4647d3",
+                        "on-tertiary-fixed-variant": "#660075",
+                        "inverse-on-surface": "#9a9d9f",
+                        "on-primary-fixed-variant": "#0e009d",
+                        "on-primary-fixed": "#000000",
+                        "primary": "#4647d3",
+                        "on-tertiary-fixed": "#300038",
+                        "surface": "#f5f7f9",
+                        "tertiary-fixed-dim": "#ef6eff",
+                        "tertiary": "#9e00b4",
+                        "on-secondary-fixed": "#003853",
+                        "primary-fixed-dim": "#8387ff",
+                        "on-secondary-container": "#004c6f",
+                        "tertiary-fixed": "#f487ff",
+                        "on-background": "#2c2f31",
+                        "surface-variant": "#d9dde0",
+                        "error-container": "#f74b6d",
+                        "surface-container-low": "#eef1f3",
+                        "error-dim": "#a70138",
+                        "primary-dim": "#3939c7",
+                        "inverse-surface": "#0b0f10",
+                        "on-surface": "#2c2f31",
+                        "on-surface-variant": "#595c5e",
+                        "secondary-container": "#a4d8ff",
+                        "on-primary": "#f4f1ff",
+                        "on-tertiary": "#ffeefb",
+                        "outline-variant": "#abadaf",
+                        "tertiary-container": "#f487ff",
+                        "on-secondary": "#e9f4ff",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary-container": "#0a0081",
+                        "secondary-dim": "#00557b",
+                        "on-tertiary-container": "#580065",
+                        "on-secondary-fixed-variant": "#00567c",
+                        "surface-container-high": "#dfe3e6",
+                        "primary-fixed": "#9396ff",
+                        "tertiary-dim": "#8a009e",
+                        "primary-container": "#9396ff",
+                        "surface-container-highest": "#d9dde0",
+                        "background": "#f5f7f9",
+                        "inverse-primary": "#8083ff",
+                        "surface-container": "#e5e9eb",
+                        "secondary-fixed": "#a4d8ff",
+                        "secondary-fixed-dim": "#81ccff",
+                        "surface-bright": "#f5f7f9",
+                        "secondary": "#00628c",
+                        "on-error": "#ffefef",
+                        "on-error-container": "#510017",
+                        "surface-dim": "#d0d5d8"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    fontFamily: {
+                        "headline": ["Plus Jakarta Sans", "sans-serif"],
+                        "body": ["Inter", "sans-serif"],
+                        "label": ["Inter", "sans-serif"]
+                    },
+                    boxShadow: {
+                        'ambient': '0 8px 40px -4px rgba(44, 47, 49, 0.06)',
+                        'ambient-lg': '0 12px 60px -8px rgba(44, 47, 49, 0.08)',
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .split-gradient {
+            background: linear-gradient(135deg, #4647d3 0%, #9396ff 50%, #9e00b4 100%);
+        }
+        .glass-card {
+            background-color: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body antialiased min-h-screen overflow-x-hidden flex flex-col">
+<!-- Suppressed TopAppBar for Transactional Page -->
+<main class="flex-grow flex w-full min-h-screen">
+<!-- Left Side: Split Gradient Anchor -->
+<div class="hidden lg:flex w-1/2 split-gradient relative overflow-hidden items-center justify-center p-12">
+<!-- Decorative Elements -->
+<div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&amp;w=2070&amp;auto=format&amp;fit=crop')] opacity-10 bg-cover bg-center mix-blend-overlay" data-alt="Abstract fluid geometry with soft light interacting with translucent materials, creating a sense of deep, corporate technology structure."></div>
+<div class="relative z-10 text-on-primary max-w-xl">
+<div class="mb-8">
+<span class="material-symbols-outlined text-6xl">blur_on</span>
+</div>
+<h1 class="font-headline text-5xl font-extrabold tracking-tight mb-6 leading-tight">
+                    The Kinetic Workspace.
+                </h1>
+<p class="text-lg opacity-90 font-light leading-relaxed">
+                    Access your intuitive digital environment. Designed for clarity, precision, and a seamless operational flow.
+                </p>
+</div>
+<!-- Floating accent blobs to break rigid template feel -->
+<div class="absolute -bottom-32 -left-32 w-96 h-96 bg-tertiary rounded-full blur-[120px] opacity-40"></div>
+<div class="absolute top-1/4 -right-24 w-72 h-72 bg-primary rounded-full blur-[100px] opacity-30"></div>
+</div>
+<!-- Right Side: Interaction Canvas -->
+<div class="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 lg:p-24 bg-surface">
+<div class="w-full max-w-md">
+<!-- Brand Header (Mobile Only) -->
+<div class="lg:hidden mb-12 flex items-center gap-3">
+<span class="material-symbols-outlined text-primary text-3xl">blur_on</span>
+<h2 class="font-headline text-2xl font-black tracking-tighter text-primary">GLM SMART</h2>
+</div>
+<!-- Main Glassmorphic Card -->
+<div class="glass-card rounded-[2rem] p-8 sm:p-10 shadow-ambient-lg border border-white/40">
+<!-- Header -->
+<div class="mb-10 text-center">
+<h2 class="font-headline text-3xl font-bold tracking-tight text-on-surface mb-3">Welcome to GLM SMART</h2>
+<p class="text-on-surface-variant text-sm">Sign in to continue your session</p>
+</div>
+<!-- Portal Toggle -->
+<div class="flex p-1 bg-surface-container-high rounded-full mb-8 relative">
+<button class="flex-1 py-2.5 text-sm font-semibold rounded-full bg-surface-container-lowest text-primary shadow-sm transition-all relative z-10">
+                            Employee Portal
+                        </button>
+<button class="flex-1 py-2.5 text-sm font-medium rounded-full text-on-surface-variant hover:text-on-surface transition-all relative z-10">
+                            HR Dashboard
+                        </button>
+</div>
+<!-- Form Area -->
+<form class="space-y-6">
+<!-- Email Input -->
+<div class="space-y-2">
+<label class="block text-xs font-semibold uppercase tracking-wider text-on-surface-variant" for="email">Email Address</label>
+<div class="relative group">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline-variant group-focus-within:text-primary transition-colors">mail</span>
+<input class="w-full pl-12 pr-4 py-3.5 bg-surface-container-lowest/60 backdrop-blur-md border border-outline/20 rounded-xl text-on-surface focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all shadow-sm" id="email" placeholder="name@company.com" type="email"/>
+</div>
+</div>
+<!-- Password Input -->
+<div class="space-y-2">
+<div class="flex justify-between items-center">
+<label class="block text-xs font-semibold uppercase tracking-wider text-on-surface-variant" for="password">Password</label>
+<a class="text-xs font-semibold text-primary hover:text-primary-dim hover:underline decoration-primary/30 underline-offset-4 transition-all" href="#">Forgot Password?</a>
+</div>
+<div class="relative group">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline-variant group-focus-within:text-primary transition-colors">lock</span>
+<input class="w-full pl-12 pr-12 py-3.5 bg-surface-container-lowest/60 backdrop-blur-md border border-outline/20 rounded-xl text-on-surface focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all shadow-sm" id="password" placeholder="••••••••" type="password"/>
+<button class="absolute right-4 top-1/2 -translate-y-1/2 text-outline-variant hover:text-on-surface transition-colors" type="button">
+<span class="material-symbols-outlined text-sm">visibility_off</span>
+</button>
+</div>
+</div>
+<!-- Submit Button -->
+<button class="w-full mt-8 py-4 px-6 bg-gradient-to-r from-primary to-primary-dim text-white rounded-xl font-headline font-semibold text-lg hover:shadow-[0_0_20px_rgba(147,150,255,0.4)] active:scale-[0.98] transition-all duration-200 flex justify-center items-center gap-2" type="submit">
+                            Sign In
+                            <span class="material-symbols-outlined text-xl">arrow_forward</span>
+</button>
+</form><div class="mt-10 pt-6 border-t border-outline/10 text-center">
+<p class="text-[10px] font-bold uppercase tracking-[0.2em] text-on-surface-variant/60 mb-4">Quick Demo Accounts</p>
+<div class="flex flex-wrap justify-center gap-3">
+<button class="group flex items-center gap-2 px-4 py-2 bg-surface-container-lowest/40 backdrop-blur-sm border border-outline/10 rounded-full text-xs font-semibold text-on-surface-variant hover:text-primary hover:border-primary/30 hover:bg-white transition-all shadow-sm active:scale-95" type="button">
+<span class="material-symbols-outlined text-sm">person</span>
+      Employee Demo
+    </button>
+<button class="group flex items-center gap-2 px-4 py-2 bg-surface-container-lowest/40 backdrop-blur-sm border border-outline/10 rounded-full text-xs font-semibold text-on-surface-variant hover:text-tertiary hover:border-tertiary/30 hover:bg-white transition-all shadow-sm active:scale-95" type="button">
+<span class="material-symbols-outlined text-sm">admin_panel_settings</span>
+      Admin Demo
+    </button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Suppressed Footer for Transactional Page -->
+</body></html>

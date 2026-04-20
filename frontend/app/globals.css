@@ -1,0 +1,78 @@
+@import "tailwindcss";
+
+@theme {
+  --color-outline: #747779;
+  --color-error: #b41340;
+  --color-surface-tint: #4647d3;
+  --color-on-tertiary-fixed-variant: #660075;
+  --color-inverse-on-surface: #9a9d9f;
+  --color-on-primary-fixed-variant: #0e009d;
+  --color-on-primary-fixed: #000000;
+  --color-primary: #4647d3;
+  --color-on-tertiary-fixed: #300038;
+  --color-surface: #f5f7f9;
+  --color-tertiary-fixed-dim: #ef6eff;
+  --color-tertiary: #9e00b4;
+  --color-on-secondary-fixed: #003853;
+  --color-primary-fixed-dim: #8387ff;
+  --color-on-secondary-container: #004c6f;
+  --color-tertiary-fixed: #f487ff;
+  --color-on-background: #2c2f31;
+  --color-surface-variant: #d9dde0;
+  --color-error-container: #f74b6d;
+  --color-surface-container-low: #eef1f3;
+  --color-error-dim: #a70138;
+  --color-primary-dim: #3939c7;
+  --color-inverse-surface: #0b0f10;
+  --color-on-surface: #2c2f31;
+  --color-on-surface-variant: #595c5e;
+  --color-secondary-container: #a4d8ff;
+  --color-on-primary: #f4f1ff;
+  --color-on-tertiary: #ffeefb;
+  --color-outline-variant: #abadaf;
+  --color-tertiary-container: #f487ff;
+  --color-on-secondary: #e9f4ff;
+  --color-surface-container-lowest: #ffffff;
+  --color-on-primary-container: #0a0081;
+  --color-secondary-dim: #00557b;
+  --color-on-tertiary-container: #580065;
+  --color-on-secondary-fixed-variant: #00567c;
+  --color-surface-container-high: #dfe3e6;
+  --color-primary-fixed: #9396ff;
+  --color-tertiary-dim: #8a009e;
+  --color-primary-container: #9396ff;
+  --color-surface-container-highest: #d9dde0;
+  --color-background: #f5f7f9;
+  --color-inverse-primary: #8083ff;
+  --color-surface-container: #e5e9eb;
+  --color-secondary-fixed: #a4d8ff;
+  --color-secondary-fixed-dim: #81ccff;
+  --color-surface-bright: #f5f7f9;
+  --color-secondary: #00628c;
+  --color-on-error: #ffefef;
+  --color-on-error-container: #510017;
+  --color-surface-dim: #d0d5d8;
+
+  --font-headline: "Plus Jakarta Sans", sans-serif;
+  --font-body: "Inter", sans-serif;
+  --font-label: "Inter", sans-serif;
+
+  --shadow-ambient: 0 8px 40px -4px rgba(44, 47, 49, 0.06);
+  --shadow-ambient-lg: 0 12px 60px -8px rgba(44, 47, 49, 0.08);
+}
+
+body {
+  background-color: var(--color-surface);
+  color: var(--color-on-surface);
+  font-family: var(--font-body);
+}
+
+.split-gradient {
+  background: linear-gradient(135deg, #4647d3 0%, #9396ff 50%, #9e00b4 100%);
+}
+
+.glass-card {
+  background-color: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
