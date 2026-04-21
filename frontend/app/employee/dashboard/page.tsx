@@ -10,12 +10,6 @@ import QuickActions       from "./_components/QuickActions";
 import RecentClaimsTable  from "./_components/RecentClaimsTable";
 import BottomNav          from "./_components/BottomNav";
 
-/* ─── Page metadata ──────────────────────────────────── */
-export const metadata = {
-  title: "Dashboard — Reclaim",
-  description: "Employee expense reimbursement dashboard",
-};
-
 export default function EmployeeDashboardPage() {
   const { user } = useAuth();
 
@@ -60,13 +54,6 @@ export default function EmployeeDashboardPage() {
                 <h2 className="font-headline text-3xl md:text-4xl font-extrabold text-on-surface tracking-tight mb-1.5">
                   Welcome back, {firstName}.
                 </h2>
-                <p className="font-body text-on-surface-variant text-base md:text-lg">
-                  You have{" "}
-                  <span className="text-tertiary font-semibold">
-                    2 pending claims
-                  </span>{" "}
-                  requiring your attention.
-                </p>
               </div>
 
               {/* Current date pill — visible on md+ */}
@@ -107,24 +94,15 @@ export default function EmployeeDashboardPage() {
               variant="approved"
             />
             <StatCard
-              label="Needs Receipts"
+              label="Already Paid"
               value="$450.00"
-              subtext={
-                <span className="flex items-center gap-1">
-                  Review 2 items <ArrowRight className="w-3.5 h-3.5" />
-                </span>
-              }
+              subtext="2 claims paid"
               icon={AlertTriangle}
               variant="action"
             />
           </section>
 
-          {/* ── 3. Quick Actions ──────────────────── */}
-          <section className="mb-8 md:mb-10">
-            <QuickActions />
-          </section>
-
-          {/* ── 4. Recent Claims ──────────────────── */}
+          {/* ── 3. Recent Claims ──────────────────── */}
           <RecentClaimsTable />
 
         </main>
