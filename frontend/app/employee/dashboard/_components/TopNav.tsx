@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { Menu, Search, Upload, Bell, HelpCircle } from "lucide-react";
+import { Search, Upload, Bell, HelpCircle } from "lucide-react";
 
 export default function TopNav() {
   const { user } = useAuth();
@@ -15,19 +15,10 @@ export default function TopNav() {
     >
       <div className="flex items-center justify-between px-4 md:px-6 py-3 md:py-4 w-full max-w-screen-2xl mx-auto gap-3">
 
-        {/* ── Left: Hamburger + Brand (mobile) ─────── */}
-        <div className="flex items-center gap-3">
-          <button
-            id="topnav-mobile-menu-btn"
-            aria-label="Open navigation menu"
-            className="lg:hidden p-2 rounded-xl text-on-surface hover:bg-surface-container-low transition-all active:scale-95"
-          >
-            <Menu className="w-5 h-5" strokeWidth={2} />
-          </button>
-          <span className="lg:hidden text-xl font-extrabold bg-linear-to-r from-primary to-tertiary bg-clip-text text-transparent font-headline tracking-tight">
-            Reclaim
-          </span>
-        </div>
+        {/* ── Left: Brand (mobile) ─────────────────── */}
+        <span className="lg:hidden text-xl font-extrabold bg-linear-to-r from-primary to-tertiary bg-clip-text text-transparent font-headline tracking-tight">
+          Reclaim
+        </span>
 
         {/* ── Center: Search bar (md+) ──────────────── */}
         <div className="flex-1 max-w-sm hidden md:block">
