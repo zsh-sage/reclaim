@@ -14,7 +14,7 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "GLM SMART",
+  title: "Reclaim",
   description: "Smart Reimbursement Automation System",
 };
 

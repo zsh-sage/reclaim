@@ -90,7 +90,7 @@ export default function LoginPage() {
             {/* Header */}
             <div className="mb-10 text-center">
               <h2 className="font-headline text-3xl font-bold tracking-tight text-on-surface mb-3">
-                Welcome to GLM SMART
+                Welcome to Reclaim
               </h2>
               <p className="text-on-surface-variant text-sm">
                 Sign in to continue your session

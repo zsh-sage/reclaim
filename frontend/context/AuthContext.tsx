@@ -6,6 +6,7 @@ import React, {
   useEffect,
   useContext,
   ReactNode,
+  useCallback,
 } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
@@ -35,66 +36,111 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const router = useRouter();
 
-  useEffect(() => {
-    const loadUserFromStorage = async () => {
-      try {
-        const storedToken = localStorage.getItem("access_token");
-        if (storedToken) {
-          setToken(storedToken);
-          api.defaults.headers.common["Authorization"] = `Bearer ${storedToken}`;
-          const response = await api.get("/api/v1/auth/me");
-          setUser(response.data);
-        }
-      } catch (error) {
-        console.error("Failed to load user from storage or fetch profile:", error);
-        localStorage.removeItem("access_token");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    loadUserFromStorage();
-  }, []);
-
-  const login = async (email: string, password: string) => {
-    setIsLoading(true);
+  // 1. Function to verify the token and load user data
+  const verifyToken = useCallback(async (tokenToVerify: string) => {
     try {
-      const form_data = new URLSearchParams();
-      form_data.append("username", email);
-      form_data.append("password", password);
-
-      const response = await api.post("/api/v1/auth/login", form_data, {
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
+      // Set the header for this specific request
+      const response = await api.get("/api/v1/auth/me", {
+        headers: { Authorization: `Bearer ${tokenToVerify}` },
       });
-      const { access_token } = response.data;
-      localStorage.setItem("access_token", access_token);
-      setToken(access_token);
-      api.defaults.headers.common["Authorization"] = `Bearer ${access_token}`;
-
-      const userResponse = await api.get("/api/v1/auth/me");
-      setUser(userResponse.data);
-
-      if (userResponse.data.role === "HR") {
-        router.push("/hr/dashboard");
-      } else {
-        router.push("/employee/submit");
-      }
-    } catch (error: any) {
-      console.error("Login failed:", error.response?.data || error.message);
-      throw error;
+      
+      setUser(response.data);
+      setToken(tokenToVerify);
+      
+      // Also set the global header for future requests
+      api.defaults.headers.common["Authorization"] = `Bearer ${tokenToVerify}`;
+    } catch (error) {
+      console.error("Token verification failed:", error);
+      logout();
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const logout = () => {
+  // 2. Load token on app start
+  useEffect(() => {
+    const storedToken = localStorage.getItem("access_token");
+    if (storedToken) {
+      verifyToken(storedToken);
+    } else {
+      console.log("No token");
+      setIsLoading(false);
+    }
+  }, [verifyToken]);
+
+  // 3. Login Function
+  const login = async (email: string, password: string) => {
+      setIsLoading(true);
+      try {
+        const form_data = new URLSearchParams();
+        form_data.append("username", email);
+        form_data.append("password", password);
+
+        const response = await api.post("/api/v1/auth/login", form_data, {
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        });
+
+        const { access_token } = response.data;
+        
+        // 1. Save token to storage immediately
+        localStorage.setItem("access_token", access_token);
+        document.cookie = `access_token=${access_token}; path=/; max-age=86400; SameSite=Lax`; 
+        setToken(access_token);
+        
+        // We NO LONGER need to manually set api.defaults.headers
+        // because your api.ts interceptor will automatically catch 
+        // the token from localStorage for the next request!
+
+        // 2. Fetch user profile (interceptor attaches token automatically)
+        const userResponse = await api.get("/api/v1/auth/me");
+        const userData = userResponse.data;
+
+        // 3. Update state
+        setUser(userData);
+
+        console.log("logged in");
+
+        // 4. Redirect
+        if (userData.role === "HR") {
+          console.log("redirecting ...");
+          router.push("/hr/dashboard");
+        } else {
+          router.push("/employee/submit");
+        }
+      } catch (error: any) {
+        console.error("Login failed:", error.response?.data || error.message);
+        setIsLoading(false); 
+        throw error;
+      }
+    };
+
+  const logout = useCallback(() => {
+    console.warn("🚨 LOGOUT FUNCTION WAS TRIGGERED! 🚨");
+    console.trace(); // This will print exactly who called this function
     localStorage.removeItem("access_token");
+    document.cookie = "access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
     setToken(null);
     setUser(null);
     delete api.defaults.headers.common["Authorization"];
     router.push("/login");
-  };
+  }, [router]);
+
+  // 4. Axios Interceptor: Catch 401 errors globally
+  // If the token expires while using the app, this will log the user out
+  useEffect(() => {
+    const interceptor = api.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.response?.status === 401) {
+          console.log("unauthorized");
+          logout();
+        }
+        return Promise.reject(error);
+      }
+    );
+
+    return () => api.interceptors.response.eject(interceptor);
+  }, [logout]);
 
   return (
     <AuthContext.Provider value={{ user, token, isLoading, login, logout }}>
@@ -108,5 +154,6 @@ export const useAuth = () => {
   if (context === undefined) {
     throw new Error("useAuth must be used within an AuthProvider");
   }
+  console.log("checking fine");
   return context;
 };

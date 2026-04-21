@@ -12,8 +12,10 @@ export default function Home() {
     if (!isLoading) {
       if (user) {
         if (user.role === "HR") {
+          console.log("hr");
           router.push("/hr/dashboard");
         } else {
+          console.log("employee");
           router.push("/employee/submit");
         }
       } else {
