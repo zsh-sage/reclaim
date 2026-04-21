@@ -38,7 +38,7 @@ const VARIANT_CONFIG = {
     blobColor:   "bg-primary/30",
   },
   paid: {
-    card:        "bg-surface-container-lowest",
+    card:        "bg-gradient-to-br from-tertiary-container/20 to-error-container/5 border border-tertiary/10",
     iconBg:      "bg-tertiary/10",
     iconColor:   "text-tertiary",
     badge:       "bg-tertiary/10 text-tertiary",
@@ -102,7 +102,7 @@ export default function StatCard({
             <Icon className="w-5 h-5" strokeWidth={2} />
           </div>
           <span
-            className={`${c.badge} text-[11px] font-bold px-3 py-1 rounded-full uppercase tracking-wider font-body`}
+            className={`${c.badge} text-[14px] font-bold px-3 py-1 rounded-full uppercase tracking-wider font-body`}
           >
             {c.badgeLabel}
           </span>
