@@ -32,7 +32,9 @@ class Policy(SQLModel, table=True):
     __tablename__ = "policies"
     
     policy_id: UUID = Field(default_factory=uuid4, primary_key=True)
-    category: str = Field(sa_column=Column(String))
+    alias: str = Field(sa_column=Column(String))
+    title: str = Field(sa_column=Column(String))
+    reimbursable_category: List[str] = Field(default=[], sa_column=Column(JSONB))
     effective_date: datetime = Field(sa_column=Column(DateTime(timezone=True)))
     overview_summary: str = Field(sa_column=Column(Text))
     mandatory_conditions: str = Field(sa_column=Column(Text))
@@ -63,15 +65,18 @@ class PolicySection(SQLModel, table=True):
 class Reimbursement(SQLModel, table=True):
     __tablename__ = "reimbursements"
     
-    rein_id: UUID = Field(default_factory=uuid4, primary_key=True)
+    reim_id: UUID = Field(default_factory=uuid4, primary_key=True)
     user_id: UUID = Field(foreign_key="employees.user_id")
+    policy_id: Optional[UUID] = Field(default=None, foreign_key="policies.policy_id")
+    main_category: str = Field(sa_column=Column(String))
+    sub_category: str = Field(sa_column=Column(String))
     employee_department: Optional[str] = Field(default=None, sa_column=Column(String))
     employee_rank: int = Field(sa_column=Column(Integer))
-    type: str = Field(sa_column=Column(String))
     currency: str = Field(sa_column=Column(String))
     amount: Decimal = Field(sa_column=Column(Numeric(10, 2)))
     judgment: str = Field(sa_column=Column(String))
     status: str = Field(default="REVIEW", sa_column=Column(String))
+    chain_of_thought: dict = Field(default={}, sa_column=Column(JSONB))
     summary: str = Field(sa_column=Column(Text))
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc), 
@@ -88,7 +93,7 @@ class SupportingDocument(SQLModel, table=True):
     __tablename__ = "supporting_documents"
     
     document_id: UUID = Field(default_factory=uuid4, primary_key=True)
-    rein_id: Optional[UUID] = Field(default=None, foreign_key="reimbursements.rein_id")
+    reim_id: Optional[UUID] = Field(default=None, foreign_key="reimbursements.reim_id")
     user_id: UUID = Field(foreign_key="employees.user_id")
     name: str = Field(sa_column=Column(Text))
     path: str = Field(sa_column=Column(String))
@@ -102,14 +107,17 @@ class SupportingDocument(SQLModel, table=True):
     )
 
 
-# --- 6. claims_audit_log ---
-class ClaimsAuditLog(SQLModel, table=True):
-    __tablename__ = "claims_audit_log"
+# --- 6. supporting_documents_embeddings ---
+class SupportingDocumentEmbedding(SQLModel, table=True):
+    __tablename__ = "supporting_documents_embeddings"
     
-    audit_id: UUID = Field(default_factory=uuid4, primary_key=True)
-    rein_id: UUID = Field(foreign_key="reimbursements.rein_id")
-    section_id: UUID = Field(foreign_key="policy_sections.section_id")
-    policy_id: UUID = Field(foreign_key="policies.policy_id")
-    steps_name: str = Field(sa_column=Column(String))
-    reason: str = Field(sa_column=Column(Text))
-    note: Optional[str] = Field(default=None, sa_column=Column(Text))
+    sub_document_id: UUID = Field(default_factory=uuid4, primary_key=True)
+    document_id: UUID = Field(foreign_key="supporting_documents.document_id")
+    content: str = Field(sa_column=Column(Text))
+    
+    # Change '1536' to match your embedding model dimension
+    embedding: List[float] = Field(sa_column=Column(Vector(1536)))
+    
+    # Python attribute 'metadata_data' maps to Postgres column 'metadata'
+    metadata_data: dict = Field(default={}, sa_column=Column("metadata", JSONB))
+
