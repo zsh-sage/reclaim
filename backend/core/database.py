@@ -1,17 +1,18 @@
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
-from sqlalchemy.orm import declarative_base
+from sqlmodel import create_engine, Session, SQLModel
 from core.config import settings
 
-engine = create_async_engine(
+engine = create_engine(
     settings.DATABASE_URL,
-    echo=False,
-    future=True,
+    echo=True,
 )
 
-AsyncSessionLocal = async_sessionmaker(
-    engine,
-    class_=AsyncSession,
-    expire_on_commit=False,
-)
+def get_session():
+    """Dependency for getting a database session."""
+    with Session(engine) as session:
+        yield session
 
-Base = declarative_base()
+def init_db():
+    """Creates tables if they don't exist. Run this on startup."""
+    # Import models to ensure they are registered with SQLModel.metadata
+    from core import models
+    SQLModel.metadata.create_all(engine)
