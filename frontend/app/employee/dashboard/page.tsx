@@ -1,7 +1,7 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
-import { History, CheckCircle2,  ScanLine, CreditCard} from "lucide-react";
+import { History, CheckCircle2, CreditCard} from "lucide-react";
 
 import SideNav            from "./_components/SideNav";
 import TopNav             from "./_components/TopNav";
@@ -40,7 +40,7 @@ export default function EmployeeDashboardPage() {
          */}
         <main
           id="main-content"
-          className="flex-1 overflow-y-auto p-4 md:p-8 lg:p-12 pb-24 lg:pb-12 bg-surface"
+          className="flex-1 overflow-y-auto p-4 md:p-8 lg:p-12 pb-20 lg:pb-8 bg-surface"
         >
 
           {/* ── 1. Hero greeting ──────────────────── */}
@@ -109,19 +109,6 @@ export default function EmployeeDashboardPage() {
 
         </main>
       </div>
-
-      {/*
-       * Mobile FAB — scanner shortcut.
-       * `fixed` is explicitly allowed for FABs per layout constraints.
-       * Positioned above the BottomNav (bottom-24 = 96px).
-       */}
-      <button
-        id="mobile-scanner-fab"
-        aria-label="Open receipt scanner"
-        className="lg:hidden fixed bottom-24 right-5 z-40 w-14 h-14 rounded-full bg-linear-to-br from-primary to-tertiary text-on-primary flex items-center justify-center shadow-[0_8px_28px_-4px_rgba(70,71,211,0.45)] hover:shadow-[0_12px_36px_-4px_rgba(70,71,211,0.55)] active:scale-95 transition-all duration-200"
-      >
-        <ScanLine className="w-6 h-6" strokeWidth={2} />
-      </button>
 
       {/* Mobile bottom navigation (fixed — FAB exception) */}
       <BottomNav />
