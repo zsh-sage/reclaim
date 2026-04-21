@@ -105,7 +105,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           console.log("redirecting ...");
           router.push("/hr/dashboard");
         } else {
-          router.push("/employee/submit");
+          router.push("/employee/dashboard");
         }
       } catch (error: any) {
         console.error("Login failed:", error.response?.data || error.message);
