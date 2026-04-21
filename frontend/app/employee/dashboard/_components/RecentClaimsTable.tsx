@@ -8,6 +8,7 @@ interface Claim {
   id: string;
   date: string;
   category: string;
+  subCategory: string;
   categoryIcon: LucideIcon;
   amount: string;
   status: ClaimStatus;
@@ -19,6 +20,7 @@ const CLAIMS: Claim[] = [
     id:           "#RC-8892",
     date:         "Oct 24, 2023",
     category:     "Travel",
+    subCategory:  "Flight",
     categoryIcon: Plane,
     amount:       "$850.00",
     status:       "Pending",
@@ -27,7 +29,8 @@ const CLAIMS: Claim[] = [
     id:           "#RC-8891",
     date:         "Oct 22, 2023",
     category:     "Meals",
-    categoryIcon: UtensilsCrossed,
+    subCategory:  "Lunch",
+    categoryIcon: UtensilsCrossed,  
     amount:       "$124.50",
     status:       "Approved",
   },
@@ -35,6 +38,7 @@ const CLAIMS: Claim[] = [
     id:           "#RC-8885",
     date:         "Oct 15, 2023",
     category:     "Equipment",
+    subCategory:  "Laptop",
     categoryIcon: Monitor,
     amount:       "$450.00",
     status:       "Action Req.",
@@ -85,7 +89,8 @@ export default function RecentClaimsTable() {
             <tr className="bg-surface-container-low text-on-surface-variant font-body text-xs uppercase tracking-wider">
               <th className="p-4 font-semibold rounded-tl-xl">Claim ID</th>
               <th className="p-4 font-semibold">Date</th>
-              <th className="p-4 font-semibold">Category</th>
+              <th className="p-4 font-semibold">Main Category</th>
+              <th className="p-4 font-semibold">Sub Category</th>
               <th className="p-4 font-semibold">Amount</th>
               <th className="p-4 font-semibold rounded-tr-xl">Status</th>
             </tr>
@@ -104,6 +109,14 @@ export default function RecentClaimsTable() {
                       <claim.categoryIcon className="w-4 h-4" strokeWidth={1.75} />
                     </div>
                     <span className="text-on-surface">{claim.category}</span>
+                  </div>
+                </td>
+                <td className="p-4">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-1.5 bg-surface-variant rounded-lg text-on-surface-variant">
+                      <claim.categoryIcon className="w-4 h-4" strokeWidth={1.75} />
+                    </div>
+                    <span className="text-on-surface">{claim.subCategory}</span>
                   </div>
                 </td>
                 <td className="p-4 font-semibold text-on-surface tabular-nums">
