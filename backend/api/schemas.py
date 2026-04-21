@@ -1,4 +1,5 @@
 from typing import Optional
+from uuid import UUID
 from pydantic import BaseModel, EmailStr
 from core.models import UserRole
 
@@ -9,6 +10,7 @@ class UserBase(BaseModel):
     role: UserRole = UserRole.Employee
     department: Optional[str] = None
     privilege_level: Optional[str] = None
+    rank: Optional[int] = 1
 
 # Properties to receive via API on creation
 class UserCreate(UserBase):
@@ -19,7 +21,7 @@ class UserUpdate(UserBase):
     password: Optional[str] = None
 
 class UserInDBBase(UserBase):
-    id: int
+    user_id: UUID
 
     class Config:
         from_attributes = True

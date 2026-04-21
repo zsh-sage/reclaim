@@ -1,15 +1,13 @@
-import asyncio
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
-from core.database import AsyncSessionLocal
+from sqlmodel import Session, select
+from core.database import engine
 from core.models import User, UserRole
 from core.security import get_password_hash
 
-async def create_users():
-    async with AsyncSessionLocal() as db:
+def create_users():
+    with Session(engine) as db:
         # Check and create Employee
-        result = await db.execute(select(User).where(User.email == "employee@example.com"))
-        employee = result.scalars().first()
+        statement = select(User).where(User.email == "employee@example.com")
+        employee = db.exec(statement).first()
         if not employee:
             employee = User(
                 email="employee@example.com",
@@ -17,6 +15,7 @@ async def create_users():
                 name="Demo Employee",
                 role=UserRole.Employee,
                 department="Engineering",
+                rank=1,
                 privilege_level="Standard"
             )
             db.add(employee)
@@ -25,8 +24,8 @@ async def create_users():
             print("employee@example.com already exists")
 
         # Check and create HR
-        result = await db.execute(select(User).where(User.email == "hr@example.com"))
-        hr = result.scalars().first()
+        statement = select(User).where(User.email == "hr@example.com")
+        hr = db.exec(statement).first()
         if not hr:
             hr = User(
                 email="hr@example.com",
@@ -34,6 +33,7 @@ async def create_users():
                 name="Demo HR",
                 role=UserRole.HR,
                 department="Human Resources",
+                rank=5,
                 privilege_level="Admin"
             )
             db.add(hr)
@@ -41,7 +41,7 @@ async def create_users():
         else:
             print("hr@example.com already exists")
 
-        await db.commit()
+        db.commit()
 
 if __name__ == "__main__":
-    asyncio.run(create_users())
+    create_users()

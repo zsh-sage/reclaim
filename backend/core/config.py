@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8 # 8 days
     
     # Database
-    DATABASE_URL: str = "postgresql+asyncpg://admin:password@localhost:5432/smart_reimburse"
+    DATABASE_URL: str = "postgresql://admin:password@localhost:5432/smart_reimburse"
     
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
