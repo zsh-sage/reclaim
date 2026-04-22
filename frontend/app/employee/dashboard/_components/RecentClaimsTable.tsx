@@ -2,7 +2,7 @@ import { Plane, UtensilsCrossed, Monitor, ChevronRight } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
 /* ─── Types ──────────────────────────────────────────── */
-type ClaimStatus = "Pending" | "Approved" | "Action Req.";
+type ClaimStatus = "Pending" | "Approved" | "Paid";
 
 interface Claim {
   id: string;
@@ -41,7 +41,7 @@ const CLAIMS: Claim[] = [
     subCategory:  "Laptop",
     categoryIcon: Monitor,
     amount:       "$450.00",
-    status:       "Action Req.",
+    status:       "Paid",
   },
 ];
 
@@ -49,13 +49,13 @@ const CLAIMS: Claim[] = [
 const STATUS_BADGE: Record<ClaimStatus, string> = {
   "Pending":    "bg-secondary-container/50 text-on-secondary-container",
   "Approved":   "bg-primary/10 text-primary",
-  "Action Req.": "bg-tertiary/10 text-tertiary",
+  "Paid": "bg-tertiary/10 text-tertiary",
 };
 
 const STATUS_DOT: Record<ClaimStatus, string> = {
   "Pending":    "bg-secondary",
   "Approved":   "bg-primary",
-  "Action Req.": "bg-tertiary",
+  "Paid": "bg-tertiary",
 };
 
 /* ─── Component ──────────────────────────────────────── */
