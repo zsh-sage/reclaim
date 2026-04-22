@@ -1,3 +1,9 @@
+import os
+from dotenv import load_dotenv
+
+# Load .env into os.environ BEFORE LangChain imports so LangSmith tracing activates
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
+
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
@@ -6,6 +12,10 @@ from sqlmodel import Session, select
 from core.config import settings
 from core.database import engine, init_db
 from api.auth import router as auth_router
+from api.documents import router as documents_router
+from api.policies import router as policies_router
+from api.reimbursements import router as reimbursements_router
+from api.test_ui import router as test_ui_router
 from api import deps
 from core.models import User
 
@@ -34,6 +44,11 @@ app.add_middleware(
 )
 
 app.include_router(auth_router, prefix=f"{settings.API_V1_STR}/auth", tags=["auth"])
+app.include_router(documents_router, prefix=f"{settings.API_V1_STR}/documents", tags=["documents"])
+app.include_router(policies_router, prefix=f"{settings.API_V1_STR}/policies", tags=["policies"])
+app.include_router(reimbursements_router, prefix=f"{settings.API_V1_STR}/reimbursements", tags=["reimbursements"])
+# DISPOSABLE — Remove before production
+app.include_router(test_ui_router, prefix="/test", tags=["test-ui"])
 
 @app.get("/")
 async def root():

@@ -21,7 +21,7 @@ sqlmodel==0.0.22
 pgvector==0.3.6
 asyncpg==0.30.0
 alembic==1.13.1
-greenlet==3.0.3
+greenlet==3.1.1
 passlib[bcrypt]==1.7.4
 bcrypt==4.0.1
 python-jose[cryptography]==3.3.0

@@ -7,6 +7,7 @@
 
 # testing
 /coverage
+backend/test/
 
 # next.js
 /.next/
@@ -27,6 +28,7 @@ yarn-error.log*
 # local env files
 .env*.local
 .env
+*/.env
 
 # vercel
 .vercel
@@ -51,3 +53,14 @@ __pycache__/
 .DS_Store
 
 Makefile
+
+# plans mds
+agent_workflow_plans.md
+CLAUDE.md
+
+# agent
+.claude/
+
+# documents
+backend/storage/documents/*
+backend/storage/policies/*

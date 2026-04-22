@@ -1,6 +1,6 @@
 from typing import Optional
 from uuid import UUID
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 from core.models import UserRole
 
 # Shared properties
@@ -10,7 +10,7 @@ class UserBase(BaseModel):
     role: UserRole = UserRole.Employee
     department: Optional[str] = None
     privilege_level: Optional[str] = None
-    rank: Optional[int] = 1
+    rank: Optional[int] = Field(default=1, ge=1)
 
 # Properties to receive via API on creation
 class UserCreate(UserBase):
