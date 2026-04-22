@@ -35,11 +35,12 @@ services:
     env_file:
       - .env
     environment:
+      - WATCHFILES_FORCE_POLLING=true
       - DATABASE_URL=postgresql://admin:password@db:5432/smart_reimburse
     depends_on:
       db:
         condition: service_healthy
-    # command: uvicorn main:app --host 0.0.0.0 --port 8000
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
     healthcheck:
       # test: [ "CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" ]
       test: [ "CMD", "/app/.venv/bin/python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" ]
