@@ -15,10 +15,10 @@ import {
 } from "lucide-react";
 
 const NAV_LINKS = [
-  { href: "/employee/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/employee/claims",    label: "Upload Claim",  icon: FileText         },
-  { href: "/employee/history",   label: "History",    icon: History          },
-  { href: "/employee/settings",  label: "Settings",   icon: Settings         },
+  { href: "/hr/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/hr/claims",    label: "Upload Claim",  icon: FileText         },
+  { href: "/hr/history",   label: "History",    icon: History          },
+  { href: "/hr/settings",  label: "Settings",   icon: Settings         },
 ];
 
 export default function SideNav() {
@@ -40,7 +40,7 @@ export default function SideNav() {
             </h1>
           </div>
           <p className="font-body text-xs font-medium text-on-surface-variant mt-1.5">
-            Employee Portal
+            HR Portal
           </p>
         </div>
 
