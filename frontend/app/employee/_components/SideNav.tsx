@@ -10,15 +10,13 @@ import {
   Settings,
   LifeBuoy,
   LogOut,
-  Plus,
-  Zap,
 } from "lucide-react";
 
 const NAV_LINKS = [
-  { href: "/employee/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/employee/claims",    label: "Upload Claim",  icon: FileText         },
-  { href: "/employee/history",   label: "History",    icon: History          },
-  { href: "/employee/settings",  label: "Settings",   icon: Settings         },
+  { href: "/employee/dashboard", label: "Dashboard",    icon: LayoutDashboard },
+  { href: "/employee/claims",    label: "Upload Claim", icon: FileText         },
+  { href: "/employee/history",   label: "History",      icon: History          },
+  { href: "/employee/settings",  label: "Settings",     icon: Settings         },
 ];
 
 export default function SideNav() {

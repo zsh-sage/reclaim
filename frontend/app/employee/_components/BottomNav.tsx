@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Upload, History, User } from "lucide-react";
@@ -13,6 +14,18 @@ const NAV_ITEMS = [
 
 export default function BottomNav() {
   const pathname = usePathname();
+
+  // Hide while the camera modal is open (CameraModal adds/removes this class)
+  const [cameraOpen, setCameraOpen] = useState(false);
+  useEffect(() => {
+    const check = () => setCameraOpen(document.body.classList.contains("camera-open"));
+    check();
+    const observer = new MutationObserver(check);
+    observer.observe(document.body, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
+
+  if (cameraOpen) return null;
 
   return (
     /* FAB exception: `fixed` is allowed here per layout constraints */
