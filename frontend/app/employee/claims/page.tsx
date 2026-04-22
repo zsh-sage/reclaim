@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import {
   ChevronDown,
   Clock,
@@ -11,6 +11,7 @@ import {
   Trash2,
   Loader2,
   Sparkles,
+  Search,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -262,6 +263,117 @@ function buildDocSlots(config: SubCategoryConfig): DocumentSlot[] {
   }));
 }
 
+// ─── Hook: Click Outside ─────────────────────────────────────────────────────
+
+function useOnClickOutside(ref: React.RefObject<HTMLElement | null>, handler: (event: MouseEvent | TouchEvent) => void) {
+  useEffect(() => {
+    const listener = (event: MouseEvent | TouchEvent) => {
+      if (!ref.current || ref.current.contains(event.target as Node)) {
+        return;
+      }
+      handler(event);
+    };
+    document.addEventListener("mousedown", listener);
+    document.addEventListener("touchstart", listener);
+    return () => {
+      document.removeEventListener("mousedown", listener);
+      document.removeEventListener("touchstart", listener);
+    };
+  }, [ref, handler]);
+}
+
+// ─── Custom Select Component ─────────────────────────────────────────────────
+
+interface CustomSelectProps {
+  options: string[];
+  value: string;
+  onChange: (val: string) => void;
+  placeholder: string;
+  disabled?: boolean;
+}
+
+function CustomSelect({ options, value, onChange, placeholder, disabled = false }: CustomSelectProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useOnClickOutside(dropdownRef, () => setIsOpen(false));
+
+  const filteredOptions = options.filter(opt => 
+    opt.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  return (
+    <div className={`relative ${disabled ? "opacity-50 pointer-events-none" : ""}`} ref={dropdownRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        disabled={disabled}
+        className={`w-full flex items-center justify-between text-left text-base rounded-2xl px-4 py-4 transition-all duration-200 font-body ${
+          disabled
+            ? "bg-surface-container-low border border-outline-variant/20 text-on-surface-variant cursor-not-allowed"
+            : "bg-surface-container-lowest border border-outline-variant/30 text-on-surface cursor-pointer shadow-[0_2px_12px_rgba(44,47,49,0.06)] hover:border-primary/50 focus:border-primary focus:ring-4 focus:ring-primary/10"
+        }`}
+      >
+        <span className={value ? "text-on-surface truncate pr-4" : "text-on-surface-variant/70 truncate pr-4"}>
+          {value || placeholder}
+        </span>
+        <ChevronDown 
+          className={`w-5 h-5 shrink-0 text-outline-variant transition-transform duration-300 ${isOpen ? "rotate-180 text-primary" : ""}`} 
+          strokeWidth={1.75} 
+        />
+      </button>
+
+      {isOpen && !disabled && (
+        <div className="absolute z-50 w-full mt-2 bg-surface-container-lowest border border-outline-variant/20 rounded-2xl shadow-[0_16px_48px_-12px_rgba(44,47,49,0.2)] flex flex-col overflow-hidden origin-top animate-in fade-in zoom-in-95 duration-200">
+          
+          {options.length > 5 && (
+            <div className="p-3 border-b border-outline-variant/10 bg-surface-container-lowest sticky top-0 shrink-0">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-outline-variant" strokeWidth={1.75} />
+                <input
+                  type="text"
+                  placeholder="Search options..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-surface-container-low text-on-surface text-sm rounded-xl py-2 pl-9 pr-3 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-on-surface-variant/50 border border-transparent focus:border-primary/30"
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="max-h-64 overflow-y-auto overscroll-contain py-2 flex-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-outline-variant/30 [&::-webkit-scrollbar-thumb]:rounded-full">
+            {filteredOptions.length === 0 ? (
+              <div className="px-4 py-4 text-sm text-on-surface-variant text-center font-body">
+                No options found
+              </div>
+            ) : (
+              filteredOptions.map((opt) => (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => {
+                    onChange(opt);
+                    setIsOpen(false);
+                    setSearchQuery("");
+                  }}
+                  className={`w-full text-left px-4 py-3 text-sm font-body transition-colors ${
+                    value === opt 
+                      ? "bg-primary/10 text-primary font-semibold" 
+                      : "text-on-surface hover:bg-surface-container-highest/50 active:bg-surface-container-highest"
+                  }`}
+                >
+                  {opt}
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Sub-component: Upload Dropzone ──────────────────────────────────────────
 
 interface UploadedFile {
@@ -475,74 +587,30 @@ export default function CaptureReceiptPage() {
         <div className="flex flex-col gap-6">
 
           {/* ── 1. Main Category ────────────────────── */}
-          <div className="flex flex-col gap-2">
-            <label
-              htmlFor="main-category"
-              className="text-sm font-semibold text-on-surface font-headline ml-1"
-            >
+          <div className="flex flex-col gap-2 relative z-20">
+            <label className="text-sm font-semibold text-on-surface font-headline ml-1">
               Main Category
             </label>
-            <div className="relative">
-              <select
-                id="main-category"
-                value={mainCategory}
-                onChange={(e) => handleMainCategoryChange(e.target.value)}
-                className="w-full appearance-none bg-surface-container-lowest border border-outline-variant/30 text-on-surface text-base rounded-2xl px-4 py-4 pr-12 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 shadow-[0_2px_12px_rgba(44,47,49,0.06)] transition-all duration-200 cursor-pointer font-body"
-              >
-                <option value="" disabled>
-                  Select a category...
-                </option>
-                {POLICY_DATA.map((cat) => (
-                  <option key={cat.main_category} value={cat.main_category}>
-                    {cat.main_category}
-                  </option>
-                ))}
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-outline-variant">
-                <ChevronDown className="w-5 h-5" strokeWidth={1.75} />
-              </div>
-            </div>
+            <CustomSelect
+              options={POLICY_DATA.map((d) => d.main_category)}
+              value={mainCategory}
+              onChange={handleMainCategoryChange}
+              placeholder="Select a category..."
+            />
           </div>
 
           {/* ── 2. Sub-category ─────────────────────── */}
-          <div
-            className={`flex flex-col gap-2 transition-all duration-300 ${
-              !mainCategory ? "opacity-50 pointer-events-none" : "opacity-100"
-            }`}
-          >
-            <label
-              htmlFor="sub-category"
-              className="text-sm font-semibold text-on-surface font-headline ml-1"
-            >
+          <div className="flex flex-col gap-2 relative z-10 transition-all duration-300">
+            <label className="text-sm font-semibold text-on-surface font-headline ml-1">
               Sub-category
             </label>
-            <div className="relative">
-              <select
-                id="sub-category"
-                value={subCategory}
-                onChange={(e) => handleSubCategoryChange(e.target.value)}
-                disabled={!mainCategory}
-                className={`w-full appearance-none text-base rounded-2xl px-4 py-4 pr-12 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200 font-body ${
-                  mainCategory
-                    ? "bg-surface-container-lowest border border-outline-variant/30 text-on-surface cursor-pointer shadow-[0_2px_12px_rgba(44,47,49,0.06)]"
-                    : "bg-surface-container-low border border-outline-variant/20 text-on-surface-variant cursor-not-allowed"
-                }`}
-              >
-                <option value="" disabled>
-                  {mainCategory
-                    ? "Select a sub-category..."
-                    : "Select a main category first..."}
-                </option>
-                {selectedMain?.reimbursable_category.map((sub) => (
-                  <option key={sub} value={sub}>
-                    {sub}
-                  </option>
-                ))}
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-outline-variant">
-                <ChevronDown className="w-5 h-5" strokeWidth={1.75} />
-              </div>
-            </div>
+            <CustomSelect
+              options={selectedMain?.reimbursable_category || []}
+              value={subCategory}
+              onChange={handleSubCategoryChange}
+              placeholder={mainCategory ? "Select a sub-category..." : "Select a main category first..."}
+              disabled={!mainCategory}
+            />
           </div>
 
           {/* ── 3. Required Documents ───────────────── */}
