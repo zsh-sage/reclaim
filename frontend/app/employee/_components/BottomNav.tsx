@@ -9,7 +9,7 @@ const NAV_ITEMS = [
   { href: "/employee/dashboard", label: "Home",         icon: Home    },
   { href: "/employee/claims",    label: "Upload Claim", icon: Upload  },
   { href: "/employee/history",   label: "History",      icon: History },
-  { href: "/employee/profile",   label: "Profile",      icon: User    },
+  { href: "/employee/settings",   label: "Profile",      icon: User    },
 ];
 
 export default function BottomNav() {

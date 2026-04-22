@@ -86,7 +86,7 @@ export default function SideNav() {
           </div>
 
           <Link
-            href="/support"
+            href="/employee/support"
             className="flex items-center gap-3 px-4 py-3 rounded-xl font-body text-sm font-medium text-on-surface hover:bg-surface-container/50 transition-all hover:translate-x-0.5 active:scale-[0.97]"
           >
             <LifeBuoy
