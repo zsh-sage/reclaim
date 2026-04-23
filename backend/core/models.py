@@ -111,11 +111,11 @@ class Reimbursement(SQLModel, table=True):
     employee_department: Optional[str] = Field(default=None, sa_column=Column(String))
     employee_rank: int = Field(default=1, sa_column=Column(Integer))
     currency: str = Field(sa_column=Column(String))
-    amount: dict = Field(default={}, sa_column=Column(JSONB))
+    totals: dict = Field(default={}, sa_column=Column(JSONB))
+    line_items: List[dict] = Field(default=[], sa_column=Column(JSONB))
     judgment: str = Field(sa_column=Column(String))
     confidence: Optional[float] = Field(default=None, sa_column=Column(Float))
     status: str = Field(default="REVIEW", sa_column=Column(String))
-    chain_of_thought: dict = Field(default={}, sa_column=Column(JSONB))
     summary: str = Field(sa_column=Column(Text))
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
@@ -141,6 +141,9 @@ class SupportingDocument(SQLModel, table=True):
     is_main: bool = Field(default=True, sa_column=Column(Boolean))
     document_class: str = Field(default="RECEIPT", sa_column=Column(String))
     extracted_data: dict = Field(default={}, sa_column=Column(JSONB))
+    editable_fields: dict = Field(default={}, sa_column=Column(JSONB))
+    human_edited: bool = Field(default=False, sa_column=Column(Boolean))
+    change_summary: dict = Field(default={}, sa_column=Column(JSONB))
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(DateTime(timezone=True))
