@@ -1,42 +1,65 @@
 "use client";
 
-import { Settings, CheckCircle2, ScanLine } from "lucide-react";
+import { CheckCircle2, ScanLine, FileSearch, DatabaseZap } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface ProcessingScreenProps {
-  /** 0 = scanning, 1 = reading, 2 = extracting */
-  currentStep: number;
+  /** Total number of uploaded receipts being processed. */
+  totalFiles:   number;
+  /** Index of the receipt currently being processed (0-based). */
+  currentIndex: number;
+  /**
+   * Trail log step within the current receipt:
+   *   0 = Scanning document
+   *   1 = Reading content
+   *   2 = Extracting data
+   */
+  currentStep:  number;
+  /** Names of fully-completed receipts (for the log list below the stepper). */
+  completedFileNames: string[];
 }
 
-// ─── Step definitions (OCR only — no policy check) ───────────────────────────
+// ─── Trail log steps ──────────────────────────────────────────────────────────
 
-const OCR_STEPS = [
+const TRAIL_STEPS = [
   {
-    id: "scan",
-    label: "Scanning document...",
-    subtitle: "Document scanned successfully.",
+    id:       "scan",
+    icon:     ScanLine,
+    label:    "Scanning document",
+    subtitle: "Document image captured.",
   },
   {
-    id: "read",
-    label: "Reading document...",
-    subtitle: "Text extracted successfully.",
+    id:       "read",
+    icon:     FileSearch,
+    label:    "Reading content",
+    subtitle: "Text layer extracted.",
   },
   {
-    id: "extract",
-    label: "Extracting data...",
-    subtitle: "Identifying merchant and line items.",
+    id:       "extract",
+    icon:     DatabaseZap,
+    label:    "Extracting data",
+    subtitle: "Fields identified and mapped.",
   },
-];
+] as const;
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function ProcessingScreen({ currentStep }: ProcessingScreenProps) {
-  return (
-    <div className="w-full max-w-2xl mx-auto flex flex-col justify-center mt-6 md:mt-12 lg:mt-12">
-      <div className="relative rounded-3xl overflow-hidden shadow-[0_24px_80px_-16px_rgba(44,47,49,0.18)] flex flex-col sm:flex-row min-h-[460px] w-full">
+export function ProcessingScreen({
+  totalFiles,
+  currentIndex,
+  currentStep,
+  completedFileNames,
+}: ProcessingScreenProps) {
+  const overallPct = totalFiles > 0
+    ? Math.round((currentIndex / totalFiles) * 100)
+    : 0;
 
-        {/* ── Left: Gradient Anchor ─────────────────── */}
+  return (
+    <div className="w-full max-w-2xl mx-auto flex flex-col justify-center mt-6 md:mt-12">
+      <div className="relative rounded-3xl overflow-hidden shadow-[0_24px_80px_-16px_rgba(44,47,49,0.18)] flex flex-col sm:flex-row min-h-[480px] w-full">
+
+        {/* ── Left: Gradient anchor ──────────────────────────────────────────── */}
         <div
           className="sm:w-[42%] p-8 flex flex-col justify-between relative overflow-hidden"
           style={{ background: "linear-gradient(135deg, #4647d3 0%, #9396ff 50%, #9e00b4 100%)" }}
@@ -51,45 +74,59 @@ export function ProcessingScreen({ currentStep }: ProcessingScreenProps) {
               <ScanLine className="w-6 h-6 text-white" strokeWidth={1.75} />
             </div>
             <h2 className="font-headline text-2xl font-bold text-white tracking-tight leading-snug">
-              Processing<br />Receipt
+              Processing<br />Receipts
             </h2>
-          </div>
-
-          {/* Engine Status badge */}
-          <div className="relative z-10 rounded-xl p-4" style={{ background: "rgba(255,255,255,0.15)", backdropFilter: "blur(8px)" }}>
-            <p className="text-[10px] text-white/70 font-label font-semibold uppercase tracking-widest mb-1">
-              Engine Status
+            <p className="text-white/70 text-sm font-body mt-2 leading-relaxed">
+              Reclaim AI is reading your documents. Please keep this window open.
             </p>
-            <p className="text-white text-sm font-semibold font-body">Reclaim AI Active</p>
           </div>
-        </div>
 
-        {/* ── Right: Stepper ────────────────────────── */}
-        <div className="flex-1 bg-surface-container-lowest p-8 sm:p-10 flex flex-col justify-center">
-
-          {/* Header row */}
-          <div className="flex items-center gap-4 mb-10">
-            <div
-              className="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center shrink-0"
-              style={{ animation: "spin 3s linear infinite" }}
-            >
-              <Settings className="w-5 h-5 text-primary" strokeWidth={2} />
-            </div>
-            <div>
-              <h3 className="font-headline text-lg font-semibold text-on-surface leading-tight">
-                Analyzing Data
-              </h3>
-              <p className="text-on-surface-variant text-sm font-body mt-0.5">
-                Please do not close this window.
+          {/* Overall progress */}
+          <div className="relative z-10 mt-6">
+            <div className="rounded-xl p-4" style={{ background: "rgba(255,255,255,0.15)", backdropFilter: "blur(8px)" }}>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[10px] text-white/70 font-label font-semibold uppercase tracking-widest">
+                  Overall Progress
+                </p>
+                <span className="text-white text-xs font-bold font-label">
+                  {overallPct}%
+                </span>
+              </div>
+              {/* Progress bar */}
+              <div className="h-1.5 bg-white/20 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-white rounded-full transition-all duration-700 ease-in-out"
+                  style={{ width: `${overallPct}%` }}
+                />
+              </div>
+              <p className="text-white/80 text-xs font-body mt-2">
+                Receipt {Math.min(currentIndex + 1, totalFiles)} of {totalFiles}
               </p>
             </div>
           </div>
+        </div>
 
-          {/* Vertical Stepper */}
-          <div className="relative ml-3">
+        {/* ── Right: Trail log stepper ───────────────────────────────────────── */}
+        <div className="flex-1 bg-surface-container-lowest p-8 sm:p-10 flex flex-col">
+
+          {/* Active receipt label */}
+          <div className="mb-8">
+            <p className="text-[11px] text-primary/80 font-label font-bold uppercase tracking-widest mb-1">
+              Currently Processing
+            </p>
+            <h3 className="font-headline text-lg font-semibold text-on-surface leading-tight">
+              Receipt {currentIndex + 1} of {totalFiles}
+            </h3>
+            <p className="text-on-surface-variant text-sm font-body mt-0.5">
+              Running AI vision extraction…
+            </p>
+          </div>
+
+          {/* Trail log stepper */}
+          <div className="relative ml-3 mb-8">
             {/* Background track */}
             <div className="absolute top-3 bottom-3 left-[11px] w-0.5 bg-surface-container-high rounded-full" />
-            {/* Progress fill — fills proportionally to currentStep */}
+            {/* Progress fill */}
             <div
               className="absolute top-3 left-[11px] w-0.5 bg-primary rounded-full transition-all duration-700 ease-in-out"
               style={{
@@ -100,8 +137,9 @@ export function ProcessingScreen({ currentStep }: ProcessingScreenProps) {
               }}
             />
 
-            <div className="flex flex-col gap-8">
-              {OCR_STEPS.map((step, idx) => {
+            <div className="flex flex-col gap-7">
+              {TRAIL_STEPS.map((step, idx) => {
+                const StepIcon   = step.icon;
                 const isCompleted = idx < currentStep;
                 const isActive    = idx === currentStep;
                 const isPending   = idx > currentStep;
@@ -125,25 +163,65 @@ export function ProcessingScreen({ currentStep }: ProcessingScreenProps) {
                     )}
 
                     {/* Step text */}
-                    <div>
-                      <p className={`font-semibold text-sm leading-tight font-headline ${
-                        isActive    ? "text-primary" :
-                        isCompleted ? "text-on-surface" :
-                                      "text-on-surface-variant/40"
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all duration-300 ${
+                        isActive    ? "bg-primary/15" :
+                        isCompleted ? "bg-primary/10" :
+                                      "bg-surface-container"
                       }`}>
-                        {step.label}
-                      </p>
-                      {(isCompleted || isActive) && (
-                        <p className="text-on-surface-variant text-xs mt-1 font-body leading-relaxed">
-                          {step.subtitle}
+                        <StepIcon
+                          className={`w-4 h-4 transition-colors ${
+                            isActive    ? "text-primary" :
+                            isCompleted ? "text-primary/70" :
+                                          "text-outline-variant/40"
+                          }`}
+                          strokeWidth={1.75}
+                        />
+                      </div>
+                      <div>
+                        <p className={`font-semibold text-sm leading-tight font-headline ${
+                          isActive    ? "text-primary" :
+                          isCompleted ? "text-on-surface" :
+                                        "text-on-surface-variant/40"
+                        }`}>
+                          {step.label}
                         </p>
-                      )}
+                        {(isCompleted || isActive) && (
+                          <p className="text-on-surface-variant text-xs mt-0.5 font-body leading-relaxed">
+                            {step.subtitle}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
               })}
             </div>
           </div>
+
+          {/* Completed receipts log */}
+          {completedFileNames.length > 0 && (
+            <div className="mt-auto pt-4 border-t border-outline-variant/10">
+              <p className="text-[10px] text-on-surface-variant/60 font-label font-semibold uppercase tracking-widest mb-2">
+                Completed
+              </p>
+              <div className="flex flex-col gap-1.5 max-h-28 overflow-y-auto pr-1
+                [&::-webkit-scrollbar]:w-1
+                [&::-webkit-scrollbar-track]:bg-transparent
+                [&::-webkit-scrollbar-thumb]:bg-outline-variant/20
+                [&::-webkit-scrollbar-thumb]:rounded-full">
+                {completedFileNames.map((name, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-2 text-xs font-body text-on-surface-variant animate-in fade-in slide-in-from-bottom-1 duration-300"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5 text-green-500 shrink-0" strokeWidth={2} />
+                    <span className="truncate">{name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
