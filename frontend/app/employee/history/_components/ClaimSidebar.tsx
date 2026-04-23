@@ -228,22 +228,27 @@ function ClaimFormModal({
       className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm overflow-auto"
       onClick={onClose}
     >
-      {/* Floating close button */}
-      <div className="sticky top-0 left-0 w-full h-0 z-50 overflow-visible flex justify-end">
-        <button
-          onClick={onClose}
-          className="mt-4 mr-4 md:mt-8 md:mr-10 p-2.5 bg-surface text-on-surface hover:bg-surface-container-high rounded-full shadow-2xl transition-transform active:scale-95"
-          aria-label="Close preview"
-        >
-          <X className="w-5 h-5" />
-        </button>
-      </div>
+      <style>{`
+        .a4-modal-zoom { zoom: 1; }
+        @media (max-width: 850px) {
+          .a4-modal-zoom { zoom: calc((100vw - 32px) / 794); }
+        }
+      `}</style>
+
+      {/* High-visibility fixed close button */}
+      <button
+        onClick={onClose}
+        className="fixed top-4 right-4 md:top-8 md:right-8 z-[200] p-3 bg-gray-900/60 hover:bg-gray-900/90 text-white rounded-full shadow-2xl backdrop-blur transition-all active:scale-95 border border-white/10"
+        aria-label="Close preview"
+      >
+        <X className="w-5 h-5 md:w-6 md:h-6" />
+      </button>
 
       {/* Scrollable canvas region */}
-      <div className="min-h-full min-w-max p-4 sm:p-8 md:p-12 flex items-start justify-center pb-24">
+      <div className="min-h-full w-full flex justify-center p-4 md:p-12 pb-24 touch-pan-x touch-pan-y">
         {/* A4 Physical Paper */}
         <div
-          className="bg-white rounded-sm shadow-2xl shrink-0 border border-gray-200/50"
+          className="a4-modal-zoom bg-white rounded-sm shadow-2xl shrink-0 border border-gray-200/50"
           style={{ width: "794px", minHeight: "1123px", fontFamily: "sans-serif" }}
           onClick={(e) => e.stopPropagation()}
         >
