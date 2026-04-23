@@ -1,11 +1,11 @@
 "use client";
 
 import { ChevronRight } from "lucide-react";
-import { Claim, STATUS_BADGE, STATUS_DOT } from "./mockData";
+import { HistoryClaim, STATUS_BADGE, STATUS_DOT } from "./historyData";
 
 interface HistoryListProps {
-  claims: Claim[];
-  onSelectClaim: (claim: Claim) => void;
+  claims: HistoryClaim[];
+  onSelectClaim: (claim: HistoryClaim) => void;
 }
 
 export default function HistoryList({ claims, onSelectClaim }: HistoryListProps) {

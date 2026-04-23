@@ -1,77 +1,65 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
-import { Download, History } from "lucide-react";
-import { getClaims } from "@/lib/actions/claims";
-import type { ClaimSummary } from "@/lib/api/types";
+import { useState, useMemo } from "react";
+import { History } from "lucide-react";
 import HistoryFilterBar, { FilterStatus } from "./_components/HistoryFilterBar";
 import HistoryList from "./_components/HistoryList";
 import ClaimSidebar from "./_components/ClaimSidebar";
-import { Claim as LegacyClaim } from "./_components/mockData";
+import { HISTORY_CLAIMS, type HistoryClaim } from "./_components/historyData";
 
 export default function HistoryPage() {
   const [currentStatus, setCurrentStatus] = useState<FilterStatus>("All");
-  const [selectedClaim, setSelectedClaim] = useState<LegacyClaim | null>(null);
-  const [allClaims, setAllClaims] = useState<LegacyClaim[]>([]);
+  const [selectedClaim, setSelectedClaim] = useState<HistoryClaim | null>(null);
+  const [dateRange, setDateRange] = useState("All Time");
+  const [selectedCategory, setSelectedCategory] = useState("All");
 
-  // Fetch claims via server action
-  useEffect(() => {
-    getClaims().then((data) => {
-      // Map ClaimSummary to the legacy Claim shape used by sub-components
-      // (preserves existing UI without rewriting HistoryList / ClaimSidebar)
-      const { Plane, UtensilsCrossed, Monitor, FileText, Bus, Car, Hotel } = require("lucide-react");
-      const iconMap: Record<string, typeof Plane> = {
-        Travel: Plane,
-        Meals: UtensilsCrossed,
-        Equipment: Monitor,
-        Office: FileText,
-      };
-      const subIconMap: Record<string, typeof Plane> = {
-        Flight: Plane,
-        Hotel: Hotel,
-        Taxi: Car,
-        Bus: Bus,
-      };
-      const mapped: LegacyClaim[] = data.map((c: ClaimSummary) => ({
-        id: c.id,
-        date: c.date,
-        category: c.category,
-        subCategory: c.subCategory,
-        categoryIcon: subIconMap[c.subCategory] ?? iconMap[c.category] ?? Monitor,
-        merchant: c.merchant,
-        amount: c.amount,
-        amountNumeric: c.amountNumeric,
-        status: c.status,
-      }));
-      setAllClaims(mapped);
-    });
-  }, []);
-
-  // Filter claims based on the selected status pill
+  // Filter claims based on the selected filters
   const filteredClaims = useMemo(() => {
-    if (currentStatus === "All") return allClaims;
-    return allClaims.filter(claim => claim.status === currentStatus);
-  }, [currentStatus, allClaims]);
+    let result = HISTORY_CLAIMS;
 
-  // Aggregate KPI data (Total vs Pending) just for a tiny summary
+    if (currentStatus !== "All") {
+      result = result.filter((c) => c.status === currentStatus);
+    }
+
+    if (selectedCategory !== "All") {
+      result = result.filter((c) => c.category === selectedCategory);
+    }
+
+    if (dateRange !== "All Time") {
+      // Very simple mock date filtering assuming "now" is Nov 15, 2023 for our mock data
+      const now = new Date("2023-11-15");
+      let days = Infinity;
+      if (dateRange === "Last 30 Days") days = 30;
+      else if (dateRange === "Last 90 Days") days = 90;
+      else if (dateRange === "This Year") days = 365;
+
+      result = result.filter(c => {
+         const diff = (now.getTime() - new Date(c.date).getTime()) / (1000 * 3600 * 24);
+         return diff <= days && diff >= 0;
+      });
+    }
+
+    return result;
+  }, [currentStatus, selectedCategory, dateRange]);
+
+  // KPI summary from mock data
   const summary = useMemo(() => {
-    const total = allClaims.filter(c => c.status === "Approved").reduce((acc, c) => acc + c.amountNumeric, 0);
-    const pending = allClaims.filter(c => c.status === "Pending").reduce((acc, c) => acc + c.amountNumeric, 0);
-    
-    // Formatting currency
-    const formatCurrency = (val: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(val);
-    
-    return {
-      total: formatCurrency(total),
-      pending: formatCurrency(pending)
-    };
-  }, [allClaims]);
+    const fmt = (v: number) =>
+      `RM ${new Intl.NumberFormat("en-MY", { minimumFractionDigits: 2 }).format(v)}`;
+    const reimbursed = HISTORY_CLAIMS
+      .filter((c) => c.status === "Approved" || c.status === "Paid")
+      .reduce((acc, c) => acc + c.approvedAmount, 0);
+    const pending = HISTORY_CLAIMS
+      .filter((c) => c.status === "Pending")
+      .reduce((acc, c) => acc + c.amountNumeric, 0);
+    return { total: fmt(reimbursed), pending: fmt(pending) };
+  }, []);
 
   return (
     <main className="min-h-dvh pb-24 md:pb-12 bg-surface">
       <div className="w-full max-w-screen-2xl mx-auto px-4 md:px-6 pt-6 md:pt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-        
-        {/* ── Header Row ── */}
+
+        {/* ── Header ── */}
         <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
           <div>
             <div className="flex items-center gap-2 text-primary mb-2">
@@ -87,38 +75,35 @@ export default function HistoryPage() {
               <span>Pending: {summary.pending}</span>
             </p>
           </div>
-
-          <div className="flex items-center gap-3">
-            <button className="flex items-center justify-center gap-2 w-full md:w-auto bg-surface-container-lowest border border-outline-variant/20 text-on-surface hover:bg-surface-container-low transition-colors px-4 py-2.5 rounded-xl font-bold text-sm select-none active:scale-95">
-              <Download className="w-4 h-4" />
-              Export
-            </button>
-          </div>
         </header>
 
-        {/* ── Main Content Container ── */}
+        {/* ── Filter Bar ── */}
         <section aria-labelledby="history-filters" className="relative z-10 w-full mb-6">
-          <HistoryFilterBar 
-            currentStatus={currentStatus} 
-            onStatusChange={setCurrentStatus} 
+          <HistoryFilterBar
+            currentStatus={currentStatus}
+            onStatusChange={setCurrentStatus}
+            dateRange={dateRange}
+            onDateRangeChange={setDateRange}
+            category={selectedCategory}
+            onCategoryChange={setSelectedCategory}
           />
         </section>
 
+        {/* ── Claims List ── */}
         <section aria-label="Claims List" className="relative z-0">
-          <HistoryList 
-            claims={filteredClaims} 
-            onSelectClaim={setSelectedClaim} 
+          <HistoryList
+            claims={filteredClaims}
+            onSelectClaim={setSelectedClaim}
           />
         </section>
 
       </div>
 
-      {/* ── Claim Sidebar ── */}
-      <ClaimSidebar 
-        claim={selectedClaim} 
-        onClose={() => setSelectedClaim(null)} 
+      {/* ── Claim Sidebar Drawer ── */}
+      <ClaimSidebar
+        claim={selectedClaim}
+        onClose={() => setSelectedClaim(null)}
       />
-
     </main>
   );
 }
