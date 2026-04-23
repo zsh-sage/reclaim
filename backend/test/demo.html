@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reclaim — Agent Workflow Demo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0d0f14; --surface: #161a23; --surface2: #1e2433; --surface3: #252d3d;
+      --border: #2a3047; --accent: #6c63ff; --accent-hover: #8079ff;
+      --green: #22d3a5; --yellow: #f7c948; --red: #f06a6a; --blue: #60a5fa;
+      --text: #e2e8f0; --muted: #7a8599; --radius: 10px; --radius-sm: 6px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; font-size: 14px; line-height: 1.6; min-height: 100vh; }
+
+    header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 18px; font-weight: 700; color: var(--accent); letter-spacing: -0.5px; }
+    .logo span { color: var(--text); font-weight: 300; }
+    .auth-badge { display: flex; align-items: center; gap: 10px; background: var(--surface2); border: 1px solid var(--border); border-radius: 50px; padding: 6px 14px; font-size: 13px; }
+    .auth-badge .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+    .auth-badge.logged-in .dot { background: var(--green); }
+    .auth-badge .user-name { font-weight: 500; color: var(--text); }
+    .auth-badge .user-role { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+    #btn-logout { background: none; border: none; color: var(--red); cursor: pointer; font-size: 12px; padding: 2px 8px; border-radius: 4px; display: none; }
+    #btn-logout:hover { background: rgba(240,106,106,0.1); }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 24px 20px; }
+
+    .auth-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 28px; }
+    .auth-panel h2 { font-size: 15px; font-weight: 600; margin-bottom: 16px; }
+    .auth-tabs { display: flex; gap: 4px; margin-bottom: 18px; border-bottom: 1px solid var(--border); }
+    .auth-tab-btn { padding: 8px 16px; background: none; border: none; color: var(--muted); cursor: pointer; font-size: 13px; font-weight: 500; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+    .auth-tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .auth-form { display: none; }
+    .auth-form.active { display: block; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 12px; font-weight: 500; color: var(--muted); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.4px; }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 9px 12px; border-radius: var(--radius-sm); font-family: 'Inter', sans-serif; font-size: 13px; outline: none; transition: border-color 0.15s; }
+    .form-group input:focus, .form-group select:focus { border-color: var(--accent); }
+    .form-group select option { background: var(--surface2); }
+
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 9px 20px; border: none; border-radius: var(--radius-sm); cursor: pointer; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; transition: all 0.15s; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-primary:disabled { background: var(--surface3); color: var(--muted); cursor: not-allowed; }
+    .btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); }
+    .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-sm { padding: 5px 12px; font-size: 12px; }
+    .btn-ghost { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 12px; padding: 4px 8px; border-radius: 4px; }
+    .btn-ghost:hover { color: var(--text); background: var(--surface2); }
+    .btn-green { background: rgba(34,211,165,0.15); color: var(--green); border: 1px solid rgba(34,211,165,0.3); }
+    .btn-green:hover { background: rgba(34,211,165,0.25); }
+
+    .main-nav { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
+    .nav-tab { padding: 10px 18px; background: none; border: none; color: var(--muted); cursor: pointer; font-size: 13px; font-weight: 500; border-bottom: 2px solid transparent; margin-bottom: -1px; display: flex; align-items: center; gap: 8px; }
+    .nav-tab.active { color: var(--text); border-bottom-color: var(--accent); }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    .workflow-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 20px; }
+    .workflow-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; background: var(--surface2); }
+    .wf-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+    .wf-icon.purple { background: rgba(108,99,255,0.15); }
+    .wf-icon.blue { background: rgba(96,165,250,0.15); }
+    .wf-icon.green { background: rgba(34,211,165,0.15); }
+    .workflow-header h3 { font-size: 15px; font-weight: 600; }
+    .workflow-header p { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .workflow-body { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+    .wf-input, .wf-output { padding: 20px; }
+    .wf-input { border-right: 1px solid var(--border); }
+    .section-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+    .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+    .progress-steps { margin: 14px 0; display: none; }
+    .progress-steps.show { display: block; }
+    .step-item { display: flex; align-items: center; gap: 10px; padding: 6px 0; font-size: 12px; color: var(--muted); }
+    .step-item.done { color: var(--green); }
+    .step-item.active { color: var(--yellow); }
+    .step-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border); flex-shrink: 0; }
+    .step-item.done .step-dot { background: var(--green); }
+    .step-item.active .step-dot { background: var(--yellow); animation: pulse 1s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+    .output-placeholder { color: var(--muted); font-size: 13px; text-align: center; padding: 40px 20px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .output-placeholder .arrow { font-size: 24px; opacity: 0.3; }
+    .result-block { display: none; }
+    .result-block.show { display: block; }
+    .result-field { margin-bottom: 12px; }
+    .result-field label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; display: block; margin-bottom: 4px; }
+    .result-field .value { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text); word-break: break-all; display: flex; align-items: flex-start; gap: 6px; }
+    .copy-btn { cursor: pointer; background: none; border: none; color: var(--muted); font-size: 11px; padding: 2px 4px; flex-shrink: 0; opacity: 0.5; }
+    .copy-btn:hover { opacity: 1; color: var(--accent); }
+
+    .judgment-badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 14px; border-radius: 20px; font-size: 13px; font-weight: 700; letter-spacing: 0.5px; }
+    .judgment-badge.APPROVE { background: rgba(34,211,165,0.15); color: var(--green); border: 1px solid rgba(34,211,165,0.3); }
+    .judgment-badge.FLAG { background: rgba(240,106,106,0.15); color: var(--red); border: 1px solid rgba(240,106,106,0.3); }
+    .judgment-badge.REVIEW { background: rgba(247,201,72,0.15); color: var(--yellow); border: 1px solid rgba(247,201,72,0.3); }
+
+    .json-block { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--blue); overflow-x: auto; max-height: 250px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; }
+    .warning-chip { display: inline-flex; align-items: center; gap: 5px; background: rgba(247,201,72,0.1); border: 1px solid rgba(247,201,72,0.25); color: var(--yellow); padding: 3px 10px; border-radius: 20px; font-size: 11px; margin: 2px 3px; }
+    .warnings-list { display: flex; flex-wrap: wrap; margin-bottom: 8px; }
+    .tag-list { display: flex; flex-wrap: wrap; gap: 4px; }
+    .tag { background: var(--surface3); border: 1px solid var(--border); color: var(--text); padding: 3px 10px; border-radius: 20px; font-size: 11px; }
+
+    .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #toast { position: fixed; bottom: 24px; right: 24px; background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 12px 18px; border-radius: var(--radius-sm); font-size: 13px; z-index: 9999; display: none; max-width: 320px; }
+    #toast.show { display: block; animation: slideUp 0.2s ease; }
+    #toast.error { border-color: var(--red); color: var(--red); }
+    #toast.success { border-color: var(--green); color: var(--green); }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    .db-tabs { display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; }
+    .db-tab-btn { padding: 6px 14px; background: var(--surface2); border: 1px solid var(--border); color: var(--muted); cursor: pointer; font-size: 12px; border-radius: var(--radius-sm); }
+    .db-tab-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .db-table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th { background: var(--surface2); color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    td { padding: 9px 12px; border-bottom: 1px solid rgba(42,48,71,0.5); color: var(--text); max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: 'JetBrains Mono', monospace; }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+    .empty-state { text-align: center; padding: 40px; color: var(--muted); }
+
+    .info-box { background: rgba(108,99,255,0.08); border: 1px solid rgba(108,99,255,0.2); border-radius: var(--radius-sm); padding: 10px 14px; font-size: 12px; color: var(--muted); margin-bottom: 14px; }
+    .info-box strong { color: var(--accent); }
+
+    .doc-picker { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); max-height: 160px; overflow-y: auto; margin-bottom: 10px; }
+    .doc-picker-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-bottom: 1px solid var(--border); cursor: pointer; }
+    .doc-picker-item:last-child { border-bottom: none; }
+    .doc-picker-item:hover { background: var(--surface3); }
+    .doc-picker-item input[type="checkbox"] { accent-color: var(--accent); }
+    .doc-picker-item .doc-info { flex: 1; min-width: 0; }
+    .doc-picker-item .doc-name { font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .doc-picker-item .doc-meta { font-size: 11px; color: var(--muted); display: flex; gap: 8px; }
+    .doc-picker-item .doc-class { padding: 1px 6px; border-radius: 3px; font-size: 10px; font-weight: 600; }
+    .doc-class.RECEIPT { background: rgba(96,165,250,0.15); color: var(--blue); }
+
+    /* Receipts results table */
+    .receipts-outer { overflow-x: auto; margin: 8px 0; }
+    .receipts-outer table { font-size: 11px; width: 100%; }
+    .receipts-outer th { font-size: 10px; padding: 6px 8px; text-align: center; border: 1px solid var(--border); }
+    .receipts-outer td { padding: 5px 8px; text-align: center; border: 1px solid var(--border); font-family: 'JetBrains Mono', monospace; font-size: 11px; white-space: nowrap; max-width: none; }
+    .receipts-outer td.rdesc { text-align: left; white-space: normal; font-family: inherit; min-width: 130px; }
+    .receipts-outer tfoot td { font-weight: 600; background: var(--surface2); }
+    .totals-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 10px 0; }
+    .totals-grid .tot-box { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 10px; }
+    .totals-grid .tot-box .tot-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
+    .totals-grid .tot-box .tot-val { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; color: var(--text); }
+    .grand-total-box { background: rgba(108,99,255,0.1); border: 1px solid rgba(108,99,255,0.3); border-radius: var(--radius-sm); padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
+
+    .collapsible-header { display: flex; align-items: center; justify-content: space-between; cursor: pointer; margin-bottom: 8px; }
+    .collapsible-header .chevron { transition: transform 0.2s; font-size: 12px; color: var(--muted); }
+    .collapsible-header.collapsed .chevron { transform: rotate(-90deg); }
+    .collapsible-body { display: block; }
+    .collapsible-body.collapsed { display: none; }
+
+    /* Full-width output for WF2 */
+    .workflow-body.single-col { grid-template-columns: 1fr; }
+    .wf-input.no-border { border-right: none; }
+
+    @media (max-width: 768px) {
+      .workflow-body { grid-template-columns: 1fr; }
+      .wf-input { border-right: none; border-bottom: 1px solid var(--border); }
+      .form-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Reclaim <span>/ Agent Demo</span></div>
+  <div class="auth-badge" id="auth-badge">
+    <div class="dot"></div>
+    <span class="user-name" id="badge-name">Not logged in</span>
+    <span class="user-role" id="badge-role"></span>
+    <button class="btn-ghost btn-sm" id="btn-logout" onclick="logout()">Logout</button>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- Auth Panel -->
+  <div class="auth-panel" id="auth-panel">
+    <h2>🔐 Authentication</h2>
+    <div class="auth-tabs">
+      <button class="auth-tab-btn active" onclick="switchAuthTab('login')">Login</button>
+      <button class="auth-tab-btn" onclick="switchAuthTab('register')">Register</button>
+    </div>
+    <div class="auth-form active" id="auth-login">
+      <div class="form-row">
+        <div class="form-group"><label>Email</label><input type="email" id="login-email" placeholder="admin@company.com" /></div>
+        <div class="form-group"><label>Password</label><input type="password" id="login-password" placeholder="password" /></div>
+      </div>
+      <button class="btn btn-primary" onclick="doLogin()" id="btn-login">Login &amp; Get Token</button>
+    </div>
+    <div class="auth-form" id="auth-register">
+      <div class="form-row">
+        <div class="form-group"><label>Full Name</label><input type="text" id="reg-name" placeholder="John Doe" /></div>
+        <div class="form-group"><label>Email</label><input type="email" id="reg-email" placeholder="john@company.com" /></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Password</label><input type="password" id="reg-password" placeholder="min 6 characters" /></div>
+        <div class="form-group"><label>Role</label><select id="reg-role"><option value="Employee">Employee</option><option value="HR">HR</option></select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Department (optional)</label><input type="text" id="reg-dept" placeholder="Engineering" /></div>
+        <div class="form-group"><label>Rank (optional)</label><input type="number" id="reg-rank" placeholder="1" value="1" min="1" /></div>
+      </div>
+      <button class="btn btn-primary" onclick="doRegister()" id="btn-register">Create Account</button>
+    </div>
+  </div>
+
+  <!-- Main Nav -->
+  <div class="main-nav">
+    <button class="nav-tab active" onclick="switchTab('wf1')">📋 Workflow 1 <span style="font-size:11px;color:var(--muted)">Policy Upload</span></button>
+    <button class="nav-tab" onclick="switchTab('wf2')">📄 Workflow 2 <span style="font-size:11px;color:var(--muted)">Receipt OCR</span></button>
+    <button class="nav-tab" onclick="switchTab('wf3')">⚖️ Workflow 3 <span style="font-size:11px;color:var(--muted)">Compliance</span></button>
+    <button class="nav-tab" onclick="switchTab('db'); loadDbTab('employees')">🗄️ DB Viewer</button>
+  </div>
+
+  <!-- ══ WF1: Policy Upload ══ -->
+  <div class="tab-content active" id="tab-wf1">
+    <div class="info-box">
+      <strong>Workflow 1 — HR Policy Upload</strong><br>
+      Upload one or more HR policy PDFs. The AI extracts categories, summaries, and mandatory conditions, then saves them for compliance checks.
+      <strong style="color:var(--yellow)"> Requires HR role.</strong>
+    </div>
+    <div class="workflow-card">
+      <div class="workflow-header">
+        <div class="wf-icon purple">📋</div>
+        <div><h3>Policy PDF Ingestion</h3><p>PDF → Markdown → LLM extraction (categories, conditions) → Policy row</p></div>
+      </div>
+      <div class="workflow-body">
+        <div class="wf-input">
+          <div class="section-label">Input</div>
+          <div class="form-group"><label>Policy Alias *</label><input type="text" id="wf1-alias" placeholder="e.g. Business Travel Policy 2024" /></div>
+          <div class="form-group">
+            <label>Policy PDF Files * (one or more)</label>
+            <input type="file" id="wf1-files" accept=".pdf" multiple style="background:var(--surface2);border:1px dashed var(--border);border-radius:var(--radius-sm);padding:20px;width:100%;cursor:pointer;color:var(--muted);" />
+          </div>
+          <div class="progress-steps" id="wf1-steps">
+            <div class="step-item" id="wf1-s1"><div class="step-dot"></div>Uploading PDFs</div>
+            <div class="step-item" id="wf1-s2"><div class="step-dot"></div>Converting to Markdown</div>
+            <div class="step-item" id="wf1-s3"><div class="step-dot"></div>Extracting categories &amp; summary (LLM)</div>
+            <div class="step-item" id="wf1-s4"><div class="step-dot"></div>Extracting mandatory conditions &amp; saving to DB</div>
+          </div>
+          <button class="btn btn-primary" onclick="runWorkflow1()" id="btn-wf1">Upload &amp; Process →</button>
+        </div>
+        <div class="wf-output">
+          <div class="section-label">Output</div>
+          <div class="output-placeholder" id="wf1-placeholder"><div class="arrow">→</div>Fill in the form and click <em>Upload &amp; Process</em></div>
+          <div class="result-block" id="wf1-result">
+            <div class="result-field"><label>Policy ID</label><div class="value"><span id="wf1-policy-id-val">—</span><button class="copy-btn" onclick="copyText('wf1-policy-id-val')">⎘</button></div></div>
+            <div class="result-field"><label>Title (extracted)</label><div class="value" id="wf1-title-val" style="font-family:Inter;word-break:break-word;"></div></div>
+            <div class="result-field"><label>Reimbursable Categories</label><div class="tag-list" id="wf1-categories"></div></div>
+            <div class="result-field">
+              <label>Overview Summary</label>
+              <div class="collapsible-header" onclick="toggleCollapse('wf1-summary-body', this)"><span style="font-size:12px;color:var(--muted)">Click to expand</span><span class="chevron">▼</span></div>
+              <div class="collapsible-body collapsed" id="wf1-summary-body"><div style="font-size:12px;color:var(--text);line-height:1.6;" id="wf1-summary-text"></div></div>
+            </div>
+            <div class="result-field">
+              <label>Mandatory Conditions (JSON)</label>
+              <div class="collapsible-header" onclick="toggleCollapse('wf1-conditions-body', this)"><span style="font-size:12px;color:var(--muted)">Click to expand</span><span class="chevron">▼</span></div>
+              <div class="collapsible-body collapsed" id="wf1-conditions-body"><pre class="json-block" id="wf1-conditions-json"></pre></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ WF2: Receipt OCR ══ -->
+  <div class="tab-content" id="tab-wf2">
+    <div class="info-box">
+      <strong>Workflow 2 — Multi-Receipt OCR</strong><br>
+      Upload one or more receipt files (images or PDFs). Each receipt is processed <strong>in parallel</strong>:
+      images go through the <strong>Vision LLM</strong>, PDFs are text-extracted then sent to the text LLM.
+      Categories are matched against active policies and amounts are mapped to expense columns automatically.
+    </div>
+
+    <div class="workflow-card">
+      <div class="workflow-header">
+        <div class="wf-icon blue">📄</div>
+        <div><h3>Receipt Upload &amp; Parallel OCR</h3><p>Files → parallel Vision/Text LLM → category matching → aggregated results + DB rows</p></div>
+      </div>
+
+      <!-- Input row (full width) -->
+      <div style="padding:20px;border-bottom:1px solid var(--border);">
+        <div class="section-label">Input</div>
+        <div class="form-group">
+          <label>Receipt Files * — JPEG, PNG, WEBP or PDF (select multiple)</label>
+          <input type="file" id="wf2-files" accept="image/*,.pdf" multiple
+            style="background:var(--surface2);border:1px dashed var(--border);border-radius:var(--radius-sm);padding:20px;width:100%;cursor:pointer;color:var(--muted);" />
+        </div>
+        <div class="progress-steps" id="wf2-steps">
+          <div class="step-item" id="wf2-s1"><div class="step-dot"></div>Saving files to storage</div>
+          <div class="step-item" id="wf2-s2"><div class="step-dot"></div>Running parallel OCR (Vision LLM / PDF text extraction)</div>
+          <div class="step-item" id="wf2-s3"><div class="step-dot"></div>Matching categories &amp; building warnings</div>
+          <div class="step-item" id="wf2-s4"><div class="step-dot"></div>Writing document records to DB</div>
+        </div>
+        <button class="btn btn-primary" onclick="runWorkflow2()" id="btn-wf2">Upload &amp; Process Receipts →</button>
+      </div>
+
+      <!-- Output section (full width) -->
+      <div style="padding:20px;">
+        <div class="section-label">Output</div>
+        <div class="output-placeholder" id="wf2-placeholder"><div class="arrow">→</div>Upload receipts to see aggregated results</div>
+        <div class="result-block" id="wf2-result">
+
+          <div class="result-field">
+            <label>Receipts Processed</label>
+            <div style="font-size:13px;font-weight:600;color:var(--green);" id="wf2-receipt-count">0 receipts</div>
+          </div>
+
+          <div class="result-field">
+            <label>Document IDs <button class="copy-btn" onclick="copyText_val((window._lastDocumentIds||[]).join(','))">⎘ copy all</button></label>
+            <div class="value" style="font-size:11px;" id="wf2-doc-ids-val">—</div>
+          </div>
+
+          <div class="result-field" id="wf2-warnings-section" style="display:none;">
+            <label>⚠️ Warnings</label>
+            <div class="warnings-list" id="wf2-warnings"></div>
+          </div>
+
+          <div class="result-field">
+            <label>Expense Breakdown</label>
+            <div class="receipts-outer" id="wf2-receipts-table"></div>
+          </div>
+
+          <div class="result-field">
+            <label>Totals</label>
+            <div class="totals-grid" id="wf2-totals-grid"></div>
+            <div class="grand-total-box" id="wf2-grand-total">
+              <span style="font-size:13px;font-weight:600;">Amount Due</span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;color:var(--accent);" id="wf2-grand-total-val">0.00</span>
+            </div>
+          </div>
+
+          <!-- Generate Settlement PDF -->
+          <div id="wf2-pdf-section" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
+            <div class="section-label">Settlement PDF</div>
+            <button class="btn btn-green" onclick="generateSettlementPDF()" id="btn-gen-pdf">📄 Generate Business Travel Settlement PDF →</button>
+            <div id="wf2-pdf-result" style="display:none;margin-top:12px;">
+              <div class="result-field"><label>PDF Saved To</label><div class="value" id="wf2-pdf-path" style="color:var(--green);"></div></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- My Documents -->
+    <div class="workflow-card">
+      <div class="workflow-header">
+        <div class="wf-icon blue">📂</div>
+        <div><h3>My Uploaded Documents</h3><p>All receipt documents you've uploaded (use in Workflow 3)</p></div>
+        <button class="btn btn-outline btn-sm" onclick="loadMyDocuments()" style="margin-left:auto">↻ Refresh</button>
+      </div>
+      <div style="padding:16px;">
+        <div id="my-docs-list"><div class="empty-state">Click Refresh to load your documents</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ WF3: Compliance Analysis ══ -->
+  <div class="tab-content" id="tab-wf3">
+    <div class="info-box">
+      <strong>Workflow 3 — Compliance Analysis</strong><br>
+      Select uploaded receipt documents, a policy, and expense details. The AI evaluates each mandatory condition using the receipt OCR data and produces a
+      <strong>judgment</strong> (APPROVE / FLAG / MANUAL REVIEW).
+    </div>
+
+    <div class="workflow-card">
+      <div class="workflow-header">
+        <div class="wf-icon green">⚖️</div>
+        <div><h3>Reimbursement Compliance Check</h3><p>Receipt data + policy conditions → LLM evaluation → chain of thought → judgment → Reimbursement row</p></div>
+      </div>
+      <div class="workflow-body">
+        <div class="wf-input">
+          <div class="section-label">Input</div>
+          <div class="form-group">
+            <label>Select Documents * <button class="btn-ghost btn-sm" onclick="loadDocPickerDocs()" style="margin-left:8px;font-size:11px;">↻ Load</button></label>
+            <div class="doc-picker" id="doc-picker">
+              <div class="doc-picker-item" style="color:var(--muted);justify-content:center;cursor:default;">Click ↻ Load to fetch your documents</div>
+            </div>
+            <div style="font-size:11px;color:var(--muted);margin-top:4px;">Select the receipts for this claim</div>
+          </div>
+          <div class="form-group">
+            <label>Policy * <button class="btn-ghost btn-sm" onclick="loadPolicies()" style="margin-left:8px;font-size:11px;">↻ Load</button></label>
+            <select id="wf3-policy-select" style="font-family:Inter;"><option value="">— click Load to fetch policies —</option></select>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Main Category *</label><input type="text" id="wf3-main-cat" placeholder="e.g. Business Travel" /></div>
+            <div class="form-group"><label>Sub Category *</label><input type="text" id="wf3-sub-cat" placeholder="e.g. Hotel Accommodation" /></div>
+          </div>
+          <div class="progress-steps" id="wf3-steps">
+            <div class="step-item" id="wf3-s1"><div class="step-dot"></div>Loading user &amp; policy context</div>
+            <div class="step-item" id="wf3-s2"><div class="step-dot"></div>LLM evaluating mandatory conditions</div>
+            <div class="step-item" id="wf3-s3"><div class="step-dot"></div>Synthesizing final judgment</div>
+            <div class="step-item" id="wf3-s4"><div class="step-dot"></div>Saving reimbursement record</div>
+          </div>
+          <button class="btn btn-primary" onclick="runWorkflow3()" id="btn-wf3">Analyze Reimbursement →</button>
+        </div>
+
+        <div class="wf-output">
+          <div class="section-label">Output</div>
+          <div class="output-placeholder" id="wf3-placeholder"><div class="arrow">→</div>Fill in details and click <em>Analyze</em><br><span style="font-size:11px;color:var(--muted);">(may take 30–90 seconds)</span></div>
+          <div class="result-block" id="wf3-result">
+            <div class="result-field" style="margin-bottom:16px;"><label>Judgment</label><div id="wf3-judgment-badge" style="margin-top:6px;"></div></div>
+            <div class="result-field"><label>Reimbursement ID</label><div class="value"><span id="wf3-reim-id-val">—</span><button class="copy-btn" onclick="copyText('wf3-reim-id-val')">⎘</button></div></div>
+            <div class="result-field"><label>Summary</label><div style="font-size:12px;color:var(--text);line-height:1.6;padding:10px;background:var(--surface2);border-radius:var(--radius-sm);" id="wf3-summary-text"></div></div>
+            <div class="result-field">
+              <label>Chain of Thought</label>
+              <div class="collapsible-header" onclick="toggleCollapse('wf3-cot-body', this)"><span style="font-size:12px;color:var(--muted)">Click to expand condition-by-condition analysis</span><span class="chevron">▼</span></div>
+              <div class="collapsible-body collapsed" id="wf3-cot-body"><div id="wf3-cot-cards"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ DB Viewer ══ -->
+  <div class="tab-content" id="tab-db">
+    <div class="db-tabs">
+      <button class="db-tab-btn active" onclick="loadDbTab('employees')">Users</button>
+      <button class="db-tab-btn" onclick="loadDbTab('policies')">Policies</button>
+      <button class="db-tab-btn" onclick="loadDbTab('documents')">Documents</button>
+      <button class="db-tab-btn" onclick="loadDbTab('reimbursements')">Reimbursements</button>
+      <button class="db-tab-btn" onclick="loadDbTab('policy_sections')">Policy Sections</button>
+    </div>
+    <div class="workflow-card">
+      <div style="padding:16px;">
+        <div class="db-table-wrap" id="db-table-wrap"><div class="empty-state">Select a table above</div></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+<div id="toast"></div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let token = localStorage.getItem('reclaim_token') || '';
+let currentUser = JSON.parse(localStorage.getItem('reclaim_user') || 'null');
+window._lastDocumentIds = [];
+
+window.onload = () => { if (token && currentUser) updateAuthBadge(); };
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+function api(path, opts = {}) {
+  const headers = { ...(opts.headers || {}) };
+  if (token && !opts.noAuth) headers['Authorization'] = 'Bearer ' + token;
+  return fetch(path, { ...opts, headers });
+}
+function toast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = 'show' + (type ? ' ' + type : '');
+  clearTimeout(el._t); el._t = setTimeout(() => el.className = '', 3500);
+}
+function copyText(id) { navigator.clipboard.writeText(document.getElementById(id).textContent.trim()).then(() => toast('Copied!', 'success')); }
+function copyText_val(val) { navigator.clipboard.writeText(String(val)).then(() => toast('Copied!', 'success')); }
+function setStep(prefix, n, state) { const el = document.getElementById(`${prefix}-s${n}`); if (el) el.className = 'step-item ' + state; }
+function toggleCollapse(bodyId, headerEl) { const collapsed = document.getElementById(bodyId).classList.toggle('collapsed'); headerEl.classList.toggle('collapsed', collapsed); }
+
+// ── Auth ───────────────────────────────────────────────────────────────────
+function switchAuthTab(tab) {
+  document.querySelectorAll('.auth-tab-btn').forEach((b, i) => b.classList.toggle('active', (i===0&&tab==='login')||(i===1&&tab==='register')));
+  document.getElementById('auth-login').classList.toggle('active', tab==='login');
+  document.getElementById('auth-register').classList.toggle('active', tab==='register');
+}
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-password').value;
+  if (!email || !pass) { toast('Enter email and password', 'error'); return; }
+  const btn = document.getElementById('btn-login');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Logging in…';
+  try {
+    const fd = new FormData(); fd.append('username', email); fd.append('password', pass);
+    const res = await api('/api/v1/auth/login', { method: 'POST', body: fd, noAuth: true });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Login failed');
+    token = data.access_token; localStorage.setItem('reclaim_token', token);
+    const meRes = await api('/api/v1/auth/me'); currentUser = await meRes.json();
+    localStorage.setItem('reclaim_user', JSON.stringify(currentUser));
+    updateAuthBadge(); toast('Logged in as ' + currentUser.name, 'success');
+  } catch(e) { toast(e.message, 'error'); }
+  finally { btn.disabled = false; btn.innerHTML = 'Login &amp; Get Token'; }
+}
+async function doRegister() {
+  const name=document.getElementById('reg-name').value.trim(), email=document.getElementById('reg-email').value.trim(),
+        pass=document.getElementById('reg-password').value, role=document.getElementById('reg-role').value,
+        dept=document.getElementById('reg-dept').value.trim(), rank=parseInt(document.getElementById('reg-rank').value)||1;
+  if (!name||!email||!pass) { toast('Fill required fields','error'); return; }
+  const btn = document.getElementById('btn-register'); btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Creating…';
+  try {
+    const res = await api('/api/v1/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,email,password:pass,role,department:dept||null,rank}),noAuth:true});
+    const data = await res.json(); if (!res.ok) throw new Error(data.detail||'Registration failed');
+    toast('Account created! You can now login.','success'); switchAuthTab('login');
+    document.getElementById('login-email').value = email;
+  } catch(e) { toast(e.message,'error'); }
+  finally { btn.disabled=false; btn.innerHTML='Create Account'; }
+}
+function updateAuthBadge() {
+  if (!currentUser) return;
+  document.getElementById('auth-badge').classList.add('logged-in');
+  document.getElementById('badge-name').textContent = currentUser.name;
+  document.getElementById('badge-role').textContent = currentUser.role;
+  document.getElementById('btn-logout').style.display = 'block';
+}
+function logout() {
+  token=''; currentUser=null;
+  localStorage.removeItem('reclaim_token'); localStorage.removeItem('reclaim_user');
+  document.getElementById('auth-badge').classList.remove('logged-in');
+  document.getElementById('badge-name').textContent='Not logged in';
+  document.getElementById('badge-role').textContent='';
+  document.getElementById('btn-logout').style.display='none';
+  toast('Logged out');
+}
+
+// ── Nav ────────────────────────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  document.querySelectorAll('.nav-tab')[['wf1','wf2','wf3','db'].indexOf(name)].classList.add('active');
+}
+
+// ── Workflow 1 ─────────────────────────────────────────────────────────────
+async function runWorkflow1() {
+  if (!token) { toast('Please login first','error'); return; }
+  const alias = document.getElementById('wf1-alias').value.trim();
+  const files = document.getElementById('wf1-files').files;
+  if (!alias) { toast('Enter a policy alias','error'); return; }
+  if (!files.length) { toast('Select at least one PDF','error'); return; }
+
+  const btn = document.getElementById('btn-wf1');
+  btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Processing…';
+  document.getElementById('wf1-steps').classList.add('show');
+  document.getElementById('wf1-result').classList.remove('show');
+  document.getElementById('wf1-placeholder').style.display='flex';
+
+  setStep('wf1',1,'active');
+  const stepTimings = [500, 2000, 8000, 18000];
+  [2,3,4].forEach((sid, i) => setTimeout(() => { setStep('wf1',i+1,'done'); setStep('wf1',sid,'active'); }, stepTimings[i]));
+
+  try {
+    const fd = new FormData(); fd.append('alias', alias);
+    for (const f of files) fd.append('files', f);
+    const res = await api('/api/v1/policies/upload', { method:'POST', body:fd });
+    const data = await res.json(); if (!res.ok) throw new Error(data.detail||JSON.stringify(data));
+
+    for (let i=1;i<=4;i++) setStep('wf1',i,'done');
+    document.getElementById('wf1-placeholder').style.display='none';
+    document.getElementById('wf1-result').classList.add('show');
+    document.getElementById('wf1-policy-id-val').textContent = data.policy_id||'—';
+    document.getElementById('wf1-title-val').textContent = data.title||'(not extracted)';
+    const catEl = document.getElementById('wf1-categories'); catEl.innerHTML='';
+    (data.reimbursable_category||[]).forEach(c => catEl.innerHTML += `<span class="tag">${c}</span>`);
+    document.getElementById('wf1-summary-text').textContent = data.overview_summary||'—';
+    const polRes = await api('/api/v1/policies/');
+    if (polRes.ok) {
+      const policies = await polRes.json();
+      const pol = policies.find(p => p.policy_id===data.policy_id);
+      if (pol?.mandatory_conditions) {
+        try { document.getElementById('wf1-conditions-json').textContent = JSON.stringify(JSON.parse(pol.mandatory_conditions),null,2); }
+        catch { document.getElementById('wf1-conditions-json').textContent = pol.mandatory_conditions; }
+      }
+    }
+    toast('Policy uploaded & processed!','success');
+  } catch(e) {
+    toast('Error: '+e.message,'error');
+    for (let i=1;i<=4;i++) setStep('wf1',i,'');
+    document.getElementById('wf1-placeholder').style.display='flex';
+  } finally { btn.disabled=false; btn.innerHTML='Upload &amp; Process →'; }
+}
+
+// ── Workflow 2 ─────────────────────────────────────────────────────────────
+async function runWorkflow2() {
+  if (!token) { toast('Please login first','error'); return; }
+  const files = document.getElementById('wf2-files').files;
+  if (!files.length) { toast('Select at least one receipt file','error'); return; }
+
+  const btn = document.getElementById('btn-wf2');
+  btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Processing…';
+  document.getElementById('wf2-steps').classList.add('show');
+  document.getElementById('wf2-result').classList.remove('show');
+  document.getElementById('wf2-placeholder').style.display='flex';
+  document.getElementById('wf2-pdf-section').style.display='none';
+  document.getElementById('wf2-pdf-result').style.display='none';
+
+  setStep('wf2',1,'active');
+  setTimeout(() => { setStep('wf2',1,'done'); setStep('wf2',2,'active'); }, 600);
+  setTimeout(() => { setStep('wf2',2,'done'); setStep('wf2',3,'active'); }, 5000);
+  setTimeout(() => { setStep('wf2',3,'done'); setStep('wf2',4,'active'); }, 8000);
+
+  try {
+    const fd = new FormData();
+    for (const f of files) fd.append('files', f);
+    const res = await api('/api/v1/documents/upload', { method:'POST', body:fd });
+    const data = await res.json(); if (!res.ok) throw new Error(data.detail||JSON.stringify(data));
+
+    for (let i=1;i<=4;i++) setStep('wf2',i,'done');
+    window._lastDocumentIds = data.document_ids || [];
+
+    document.getElementById('wf2-placeholder').style.display='none';
+    document.getElementById('wf2-result').classList.add('show');
+    document.getElementById('wf2-receipt-count').textContent = `${(data.receipts||[]).length} receipt(s) processed`;
+    document.getElementById('wf2-doc-ids-val').textContent = (data.document_ids||[]).join(', ') || '—';
+
+    const warns = data.all_warnings || [];
+    const warnSec = document.getElementById('wf2-warnings-section');
+    if (warns.length) {
+      warnSec.style.display='block';
+      document.getElementById('wf2-warnings').innerHTML = warns.map(w=>`<span class="warning-chip">⚠ ${w}</span>`).join('');
+    } else { warnSec.style.display='none'; }
+
+    renderReceiptsTable(data.receipts||[], data.totals||{});
+    renderTotals(data.totals||{});
+    document.getElementById('wf2-pdf-section').style.display='block';
+    toast(`${(data.receipts||[]).length} receipt(s) processed!`,'success');
+  } catch(e) {
+    toast('Error: '+e.message,'error');
+    for (let i=1;i<=4;i++) setStep('wf2',i,'');
+    document.getElementById('wf2-placeholder').style.display='flex';
+  } finally { btn.disabled=false; btn.innerHTML='Upload &amp; Process Receipts →'; }
+}
+
+function renderReceiptsTable(receipts, totals) {
+  const el = document.getElementById('wf2-receipts-table');
+  const cur = totals.currency||'MYR';
+  if (!receipts.length) { el.innerHTML='<div style="color:var(--muted);padding:16px;text-align:center;">No receipts</div>'; return; }
+  const rows = receipts.map((r,i) => `
+    <tr>
+      <td>${i+1}</td>
+      <td>${r.date||'—'}</td>
+      <td class="rdesc">${r.description||'—'}<br><span style="color:var(--muted);font-size:10px;">${r.category}</span></td>
+      <td>${r.transportation>0?r.transportation.toFixed(2):'—'}</td>
+      <td>${r.accommodation>0?r.accommodation.toFixed(2):'—'}</td>
+      <td>${r.meals>0?r.meals.toFixed(2):'—'}</td>
+      <td>${r.others>0?r.others.toFixed(2):'—'}</td>
+      <td style="font-weight:600;">${r.amount.toFixed(2)}</td>
+    </tr>`).join('');
+  el.innerHTML = `<table>
+    <thead><tr><th>#</th><th>Date</th><th>Description</th>
+    <th>Transport (${cur})</th><th>Accomm. (${cur})</th><th>Meals (${cur})</th><th>Others (${cur})</th><th>Amount</th></tr></thead>
+    <tbody>${rows}</tbody>
+    <tfoot><tr>
+      <td colspan="3" style="text-align:right;font-weight:600;">Sub-Total</td>
+      <td>${(totals.transportation||0).toFixed(2)}</td>
+      <td>${(totals.accommodation||0).toFixed(2)}</td>
+      <td>${(totals.meals||0).toFixed(2)}</td>
+      <td>${(totals.others||0).toFixed(2)}</td>
+      <td style="font-weight:600;">${(totals.grand_total||0).toFixed(2)}</td>
+    </tr></tfoot></table>`;
+}
+
+function renderTotals(totals) {
+  const cur = totals.currency||'MYR';
+  const grid = document.getElementById('wf2-totals-grid');
+  grid.innerHTML = [
+    ['🚌 Transportation', totals.transportation],
+    ['🏨 Accommodation', totals.accommodation],
+    ['🍽️ Meals', totals.meals],
+    ['📦 Others', totals.others],
+  ].map(([label, val]) => `
+    <div class="tot-box">
+      <div class="tot-label">${label}</div>
+      <div class="tot-val">${cur} ${(val||0).toFixed(2)}</div>
+    </div>`).join('');
+  document.getElementById('wf2-grand-total-val').textContent = `${cur} ${(totals.grand_total||0).toFixed(2)}`;
+}
+
+async function generateSettlementPDF() {
+  const docIds = window._lastDocumentIds || [];
+  if (!docIds.length) { toast('Upload receipts first','error'); return; }
+  const btn = document.getElementById('btn-gen-pdf');
+  btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Generating PDF…';
+  try {
+    const fd = new FormData(); docIds.forEach(id => fd.append('document_ids', id));
+    const res = await api('/api/v1/documents/generate-template', { method:'POST', body:fd });
+    const data = await res.json(); if (!res.ok) throw new Error(data.detail||JSON.stringify(data));
+    document.getElementById('wf2-pdf-path').textContent = data.pdf_path;
+    document.getElementById('wf2-pdf-result').style.display='block';
+    toast('Settlement PDF generated!','success');
+  } catch(e) { toast('PDF failed: '+e.message,'error'); }
+  finally { btn.disabled=false; btn.innerHTML='📄 Generate Business Travel Settlement PDF →'; }
+}
+
+async function loadMyDocuments() {
+  if (!token) { toast('Please login first','error'); return; }
+  const res = await api('/api/v1/documents/'); if (!res.ok) { toast('Failed to load documents','error'); return; }
+  const docs = await res.json();
+  const el = document.getElementById('my-docs-list');
+  if (!docs.length) { el.innerHTML='<div class="empty-state">No documents uploaded yet</div>'; return; }
+  el.innerHTML = `<div style="overflow-x:auto;"><table>
+    <thead><tr><th>ID</th><th>Name</th><th>Type</th><th>Created</th><th>Reim ID</th></tr></thead>
+    <tbody>${docs.map(d=>`<tr>
+      <td title="${d.document_id}">${d.document_id.slice(0,8)}… <button class="copy-btn" onclick="copyText_val('${d.document_id}')">⎘</button></td>
+      <td>${d.name}</td><td>${d.type||'—'}</td>
+      <td>${d.created_at?d.created_at.slice(0,10):'—'}</td>
+      <td title="${d.reim_id||''}">${d.reim_id?d.reim_id.slice(0,8)+'…':'—'}</td>
+    </tr>`).join('')}</tbody></table></div>`;
+}
+
+// ── Workflow 3 ─────────────────────────────────────────────────────────────
+let docPickerDocs = [];
+async function loadDocPickerDocs() {
+  if (!token) { toast('Please login first','error'); return; }
+  const res = await api('/api/v1/documents/'); if (!res.ok) { toast('Failed to load','error'); return; }
+  docPickerDocs = await res.json(); renderDocPicker();
+}
+function renderDocPicker() {
+  const el = document.getElementById('doc-picker');
+  if (!docPickerDocs.length) { el.innerHTML='<div class="doc-picker-item" style="color:var(--muted);justify-content:center;cursor:default;">No documents — upload in Workflow 2 first</div>'; return; }
+  el.innerHTML = docPickerDocs.map(d=>`
+    <label class="doc-picker-item">
+      <input type="checkbox" value="${d.document_id}" />
+      <div class="doc-info">
+        <div class="doc-name">${d.name}</div>
+        <div class="doc-meta">
+          <span class="doc-class RECEIPT">RECEIPT</span>
+          <span style="color:var(--muted);font-size:10px;">${d.document_id.slice(0,12)}…</span>
+          <span style="color:var(--muted);font-size:10px;">${d.created_at?d.created_at.slice(0,10):''}</span>
+        </div>
+      </div>
+    </label>`).join('');
+}
+async function loadPolicies() {
+  if (!token) { toast('Please login first','error'); return; }
+  const res = await api('/api/v1/policies/'); if (!res.ok) { toast('Failed to load policies','error'); return; }
+  const policies = await res.json();
+  const sel = document.getElementById('wf3-policy-select');
+  sel.innerHTML = '<option value="">— Select a policy —</option>' +
+    policies.map(p=>`<option value="${p.policy_id}">${p.alias||p.title} (${p.policy_id.slice(0,8)}…)</option>`).join('');
+  if (policies.length) toast('Loaded '+policies.length+' policies','success');
+  else toast('No policies found — upload one first','error');
+}
+async function runWorkflow3() {
+  if (!token) { toast('Please login first','error'); return; }
+  const selectedDocs = [...document.querySelectorAll('#doc-picker input[type="checkbox"]:checked')].map(c=>c.value);
+  const policyId = document.getElementById('wf3-policy-select').value;
+  const mainCat  = document.getElementById('wf3-main-cat').value.trim();
+  const subCat   = document.getElementById('wf3-sub-cat').value.trim();
+  if (!selectedDocs.length) { toast('Select at least one document','error'); return; }
+  if (!policyId) { toast('Select a policy','error'); return; }
+  if (!mainCat)  { toast('Enter main category','error'); return; }
+  if (!subCat)   { toast('Enter sub category','error'); return; }
+
+  const btn = document.getElementById('btn-wf3');
+  btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Analyzing (30–90s)…';
+  document.getElementById('wf3-steps').classList.add('show');
+  document.getElementById('wf3-result').classList.remove('show');
+  document.getElementById('wf3-placeholder').style.display='flex';
+
+  setStep('wf3',1,'active');
+  setTimeout(() => { setStep('wf3',1,'done'); setStep('wf3',2,'active'); }, 1000);
+  setTimeout(() => { setStep('wf3',2,'done'); setStep('wf3',3,'active'); }, 20000);
+  setTimeout(() => { setStep('wf3',3,'done'); setStep('wf3',4,'active'); }, 50000);
+
+  try {
+    const res = await api('/api/v1/reimbursements/analyze', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ document_ids:selectedDocs, policy_id:policyId, main_category:mainCat, sub_category:subCat }),
+    });
+    const data = await res.json(); if (!res.ok) throw new Error(data.detail||JSON.stringify(data));
+    for (let i=1;i<=4;i++) setStep('wf3',i,'done');
+
+    document.getElementById('wf3-placeholder').style.display='none';
+    document.getElementById('wf3-result').classList.add('show');
+    document.getElementById('wf3-reim-id-val').textContent = data.reim_id||'—';
+    document.getElementById('wf3-summary-text').textContent = data.summary||'—';
+
+    const j = (data.judgment||'MANUAL REVIEW').toUpperCase();
+    const badgeClass = j==='APPROVE'?'APPROVE':j==='FLAG'?'FLAG':'REVIEW';
+    const emoji = j==='APPROVE'?'✅':j==='FLAG'?'🚩':'⚠️';
+    document.getElementById('wf3-judgment-badge').innerHTML = `<span class="judgment-badge ${badgeClass}">${emoji} ${j}</span>`;
+
+    const cot = data.chain_of_thought||{};
+    const cotEl = document.getElementById('wf3-cot-cards'); cotEl.innerHTML='';
+    Object.entries(cot).forEach(([key,val]) => {
+      const flag = (val.flag||'').toUpperCase();
+      const color = flag==='PASS'||flag==='APPROVE'?'var(--green)':flag==='FAIL'||flag==='FLAG'?'var(--red)':'var(--yellow)';
+      cotEl.innerHTML += `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:10px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <strong style="font-size:12px;">${key}</strong><span style="color:${color};font-size:11px;font-weight:700;">${flag||'N/A'}</span></div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:4px;">${val.reason||''}</div>
+        ${val.note?`<div style="font-size:11px;color:var(--muted);font-style:italic;">${val.note}</div>`:''}
+      </div>`;
+    });
+    toast('Analysis complete! Judgment: '+j, j==='APPROVE'?'success':'');
+  } catch(e) {
+    toast('Error: '+e.message,'error');
+    for (let i=1;i<=4;i++) setStep('wf3',i,'');
+    document.getElementById('wf3-placeholder').style.display='flex';
+  } finally { btn.disabled=false; btn.innerHTML='Analyze Reimbursement →'; }
+}
+
+// ── DB Viewer ──────────────────────────────────────────────────────────────
+function loadDbTab(table) {
+  document.querySelectorAll('.db-tab-btn').forEach((b,i) => {
+    b.classList.toggle('active', ['employees','policies','documents','reimbursements','policy_sections'][i]===table);
+  });
+  document.getElementById('db-table-wrap').innerHTML='<div class="empty-state"><span class="spinner"></span> Loading…</div>';
+  fetch('/test/db/'+table)
+    .then(r=>r.json()).then(rows => {
+      if (!rows.length) { document.getElementById('db-table-wrap').innerHTML='<div class="empty-state">No data found</div>'; return; }
+      const keys = Object.keys(rows[0]);
+      const thead = `<thead><tr>${keys.map(k=>`<th>${k}</th>`).join('')}</tr></thead>`;
+      const tbody = `<tbody>${rows.map(r=>`<tr>${keys.map(k=>{
+        let v=r[k]; if(v===null||v===undefined)v='—'; else if(typeof v==='object')v=JSON.stringify(v).slice(0,60)+'…'; else if(typeof v==='string'&&v.length>80)v=v.slice(0,80)+'…';
+        return `<td title="${String(r[k]??'')}">${v}</td>`;
+      }).join('')}</tr>`).join('')}</tbody>`;
+      document.getElementById('db-table-wrap').innerHTML=`<table>${thead}${tbody}</table>`;
+    }).catch(() => { document.getElementById('db-table-wrap').innerHTML='<div class="empty-state">Failed to load data</div>'; });
+}
+</script>
+</body>
+</html>

@@ -6,16 +6,14 @@ from datetime import datetime, timezone
 from typing import TypedDict, List, Dict, Any, Optional
 from uuid import UUID
 
-from langchain_core.messages import HumanMessage, ToolMessage
+from langchain_core.messages import HumanMessage
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.prompts import PromptTemplate
-from langchain_core.tools import tool
 from langgraph.graph import StateGraph, START, END
 from sqlmodel import Session, select
 
 from core.models import User, Policy, Reimbursement, SupportingDocument
-from engine.llm import get_chat_llm, get_embeddings, get_agent_llm
-from engine.tools.rag_tool import policy_rag_search, document_rag_search
+from engine.llm import get_chat_llm
 from engine.prompts.compliance_prompts import AGENT_EVALUATION_PROMPT, JUDGMENT_SYNTHESIS_PROMPT
 
 logger = logging.getLogger(__name__)
@@ -27,16 +25,13 @@ class ComplianceWorkflowState(TypedDict):
     main_category: str
     sub_category: str
     user_id: str
-    # Populated from receipt OCR in load_context:
     currency: str
     amount: float
-    # Populated during execution:
     user: Optional[Any]
     receipt_extracted_data: dict
     policy: Optional[Any]
-    mandatory_conditions: dict       # full conditions dict from policy
-    category_data: dict              # only the sub_category entry {required_documents, condition}
-    supporting_doc_ids: List[str]    # document_ids where is_main=False (for RAG only)
+    mandatory_conditions: dict
+    category_data: dict
     chain_of_thought: dict
     judgment: str
     summary: str
@@ -52,7 +47,6 @@ def load_context(state: ComplianceWorkflowState, session: Session) -> dict:
     except (json.JSONDecodeError, TypeError):
         conditions_dict = {}
 
-    # Extract the single sub_category entry (exact match, then case-insensitive fallback)
     sub_category = state.get("sub_category", "")
     if sub_category in conditions_dict:
         category_data = conditions_dict[sub_category]
@@ -60,7 +54,7 @@ def load_context(state: ComplianceWorkflowState, session: Session) -> dict:
         matched = next((k for k in conditions_dict if k.lower() == sub_category.lower()), None)
         category_data = conditions_dict[matched] if matched else {}
 
-    # Find main receipt OCR data
+    # Find main receipt data — all uploaded docs default to is_main=True
     doc_uuids = [UUID(d) for d in state["document_ids"]]
     main_doc = session.exec(
         select(SupportingDocument).where(
@@ -70,16 +64,9 @@ def load_context(state: ComplianceWorkflowState, session: Session) -> dict:
     ).first()
     receipt_extracted_data = (main_doc.extracted_data or {}) if main_doc else {}
     currency = receipt_extracted_data.get("currency") or ""
+    if currency == "Not found in Receipt":
+        currency = ""
     amount = float(receipt_extracted_data.get("total_amount") or 0)
-
-    # Collect supporting document IDs (is_main=False) — only these have embeddings for RAG
-    supporting_docs = session.exec(
-        select(SupportingDocument).where(
-            SupportingDocument.document_id.in_(doc_uuids),
-            SupportingDocument.is_main == False,
-        )
-    ).all()
-    supporting_doc_ids = [str(d.document_id) for d in supporting_docs]
 
     return {
         "user": user,
@@ -89,7 +76,6 @@ def load_context(state: ComplianceWorkflowState, session: Session) -> dict:
         "receipt_extracted_data": receipt_extracted_data,
         "currency": currency,
         "amount": amount,
-        "supporting_doc_ids": supporting_doc_ids,
         "chain_of_thought": {},
     }
 
@@ -99,41 +85,10 @@ def check_conditions(state: ComplianceWorkflowState, session: Session) -> dict:
     policy = state["policy"]
     sub_category = state.get("sub_category", "")
     category_data = state.get("category_data", {})
-    policy_uuid = UUID(state["policy_id"])
-    supporting_doc_uuids = [UUID(d) for d in state.get("supporting_doc_ids", [])]
 
     required_docs = category_data.get("required_documents", [])
     conditions_list = category_data.get("condition", [])
 
-    # ── RAG Tools (closures over session/IDs) ──────────────────────
-    @tool
-    def search_policy_sections(query: str) -> str:
-        """Search the company HR policy document for specific rules, limits, or procedures. Use only when you need exact policy wording not covered in the overview."""
-        try:
-            embedding = get_embeddings().embed_query(query)
-            chunks = policy_rag_search(embedding, policy_uuid, session, k=3)
-            result = "\n---\n".join(c.get("content", "") for c in chunks)
-            return result or "No relevant policy sections found."
-        except Exception as e:
-            return f"Policy search error: {e}"
-
-    @tool
-    def search_supporting_documents(query: str) -> str:
-        """Search the employee's submitted supporting PDF documents for specific evidence. Use only when you need to verify content from supporting docs beyond the main receipt."""
-        if not supporting_doc_uuids:
-            return "No supporting documents were submitted for this claim."
-        try:
-            embedding = get_embeddings().embed_query(query)
-            chunks = document_rag_search(embedding, supporting_doc_uuids, session, k=3)
-            result = "\n---\n".join(c.get("content", "") for c in chunks)
-            return result or "No relevant content found in supporting documents."
-        except Exception as e:
-            return f"Document search error: {e}"
-
-    tools = [search_policy_sections, search_supporting_documents]
-    tools_map = {t.name: t for t in tools}
-
-    # ── Build agent prompt ─────────────────────────────────────────
     eval_prompt = AGENT_EVALUATION_PROMPT.format(
         sub_category=sub_category,
         employee_name=user.name if user else "Unknown",
@@ -147,41 +102,10 @@ def check_conditions(state: ComplianceWorkflowState, session: Session) -> dict:
         policy_overview=policy.overview_summary if policy else "",
     )
 
-    # ── Manual tool-calling loop ───────────────────────────────────
-    llm_with_tools = get_agent_llm().bind_tools(tools)
-    messages = [HumanMessage(content=eval_prompt)]
-    response = None
-    hit_iteration_limit = True
+    response = get_chat_llm().invoke([HumanMessage(content=eval_prompt)])
+    final_content = response.content if isinstance(response.content, str) else ""
 
-    for _ in range(6):
-        response = llm_with_tools.invoke(messages)
-        messages.append(response)
-
-        tool_calls = getattr(response, "tool_calls", None)
-        if not tool_calls:
-            hit_iteration_limit = False
-            break
-
-        for tc in tool_calls:
-            tool_fn = tools_map.get(tc["name"])
-            if tool_fn:
-                try:
-                    result = tool_fn.invoke(tc["args"])
-                except Exception as e:
-                    result = f"Tool error: {e}"
-                messages.append(ToolMessage(content=str(result), tool_call_id=tc["id"]))
-
-    if hit_iteration_limit:
-        logger.warning(
-            "Compliance agent hit max iteration limit for sub_category=%s; "
-            "proceeding to parse with potentially incomplete reasoning.",
-            sub_category,
-        )
-
-    # ── Parse JSON from final response ────────────────────────────
-    final_content = (response.content if response and isinstance(response.content, str) else "") if response else ""
     chain_of_thought = {}
-
     try:
         parser = JsonOutputParser()
         chain_of_thought = parser.parse(final_content)
@@ -194,8 +118,8 @@ def check_conditions(state: ComplianceWorkflowState, session: Session) -> dict:
             chain_of_thought = {
                 sub_category: {
                     "flag": "MANUAL_REVIEW",
-                    "reason": "Could not parse agent evaluation response.",
-                    "note": final_content[:500] if final_content else "No response from agent.",
+                    "reason": "Could not parse evaluation response.",
+                    "note": final_content[:500] if final_content else "No response from LLM.",
                 }
             }
 
@@ -274,7 +198,6 @@ def run_compliance_workflow(
     user_id: str,
     session: Session,
 ) -> dict:
-    # Wrap session-dependent nodes in closures to keep Session out of LangGraph state
     def _load_context(state): return load_context(state, session)
     def _check_conditions(state): return check_conditions(state, session)
     def _save_reimbursement(state): return save_reimbursement(state, session)
@@ -306,7 +229,6 @@ def run_compliance_workflow(
         "policy": None,
         "mandatory_conditions": {},
         "category_data": {},
-        "supporting_doc_ids": [],
         "chain_of_thought": {},
         "judgment": "",
         "summary": "",

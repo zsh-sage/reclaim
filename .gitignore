@@ -7,7 +7,9 @@
 
 # testing
 /coverage
-backend/test/
+backend/test/*
+!backend/test/demo.html
+!backend/test/agent_workflows.md
 
 # next.js
 /.next/

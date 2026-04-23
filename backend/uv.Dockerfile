@@ -1,29 +1,46 @@
-FROM python:3.13-slim
-
-WORKDIR /app
+# Stage 1: Builder
+FROM python:3.13-slim AS builder
 
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-RUN apt-get update && apt-get install -y --no-install-recommends gcc libpq-dev python3-dev && rm -rf /var/lib/apt/lists/*
+# Set working directory
+WORKDIR /app
 
-# Copy project files
-COPY pyproject.toml uv.lock ./
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    libpq-dev \
+    python3-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-# Sync dependencies
-RUN uv sync --frozen --no-install-project --no-dev
+# Cache mount for uv to speed up re-builds
+# We only copy the lockfiles first to keep the cache valid
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --frozen --no-install-project --no-dev
 
+# Stage 2: Final Runtime
+FROM python:3.13-slim
+
+WORKDIR /app
+
+# Copy the virtual environment from the builder
+COPY --from=builder /app/.venv /app/.venv
+
+# Copy only the necessary application files
 COPY . .
 
-# Final sync to include project
-RUN uv sync --frozen --no-dev
+# Set up the non-root user
+RUN adduser --system --group appuser && \
+    chown -R appuser:appuser /app
 
-# Create a non-root user and set permissions
-RUN adduser --system --group --home /home/appuser appuser && chown -R appuser:appuser /app
 USER appuser
 
-# Ensure the virtual environment is used
+# Environment setup
 ENV PATH="/app/.venv/bin:$PATH"
+ENV PYTHONUNBUFFERED=1
 
 EXPOSE 8000
 

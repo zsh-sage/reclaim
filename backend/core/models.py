@@ -7,7 +7,6 @@ import enum
 from sqlmodel import Field, SQLModel, Column, String, Text, Integer, Boolean, DateTime, JSON
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy import Numeric
-from pgvector.sqlalchemy import Vector
 
 class UserRole(str, enum.Enum):
     HR = "HR"
@@ -16,7 +15,7 @@ class UserRole(str, enum.Enum):
 # --- 1. employees (merged with User for auth) ---
 class User(SQLModel, table=True):
     __tablename__ = "employees"
-    
+
     user_id: UUID = Field(default_factory=uuid4, primary_key=True)
     email: str = Field(sa_column=Column(String, unique=True, index=True, nullable=False))
     hashed_password: str = Field(sa_column=Column(String, nullable=False))
@@ -30,7 +29,7 @@ class User(SQLModel, table=True):
 # --- 2. policies ---
 class Policy(SQLModel, table=True):
     __tablename__ = "policies"
-    
+
     policy_id: UUID = Field(default_factory=uuid4, primary_key=True)
     alias: str = Field(sa_column=Column(String))
     title: str = Field(sa_column=Column(String))
@@ -40,31 +39,26 @@ class Policy(SQLModel, table=True):
     mandatory_conditions: str = Field(sa_column=Column(Text))
     source_file_url: str = Field(sa_column=Column(String))
     created_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc), 
+        default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(DateTime(timezone=True))
     )
     status: str = Field(sa_column=Column(String))
 
 
-# --- 3. policy_sections ---
+# --- 3. policy_sections (embeddings removed; RAG pipeline retired) ---
 class PolicySection(SQLModel, table=True):
     __tablename__ = "policy_sections"
-    
+
     section_id: UUID = Field(default_factory=uuid4, primary_key=True)
     policy_id: UUID = Field(foreign_key="policies.policy_id")
     content: str = Field(sa_column=Column(Text))
-    
-    # Change '1536' to match your embedding model dimension
-    embedding: List[float] = Field(sa_column=Column(Vector(1536)))
-    
-    # Python attribute 'metadata_data' maps to Postgres column 'metadata'
     metadata_data: dict = Field(default={}, sa_column=Column("metadata", JSONB))
 
 
 # --- 4. reimbursements ---
 class Reimbursement(SQLModel, table=True):
     __tablename__ = "reimbursements"
-    
+
     reim_id: UUID = Field(default_factory=uuid4, primary_key=True)
     user_id: UUID = Field(foreign_key="employees.user_id")
     policy_id: Optional[UUID] = Field(default=None, foreign_key="policies.policy_id")
@@ -79,11 +73,11 @@ class Reimbursement(SQLModel, table=True):
     chain_of_thought: dict = Field(default={}, sa_column=Column(JSONB))
     summary: str = Field(sa_column=Column(Text))
     created_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc), 
+        default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(DateTime(timezone=True))
     )
     updated_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc), 
+        default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(DateTime(timezone=True))
     )
 
@@ -91,33 +85,17 @@ class Reimbursement(SQLModel, table=True):
 # --- 5. supporting_documents ---
 class SupportingDocument(SQLModel, table=True):
     __tablename__ = "supporting_documents"
-    
+
     document_id: UUID = Field(default_factory=uuid4, primary_key=True)
     reim_id: Optional[UUID] = Field(default=None, foreign_key="reimbursements.reim_id")
     user_id: UUID = Field(foreign_key="employees.user_id")
     name: str = Field(sa_column=Column(Text))
     path: str = Field(sa_column=Column(String))
     type: str = Field(sa_column=Column(String))
-    is_main: bool = Field(sa_column=Column(Boolean))
-    document_class: str = Field(sa_column=Column(String))
+    is_main: bool = Field(default=True, sa_column=Column(Boolean))
+    document_class: str = Field(default="RECEIPT", sa_column=Column(String))
     extracted_data: dict = Field(default={}, sa_column=Column(JSONB))
     created_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc), 
+        default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(DateTime(timezone=True))
     )
-
-
-# --- 6. supporting_documents_embeddings ---
-class SupportingDocumentEmbedding(SQLModel, table=True):
-    __tablename__ = "supporting_documents_embeddings"
-    
-    sub_document_id: UUID = Field(default_factory=uuid4, primary_key=True)
-    document_id: UUID = Field(foreign_key="supporting_documents.document_id")
-    content: str = Field(sa_column=Column(Text))
-    
-    # Change '1536' to match your embedding model dimension
-    embedding: List[float] = Field(sa_column=Column(Vector(1536)))
-    
-    # Python attribute 'metadata_data' maps to Postgres column 'metadata'
-    metadata_data: dict = Field(default={}, sa_column=Column("metadata", JSONB))
-

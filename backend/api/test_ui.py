@@ -110,7 +110,6 @@ def get_reimbursements(db: Session = Depends(deps.get_db)) -> List[dict]:
 
 @router.get("/db/policy_sections")
 def get_policy_sections(db: Session = Depends(deps.get_db)) -> List[dict]:
-    # Limit to 50 rows, omit embedding (too large)
     sections = db.exec(select(PolicySection).limit(50)).all()
     return [
         {
