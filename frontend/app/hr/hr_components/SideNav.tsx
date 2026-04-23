@@ -16,7 +16,7 @@ import {
 
 const NAV_LINKS = [
   { href: "/hr/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/hr/claims",    label: "Policy Studio",  icon: FileSliders         },
+  { href: "/hr/policy",    label: "Policy Studio",  icon: FileSliders         },
   { href: "/hr/history",   label: "History",    icon: History          },
   { href: "/hr/settings",  label: "Settings",   icon: Settings         },
 ];
