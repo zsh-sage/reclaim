@@ -392,9 +392,9 @@
           <!-- Generate Settlement PDF -->
           <div id="wf2-pdf-section" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
             <div class="section-label">Settlement PDF</div>
-            <button class="btn btn-green" onclick="generateSettlementPDF()" id="btn-gen-pdf">📄 Generate Business Travel Settlement PDF →</button>
+            <button class="btn btn-green" onclick="generateSettlementPDF()" id="btn-gen-pdf">📄 Generate Business Travel Settlement →</button>
             <div id="wf2-pdf-result" style="display:none;margin-top:12px;">
-              <div class="result-field"><label>PDF Saved To</label><div class="value" id="wf2-pdf-path" style="color:var(--green);"></div></div>
+              <div class="result-field"><label>Settlement</label><div class="value" id="wf2-pdf-path" style="color:var(--green);font-family:Inter,sans-serif;font-size:12px;"></div></div>
             </div>
           </div>
 
@@ -849,16 +849,25 @@ async function generateSettlementPDF() {
   const docIds = window._lastDocumentIds || [];
   if (!docIds.length) { toast('Upload receipts first','error'); return; }
   const btn = document.getElementById('btn-gen-pdf');
-  btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Generating PDF…';
+  btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Rendering settlement…';
   try {
     const fd = new FormData(); docIds.forEach(id => fd.append('document_ids', id));
     const res = await api('/api/v1/documents/generate-template', { method:'POST', body:fd });
-    const data = await res.json(); if (!res.ok) throw new Error(data.detail||JSON.stringify(data));
-    document.getElementById('wf2-pdf-path').textContent = data.pdf_path;
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(err.detail || JSON.stringify(err));
+    }
+    const html = await res.text();
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+    // Revoke after a delay to allow the new tab to load
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
     document.getElementById('wf2-pdf-result').style.display='block';
-    toast('Settlement PDF generated!','success');
-  } catch(e) { toast('PDF failed: '+e.message,'error'); }
-  finally { btn.disabled=false; btn.innerHTML='📄 Generate Business Travel Settlement PDF →'; }
+    document.getElementById('wf2-pdf-path').textContent = 'Opened in new tab — use browser Print (Ctrl+P) to save as PDF';
+    toast('Settlement rendered! Use browser Print to save as PDF.','success');
+  } catch(e) { toast('Render failed: '+e.message,'error'); }
+  finally { btn.disabled=false; btn.innerHTML='📄 Generate Business Travel Settlement →'; }
 }
 
 async function loadMyDocuments() {

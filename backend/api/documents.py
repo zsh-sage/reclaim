@@ -1,10 +1,10 @@
-import os
 from pathlib import Path
 from typing import List, Optional
 from uuid import UUID
 
 import aiofiles
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
+from fastapi.responses import HTMLResponse
 from sqlmodel import Session, select
 
 from api import deps
@@ -84,16 +84,14 @@ async def upload_documents(
     )
 
 
-@router.post("/generate-template")
+@router.post("/generate-template", response_class=HTMLResponse)
 async def generate_template(
     document_ids: List[str] = Form(...),
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_user),
-) -> dict:
-    """Generate a Business Travel Settlement PDF from previously uploaded receipts."""
-    from engine.agents.document_agent import _get_active_categories
-    from core.models import Policy
-    import json
+) -> HTMLResponse:
+    """Render a Business Travel Settlement HTML page from previously uploaded receipts."""
+    from engine.agents.document_agent import _get_active_categories, _map_category_to_column
 
     doc_uuids = [UUID(d) for d in document_ids]
     docs = db.exec(
@@ -111,12 +109,16 @@ async def generate_template(
     receipts = []
     totals = {"transportation": 0.0, "accommodation": 0.0, "meals": 0.0, "others": 0.0}
 
-    from engine.agents.document_agent import _map_category_to_column
+    _NFIR = "Not found in Receipt"
 
     for doc in docs:
-        ed = doc.extracted_data or {}
+        # Use editable_fields values when the receipt has been human-edited
+        ed = dict(doc.extracted_data or {})
+        if doc.human_edited and doc.editable_fields:
+            ed.update(doc.editable_fields)
+
         c = ed.get("currency") or ""
-        if c and c != "Not found in Receipt":
+        if c and c != _NFIR:
             currency = c
 
         cat = ed.get("category") or "No Reimbursement Policy for this receipt"
@@ -126,11 +128,11 @@ async def generate_template(
 
         merchant = ed.get("merchant_name") or ""
         summary = ed.get("items_summary") or ""
-        description = " - ".join(p for p in [merchant, summary] if p and p != "Not found in Receipt") or doc.name
+        description = " - ".join(p for p in [merchant, summary] if p and p != _NFIR) or doc.name
 
         receipts.append({
             "document_id": str(doc.document_id),
-            "date": ed.get("date") or "Not found in Receipt",
+            "date": ed.get("date") or _NFIR,
             "description": description,
             "category": cat,
             "currency": currency,
@@ -151,8 +153,13 @@ async def generate_template(
         "employee": {
             "name": current_user.name,
             "id": str(current_user.user_id),
+            "user_code": current_user.user_code or "",
             "department": current_user.department or "",
             "destination": "",
+            "departure_date": "",
+            "arrival_date": "",
+            "location": "",
+            "overseas": None,
             "purpose": ", ".join(categories[:3]) if categories else "",
         },
         "receipts": receipts,
@@ -160,19 +167,12 @@ async def generate_template(
         "all_warnings": [],
     }
 
-    user_dir = STORAGE_DOCUMENTS_DIR / str(current_user.user_id)
-    user_dir.mkdir(parents=True, exist_ok=True)
-    output_path = str(user_dir / "reimbursement_settlement.pdf")
-
     try:
-        generate_reimbursement_template(aggregated, output_path)
+        html = generate_reimbursement_template(aggregated)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"PDF generation failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Template rendering failed: {e}")
 
-    return {
-        "pdf_path": f"/storage/documents/{current_user.user_id}/reimbursement_settlement.pdf",
-        "aggregated_results": aggregated,
-    }
+    return HTMLResponse(content=html, status_code=200)
 
 
 @router.post("/{document_id}/edits")
