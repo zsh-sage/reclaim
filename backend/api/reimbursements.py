@@ -26,6 +26,9 @@ def health():
 
 @router.get("/")
 def list_reimbursements(
+    limit: int = 50,
+    offset: int = 0,
+    status: Optional[str] = None,
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_user),
 ) -> List[dict]:
@@ -34,6 +37,10 @@ def list_reimbursements(
     else:
         stmt = select(Reimbursement).where(Reimbursement.user_id == current_user.user_id)
 
+    if status:
+        stmt = stmt.where(Reimbursement.status == status)
+
+    stmt = stmt.offset(offset).limit(limit)
     reimbursements = db.exec(stmt).all()
     return [
         {
