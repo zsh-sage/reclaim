@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import {
   ChevronLeft,
   Lock,
@@ -262,8 +262,7 @@ function A4Preview({ dbData, mainCategory, claimContext, receipts, subTotal }: A
   return (
     <div
       style={{
-        width: "100%",
-        maxWidth: 794,
+        width: 794,
         minHeight: 1123,
         background: "white",
         padding: "48px 56px",
@@ -272,7 +271,6 @@ function A4Preview({ dbData, mainCategory, claimContext, receipts, subTotal }: A
         lineHeight: 1.6,
         color: "#1a1a1a",
         boxShadow: "0 4px 40px rgba(0,0,0,0.15)",
-        margin: "0 auto",
       }}
     >
       {/* Header */}
@@ -616,6 +614,30 @@ export function VerificationScreen({
 
   // ── A4 preview panel (right column) ────────────────────────────────────────
 
+  // Measure the scroll container to compute an auto-fit base scale for the
+  // rigid 794px A4 canvas. User zoom (previewZoom) multiplies on top.
+  const A4_WIDTH                          = 794;
+  const scrollContainerRef               = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(794);
+
+  useEffect(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(entries => {
+      const w = entries[0]?.contentRect.width;
+      if (w) setContainerWidth(w);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // baseScale auto-fits the 794px doc into the available container width
+  // (with 32px total side padding so it doesn't hug the edges)
+  const baseScale   = Math.min(1, (containerWidth - 32) / A4_WIDTH);
+  const totalScale  = +(baseScale * previewZoom).toFixed(3);
+  // The scaled doc's rendered height, so the scroll container knows how tall to be
+  const scaledHeight = 1123 * totalScale;
+
   const previewPanel = (
     <div className="flex-1 bg-surface-container/50 rounded-2xl flex flex-col overflow-hidden min-h-[500px] lg:min-h-0">
       {/* Preview toolbar */}
@@ -653,8 +675,12 @@ export function VerificationScreen({
           </button>
         </div>
       </div>
-      {/* Scrollable zoom canvas — overflow:auto so scaled A4 is pannable */}
+      {/*
+        Outer scroll container: overflow:auto for panning when zoomed > 1.
+        ref is used by ResizeObserver to compute the container width.
+      */}
       <div
+        ref={scrollContainerRef}
         className="flex-1 overflow-auto
           [&::-webkit-scrollbar]:w-1.5
           [&::-webkit-scrollbar-track]:bg-transparent
@@ -662,23 +688,35 @@ export function VerificationScreen({
           [&::-webkit-scrollbar-thumb]:rounded-full"
         style={{ touchAction: "pinch-zoom" }}
       >
-        {/* Inner wrapper: scale grows outward from top-center */}
-        <div
-          style={{
-            padding: "24px",
-            transformOrigin: "top center",
-            transform: `scale(${previewZoom})`,
-            // Expand container so scrollbars appear when zoomed in
-            minWidth: previewZoom > 1 ? `${previewZoom * 100}%` : "100%",
-          }}
-        >
-          <A4Preview
-            dbData={dbData}
-            mainCategory={mainCategory}
-            claimContext={claimContext}
-            receipts={ocrReceipts}
-            subTotal={subTotal}
-          />
+        {/*
+          Sizing shell: tells the scroll container how tall the scaled content is,
+          so the scrollbar tracks the correct virtual height.
+        */}
+        <div style={{ width: "100%", height: scaledHeight, position: "relative" }}>
+          {/*
+            Transform wrapper: fixed 794px width, scaled from top-center.
+            position:absolute + left:50% + translateX(-50%) centres the 794px
+            canvas horizontally in the container before scaling.
+          */}
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              left: "50%",
+              transform: `translateX(-50%) scale(${totalScale})`,
+              transformOrigin: "top center",
+              width: A4_WIDTH,
+              padding: "16px 0",
+            }}
+          >
+            <A4Preview
+              dbData={dbData}
+              mainCategory={mainCategory}
+              claimContext={claimContext}
+              receipts={ocrReceipts}
+              subTotal={subTotal}
+            />
+          </div>
         </div>
       </div>
     </div>
