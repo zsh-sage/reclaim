@@ -17,6 +17,7 @@ class User(SQLModel, table=True):
     __tablename__ = "employees"
 
     user_id: UUID = Field(default_factory=uuid4, primary_key=True)
+    user_code: Optional[str] = Field(default=None, sa_column=Column(String, nullable=True))
     email: str = Field(sa_column=Column(String, unique=True, index=True, nullable=False))
     hashed_password: str = Field(sa_column=Column(String, nullable=False))
     name: str = Field(sa_column=Column(String, nullable=False))

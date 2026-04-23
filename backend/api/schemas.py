@@ -5,6 +5,7 @@ from core.models import UserRole
 
 # Shared properties
 class UserBase(BaseModel):
+    user_code: Optional[str] = None
     email: EmailStr
     name: str
     role: UserRole = UserRole.Employee

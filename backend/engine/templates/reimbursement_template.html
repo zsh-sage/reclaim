@@ -1,125 +1,398 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-<meta charset="UTF-8">
-<style>
-  body { font-family: Arial, sans-serif; font-size: 9pt; margin: 24px; }
-  h1 { text-align: center; font-size: 13pt; margin-bottom: 4px; }
-  .subtitle { text-align: center; font-size: 9pt; margin-bottom: 16px; color: #444; }
-  .header-grid { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
-  .header-grid td { padding: 3px 8px; }
-  .header-grid .lbl { font-weight: bold; white-space: nowrap; width: 110px; }
-  .header-grid .val { border-bottom: 1px solid #888; min-width: 160px; }
-  .expense-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-  .expense-table th { background: #d0d0d0; border: 1px solid #555; padding: 5px 4px; text-align: center; font-size: 8pt; }
-  .expense-table td { border: 1px solid #777; padding: 4px; text-align: center; font-size: 8pt; }
-  .expense-table td.desc { text-align: left; }
-  .expense-table td.no { width: 24px; }
-  .subtotal-row td { font-weight: bold; background: #e8e8e8; }
-  .amount-due-row td { font-weight: bold; background: #c8c8c8; font-size: 9pt; }
-  .sig-table { width: 100%; border-collapse: collapse; margin-top: 36px; }
-  .sig-table td { border: 1px solid #555; padding: 8px 12px; text-align: center; width: 33%; vertical-align: top; height: 60px; font-size: 8pt; }
-  .sig-label { font-weight: bold; margin-bottom: 4px; }
-  .sig-line { border-top: 1px solid #333; margin-top: 28px; font-size: 7pt; color: #555; padding-top: 2px; }
-  .footer { margin-top: 10px; font-size: 7pt; color: #888; text-align: right; }
-  .warning-box { margin-top: 10px; padding: 6px 10px; border-left: 3px solid #e0a800; background: #fffbe6; font-size: 7.5pt; }
-</style>
+  <meta charset="UTF-8">
+  <style>
+    @page {
+      margin: 28px 36px;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      font-size: 9pt;
+      color: #1a1a2e;
+      margin: 0;
+    }
+
+    /* ── Header ── */
+    .doc-title {
+      text-align: center;
+      font-size: 16pt;
+      font-weight: bold;
+      letter-spacing: 1px;
+      color: #1a1a2e;
+      margin-bottom: 2px;
+    }
+
+    .doc-subtitle {
+      text-align: center;
+      font-size: 9pt;
+      color: #5a6a85;
+      margin-bottom: 18px;
+      letter-spacing: 0.5px;
+    }
+
+    /* ── Accent rule ── */
+    .rule {
+      border: none;
+      border-top: 2.5px solid #2563eb;
+      margin: 0 0 16px 0;
+    }
+
+    /* ── Info grid ── */
+    .info-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 18px;
+    }
+
+    .info-table td {
+      padding: 5px 10px;
+      font-size: 8.5pt;
+      vertical-align: top;
+    }
+
+    .info-table .lbl {
+      font-weight: bold;
+      color: #5a6a85;
+      white-space: nowrap;
+      width: 100px;
+      text-transform: uppercase;
+      font-size: 7.5pt;
+      letter-spacing: 0.4px;
+    }
+
+    .info-table .val {
+      color: #1a1a2e;
+      border-bottom: 1px solid #d0d9ee;
+      min-width: 140px;
+      padding-bottom: 3px;
+      word-break: break-all;
+    }
+
+    .info-table .gap {
+      width: 24px;
+    }
+
+    /* ── Section label ── */
+    .section-label {
+      font-size: 8pt;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #2563eb;
+      margin-bottom: 6px;
+      margin-top: 2px;
+    }
+
+    /* ── Expense table ── */
+    .expense-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 14px;
+      font-size: 8pt;
+    }
+
+    .expense-table thead tr {
+      background: #2563eb;
+      color: #ffffff;
+    }
+
+    .expense-table th {
+      padding: 7px 5px;
+      text-align: center;
+      font-size: 7.5pt;
+      font-weight: bold;
+      letter-spacing: 0.3px;
+      border: none;
+    }
+
+    .expense-table th.left {
+      text-align: left;
+      padding-left: 8px;
+    }
+
+    .expense-table tbody tr {
+      background: #ffffff;
+    }
+
+    .expense-table tbody tr.alt {
+      background: #f4f7ff;
+    }
+
+    .expense-table td {
+      padding: 6px 5px;
+      text-align: center;
+      border-bottom: 1px solid #dde5f5;
+      color: #1a1a2e;
+      vertical-align: middle;
+    }
+
+    .expense-table td.left {
+      text-align: left;
+      padding-left: 8px;
+    }
+
+    .expense-table td.no {
+      width: 26px;
+      color: #5a6a85;
+      font-size: 7.5pt;
+    }
+
+    .desc-main {
+      font-weight: bold;
+      font-size: 8pt;
+    }
+
+    .desc-cat {
+      font-size: 7pt;
+      color: #2563eb;
+      margin-top: 1px;
+    }
+
+    .amount {
+      font-weight: bold;
+    }
+
+    /* ── Subtotal / totals rows ── */
+    .subtotal-row td {
+      font-weight: bold;
+      background: #eef2fc;
+      color: #1a1a2e;
+      border-top: 1.5px solid #2563eb;
+      border-bottom: none;
+      padding: 6px 5px;
+      height: 22px;
+      vertical-align: middle;
+    }
+
+    .subtotal-row td.left {
+      padding-left: 8px;
+    }
+
+    .total-row td {
+      font-weight: bold;
+      font-size: 9.5pt;
+      background: #1a1a2e;
+      color: #ffffff;
+      padding: 8px 5px;
+      border: none;
+      height: 26px;
+      vertical-align: middle;
+    }
+
+    .total-row td.left {
+      padding-left: 8px;
+    }
+
+    /* ── Warning box ── */
+    .warning-box {
+      margin: 12px 0;
+      padding: 8px 12px;
+      border-left: 3px solid #f59e0b;
+      background: #fffbeb;
+      font-size: 7.5pt;
+      color: #78350f;
+    }
+
+    .warning-box strong {
+      display: block;
+      margin-bottom: 3px;
+    }
+
+    /* ── Disclaimer ── */
+    .disclaimer {
+      font-size: 8.5pt;
+      font-weight: bold;
+      line-height: 1.5;
+      margin: 18px 0;
+      color: #1a1a2e;
+      text-align: justify;
+    }
+
+    /* ── Signature ── */
+    .sig-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 32px;
+    }
+
+    .sig-table td {
+      width: 33%;
+      text-align: center;
+      padding: 10px 14px 8px;
+      vertical-align: bottom;
+      border: 1px solid #d0d9ee;
+      background: #f8faff;
+    }
+
+    .sig-role {
+      font-size: 7.5pt;
+      font-weight: bold;
+      color: #2563eb;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: block;
+      margin-bottom: 28px;
+    }
+
+    .sig-line {
+      border-top: 1px solid #5a6a85;
+      padding-top: 4px;
+      font-size: 7pt;
+      color: #5a6a85;
+    }
+
+    /* ── Footer ── */
+    .footer {
+      margin-top: 14px;
+      font-size: 7pt;
+      color: #9bacc8;
+      text-align: right;
+    }
+  </style>
 </head>
+
 <body>
 
-<h1>Business Travel Settlement</h1>
-<div class="subtitle">Reimbursement Claim Form</div>
+  <div class="doc-title">Business Travel Settlement</div>
+  <div class="doc-subtitle">Reimbursement Claim Form</div>
+  <hr class="rule">
 
-<table class="header-grid">
-  <tr>
-    <td class="lbl">Employee Name</td>
-    <td class="val">{{ employee.name }}</td>
-    <td class="lbl">Employee ID</td>
-    <td class="val">{{ employee.id }}</td>
-  </tr>
-  <tr>
-    <td class="lbl">Department</td>
-    <td class="val">{{ employee.department or "&nbsp;" }}</td>
-    <td class="lbl">Destination</td>
-    <td class="val">{{ employee.destination or "&nbsp;" }}</td>
-  </tr>
-  <tr>
-    <td class="lbl">Purpose of Travel</td>
-    <td class="val" colspan="3">{{ employee.purpose or "&nbsp;" }}</td>
-  </tr>
-  <tr>
-    <td class="lbl">Date of Submission</td>
-    <td class="val">{{ generated_date }}</td>
-    <td class="lbl">Currency</td>
-    <td class="val">{{ totals.currency }}</td>
-  </tr>
-</table>
-
-<table class="expense-table">
-  <thead>
+  <table class="info-table">
     <tr>
-      <th class="no">No.</th>
-      <th style="width:72px">Date</th>
-      <th>Description</th>
-      <th style="width:90px">Transportation</th>
-      <th style="width:90px">Accommodation</th>
-      <th style="width:70px">Meals</th>
-      <th style="width:70px">Others</th>
+      <td class="lbl">Entity Name</td>
+      <td class="val">Reclaim</td>
+      <td class="gap"></td>
+      <td class="lbl">Employee Name</td>
+      <td class="val">{{ employee.name }}</td>
     </tr>
-  </thead>
-  <tbody>
-    {% for r in receipts %}
     <tr>
-      <td class="no">{{ loop.index }}</td>
-      <td>{{ r.date }}</td>
-      <td class="desc">{{ r.description }}<br><span style="color:#666;font-size:7pt">{{ r.category }}</span></td>
-      <td>{% if r.transportation > 0 %}{{ "%.2f"|format(r.transportation) }}{% endif %}</td>
-      <td>{% if r.accommodation > 0 %}{{ "%.2f"|format(r.accommodation) }}{% endif %}</td>
-      <td>{% if r.meals > 0 %}{{ "%.2f"|format(r.meals) }}{% endif %}</td>
-      <td>{% if r.others > 0 %}{{ "%.2f"|format(r.others) }}{% endif %}</td>
+      <td class="lbl">Employee Code</td>
+      <td class="val">{{ employee.user_code or "—" }}</td>
+      <td class="gap"></td>
+      <td class="lbl">Position Grade</td>
+      <td class="val">—</td>
     </tr>
-    {% endfor %}
-  </tbody>
-  <tfoot>
-    <tr class="subtotal-row">
-      <td colspan="3">Sub-Total</td>
-      <td>{{ "%.2f"|format(totals.transportation) }}</td>
-      <td>{{ "%.2f"|format(totals.accommodation) }}</td>
-      <td>{{ "%.2f"|format(totals.meals) }}</td>
-      <td>{{ "%.2f"|format(totals.others) }}</td>
+    <tr>
+      <td class="lbl">Department</td>
+      <td class="val">{{ employee.department or "—" }}</td>
+      <td class="gap"></td>
+      <td class="lbl">Location</td>
+      <td class="val">{{ employee.location or "—" }}</td>
     </tr>
-    <tr class="amount-due-row">
-      <td colspan="6" style="text-align:right;padding-right:8px;">Amount Due ({{ totals.currency }})</td>
-      <td>{{ "%.2f"|format(totals.grand_total) }}</td>
+    <tr>
+      <td class="lbl">Destination</td>
+      <td class="val">{{ employee.destination or "—" }}</td>
+      <td class="gap"></td>
+      <td class="lbl">Overseas</td>
+      <td class="val">{% if employee.overseas is true %}Yes{% elif employee.overseas is false %}No{% else %}—{% endif %}
+      </td>
     </tr>
-  </tfoot>
-</table>
+    <tr>
+      <td class="lbl">Departure Date</td>
+      <td class="val">{{ employee.departure_date or "—" }}</td>
+      <td class="gap"></td>
+      <td class="lbl">Arrival Date</td>
+      <td class="val">{{ employee.arrival_date or "—" }}</td>
+    </tr>
+    <tr>
+      <td class="lbl">Purpose</td>
+      <td class="val" colspan="4">{{ employee.purpose or "—" }}</td>
+    </tr>
+    <tr>
+      <td class="lbl">Submitted On</td>
+      <td class="val">{{ generated_date }}</td>
+      <td class="gap"></td>
+      <td class="lbl">Currency</td>
+      <td class="val">{{ totals.currency }}</td>
+    </tr>
+  </table>
 
-{% if all_warnings %}
-<div class="warning-box">
-  <strong>Flagged Warnings:</strong><br>
-  {% for w in all_warnings %}&bull; {{ w }}<br>{% endfor %}
-</div>
-{% endif %}
+  <div class="section-label">Expense Details</div>
 
-<table class="sig-table">
-  <tr>
-    <td>
-      <div class="sig-label">Submitted by</div>
-      <div class="sig-line">{{ employee.name }} &nbsp;&nbsp;&nbsp; Date: {{ generated_date }}</div>
-    </td>
-    <td>
-      <div class="sig-label">Approved by</div>
-      <div class="sig-line">&nbsp;</div>
-    </td>
-    <td>
-      <div class="sig-label">Verified by</div>
-      <div class="sig-line">&nbsp;</div>
-    </td>
-  </tr>
-</table>
+  <table class="expense-table">
+    <thead>
+      <tr>
+        <th style="width:26px">#</th>
+        <th style="width:68px">Date</th>
+        <th class="left">Description</th>
+        <th style="width:78px">Transport</th>
+        <th style="width:78px">Accommodation</th>
+        <th style="width:60px">Meals</th>
+        <th style="width:60px">Others</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in receipts %}
+      <tr class="{% if loop.index is odd %}{% else %}alt{% endif %}">
+        <td class="no">{{ loop.index }}</td>
+        <td>{{ r.date }}</td>
+        <td class="left">
+          <div class="desc-main">{{ r.description }}</div>
+          <div class="desc-cat">{{ r.category }}</div>
+        </td>
+        <td class="amount">{% if r.transportation > 0 %}{{ "%.2f"|format(r.transportation) }}{% else %}&mdash;{%
+          endif %}</td>
+        <td class="amount">{% if r.accommodation > 0 %}{{ "%.2f"|format(r.accommodation) }}{% else %}&mdash;{%
+          endif %}</td>
+        <td class="amount">{% if r.meals > 0 %}{{ "%.2f"|format(r.meals) }}{% else %}&mdash;{% endif %}</td>
+        <td class="amount">{% if r.others > 0 %}{{ "%.2f"|format(r.others) }}{% else %}&mdash;{% endif %}</td>
+      </tr>
+      {% endfor %}
+      <tr class="subtotal-row">
+        <td colspan="3" class="left">Sub-Total</td>
+        <td>{{ "%.2f"|format(totals.transportation) }}</td>
+        <td>{{ "%.2f"|format(totals.accommodation) }}</td>
+        <td>{{ "%.2f"|format(totals.meals) }}</td>
+        <td>{{ "%.2f"|format(totals.others) }}</td>
+      </tr>
+      <tr class="subtotal-row">
+        <td colspan="6" style="text-align:right; padding-right:10px;">Total Amount</td>
+        <td>{{ "%.2f"|format(totals.grand_total) }}</td>
+      </tr>
+      <tr class="total-row">
+        <td colspan="6" style="text-align:right; padding-right:10px;">
+          Amount Due ({{ totals.currency }})
+        </td>
+        <td>{{ "%.2f"|format(totals.grand_total) }}</td>
+      </tr>
+    </tbody>
+  </table>
 
-<div class="footer">Generated by Reclaim &mdash; {{ generated_date }}</div>
+  {% if all_warnings %}
+  <div class="warning-box">
+    <strong>&#9888; Flagged Warnings</strong>
+    {% for w in all_warnings %}&bull; {{ w }}<br>{% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="disclaimer">
+    I confirm that I have ensured that all items claimed for reimbursement or payment requested herein are for
+    legitimate business purposes, comply with relevant RECLAIM policies and under no circumstances from a payment
+    for any bribe or facilitation payment of a government official.
+  </div>
+
+  <table class="sig-table">
+    <tr>
+      <td>
+        <span class="sig-role">Submitted by</span>
+        <div class="sig-line">{{ employee.name }} &nbsp;&middot;&nbsp; {{ generated_date }}</div>
+      </td>
+      <td>
+        <span class="sig-role">Approved by</span>
+        <div class="sig-line">&nbsp;</div>
+      </td>
+      <td>
+        <span class="sig-role">Verified by</span>
+        <div class="sig-line">&nbsp;</div>
+      </td>
+    </tr>
+  </table>
+
+  <div class="footer">Generated by Reclaim &mdash; {{ generated_date }}</div>
 
 </body>
+
 </html>

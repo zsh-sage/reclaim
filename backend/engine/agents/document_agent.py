@@ -13,7 +13,7 @@ from jinja2 import Template
 from langchain_core.messages import HumanMessage
 from sqlmodel import Session, select
 
-from core.models import SupportingDocument, Policy
+from core.models import SupportingDocument, Policy, User
 from engine.llm import get_vision_llm, get_text_llm
 from engine.prompts.document_prompts import RECEIPT_OCR_PROMPT, RECEIPT_OCR_PROMPT_WITH_CATEGORIES
 
@@ -77,8 +77,9 @@ def _extract_json_object(text: str) -> dict:
 
 def _build_prompt(categories: List[str]) -> str:
     if categories:
-        return RECEIPT_OCR_PROMPT_WITH_CATEGORIES.format(
-            categories="\n".join(f"- {c}" for c in categories)
+        return RECEIPT_OCR_PROMPT_WITH_CATEGORIES.replace(
+            "{categories}",
+            "\n".join(f"- {c}" for c in categories),
         )
     return RECEIPT_OCR_PROMPT
 
@@ -298,6 +299,29 @@ def process_receipts(
 
     session.commit()
 
+    user = session.exec(select(User).where(User.user_id == UUID(user_id))).first()
+    user_code = user.user_code if user and user.user_code else user_id[:8] + "…"
+    department = user.department if user else ""
+
+    destination = ""
+    departure_date = ""
+    arrival_date = ""
+    location = ""
+    overseas = None
+
+    for r in llm_results:
+        ed = r["extracted_data"]
+        if not destination and ed.get("destination") and ed.get("destination") != "Not found in Receipt":
+            destination = ed.get("destination")
+        if not departure_date and ed.get("departure_date") and ed.get("departure_date") != "Not found in Receipt":
+            departure_date = ed.get("departure_date")
+        if not arrival_date and ed.get("arrival_date") and ed.get("arrival_date") != "Not found in Receipt":
+            arrival_date = ed.get("arrival_date")
+        if not location and ed.get("location") and ed.get("location") != "Not found in Receipt":
+            location = ed.get("location")
+        if overseas is None and ed.get("overseas") is not None:
+            overseas = ed.get("overseas")
+
     # Build aggregated results
     currency = "MYR"
     for r in llm_results:
@@ -344,8 +368,13 @@ def process_receipts(
         "employee": {
             "name": employee_name,
             "id": user_id,
-            "department": "",
-            "destination": "",
+            "user_code": user_code,
+            "department": department,
+            "destination": destination,
+            "departure_date": departure_date,
+            "arrival_date": arrival_date,
+            "location": location,
+            "overseas": overseas,
             "purpose": ", ".join(categories[:3]) if categories else "",
         },
         "receipts": receipts,

@@ -10,6 +10,7 @@
 backend/test/*
 !backend/test/demo.html
 !backend/test/agent_workflows.md
+backend/engine/templates/save.html
 
 # next.js
 /.next/

@@ -1,2 +1,7 @@
+.venv/
 .venv
+.git
+__pycache__
+*.pyc
+.pytest_cache
 .env
