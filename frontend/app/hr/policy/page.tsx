@@ -1,8 +1,129 @@
 "use client";
 
 import React, { JSX, useRef, useState, useEffect } from 'react';
-import { Plus, Search, ChevronUp, ChevronDown, ChevronRight, FileText, Shield, Archive, Pencil, Trash2, ArrowLeft, X, SlidersHorizontal, Upload } from 'lucide-react';
-import { MOCK_POLICIES, POLICY_STATUS_STYLE, Policy, PolicyStatus } from '../hr_components/mockData';
+import { Plus, Search, ChevronUp, ChevronDown, ChevronRight, FileText, Shield, Archive, Pencil, Trash2, ArrowLeft, X, SlidersHorizontal, Upload, Settings, CheckCircle2, ScanLine, Sparkles, History, Clock, User, PlusCircle, AlertCircle, ShieldCheck, Users, Calendar, BarChart3 } from 'lucide-react';
+import { MOCK_POLICIES, POLICY_STATUS_STYLE, Policy, PolicyStatus, MOCK_POLICY_DETAILS } from '../hr_components/mockData';
+
+const SAVE_STEPS = [
+  { id: "upload", label: "Uploading documents...", subtitle: "Securely storing policy files." },
+  { id: "analyze", label: "Analyzing policy...", subtitle: "Extracting summary and conditions." },
+  { id: "save", label: "Saving changes...", subtitle: "Updating policy database." },
+];
+
+export function HrProcessingScreen({ currentStep, onBack }: { currentStep: number, onBack: () => void }) {
+  return (
+    <div className="w-full max-w-2xl mx-auto flex flex-col justify-center my-12">
+      <div className="relative rounded-3xl overflow-hidden shadow-[0_24px_80px_-16px_rgba(44,47,49,0.18)] flex flex-col sm:flex-row min-h-[460px] w-full">
+        <div
+          className="sm:w-[42%] p-8 flex flex-col justify-between relative overflow-hidden"
+          style={{ background: "linear-gradient(135deg, #4647d3 0%, #9396ff 50%, #9e00b4 100%)" }}
+        >
+          <div className="absolute top-0 right-0 w-56 h-56 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4 pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-40 h-40 bg-purple-900/20 rounded-full blur-2xl translate-y-1/4 -translate-x-1/4 pointer-events-none" />
+
+          <div className="relative z-10">
+            <div className="w-12 h-12 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center mb-6">
+              <ScanLine className="w-6 h-6 text-white" strokeWidth={1.75} />
+            </div>
+            <h2 className="font-headline text-2xl font-bold text-white tracking-tight leading-snug">
+              Saving<br />Changes
+            </h2>
+          </div>
+
+          <div className="relative z-10 rounded-xl p-4" style={{ background: "rgba(255,255,255,0.15)", backdropFilter: "blur(8px)" }}>
+            <p className="text-[10px] text-white/70 font-label font-semibold uppercase tracking-widest mb-1">
+              System Status
+            </p>
+            <p className="text-white text-sm font-semibold font-body">Reclaim AI Active</p>
+          </div>
+        </div>
+
+        <div className="flex-1 bg-surface-container-lowest p-8 sm:p-10 flex flex-col justify-center">
+          <div className="flex items-center gap-4 mb-10">
+            <div
+              className="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center shrink-0"
+              style={{ animation: "spin 3s linear infinite" }}
+            >
+              <Settings className="w-5 h-5 text-primary" strokeWidth={2} />
+            </div>
+            <div>
+              <h3 className="font-headline text-lg font-semibold text-on-surface leading-tight">
+                Processing Data
+              </h3>
+              <p className="text-on-surface-variant text-sm font-body mt-0.5">
+                Please do not close this window.
+              </p>
+            </div>
+          </div>
+
+          <div className="relative ml-3">
+            <div className="absolute top-3 bottom-3 left-[11px] w-0.5 bg-surface-container-high rounded-full" />
+            <div
+              className="absolute top-3 left-[11px] w-0.5 bg-primary rounded-full transition-all duration-700 ease-in-out"
+              style={{
+                height:
+                  currentStep === 0 ? "0%" :
+                  currentStep === 1 ? "40%" :
+                  "80%",
+              }}
+            />
+
+            <div className="flex flex-col gap-8">
+              {SAVE_STEPS.map((step, idx) => {
+                const isCompleted = idx < currentStep;
+                const isActive    = idx === currentStep;
+                const isPending   = idx > currentStep;
+
+                return (
+                  <div key={step.id} className="flex items-start gap-5 relative">
+                    {isCompleted && (
+                      <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center shrink-0 mt-0.5 shadow-[0_4px_12px_rgba(70,71,211,0.35)] z-10">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-on-primary" strokeWidth={2.5} />
+                      </div>
+                    )}
+                    {isActive && (
+                      <div className="w-6 h-6 rounded-full bg-primary border-[3px] border-surface-container-lowest flex items-center justify-center shrink-0 mt-0.5 relative z-10 shadow-[0_0_0_2px_#4647d3]">
+                        <div className="absolute inset-[-4px] rounded-full border-2 border-primary/50 animate-ping" />
+                        <div className="w-2 h-2 rounded-full bg-white" />
+                      </div>
+                    )}
+                    {isPending && (
+                      <div className="w-6 h-6 rounded-full bg-surface-container border border-outline-variant/30 shrink-0 mt-0.5 z-10" />
+                    )}
+
+                    <div>
+                      <p className={`font-semibold text-sm leading-tight font-headline ${
+                        isActive    ? "text-primary" :
+                        isCompleted ? "text-on-surface" :
+                                      "text-on-surface-variant/40"
+                      }`}>
+                        {step.label}
+                      </p>
+                      {(isCompleted || isActive) && (
+                        <p className="text-on-surface-variant text-xs mt-1 font-body leading-relaxed">
+                          {step.subtitle}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="mt-12 flex justify-center">
+            <button 
+              onClick={onBack}
+              className="px-6 py-2 border border-outline-variant/30 text-on-surface-variant text-xs font-semibold uppercase tracking-widest rounded-xl hover:bg-surface-container-low transition-colors cursor-pointer"
+            >
+              Abort and Go Back
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function PolicyStudio() {
   const [editingPolicy, setEditingPolicy] = useState<string | null>(null);
@@ -13,10 +134,95 @@ export default function PolicyStudio() {
   // File upload state
   const [mainPolicyFile, setMainPolicyFile] = useState<File | null>(null);
   const [appendixFiles, setAppendixFiles] = useState<File[]>([]);
-  const [editAppendixFiles, setEditAppendixFiles] = useState<File[]>([]);
   const mainPolicyInputRef = useRef<HTMLInputElement>(null);
   const appendixInputRef = useRef<HTMLInputElement>(null);
-  const editAppendixInputRef = useRef<HTMLInputElement>(null);
+
+  // Form state
+  const [editName, setEditName] = useState("");
+  const [editDepartment, setEditDepartment] = useState("");
+  const [editVersion, setEditVersion] = useState("");
+  const [editDate, setEditDate] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
+  const [savingStep, setSavingStep] = useState(0);
+  const [conditionsModalOpen, setConditionsModalOpen] = useState(false);
+  const [editConditions, setEditConditions] = useState<Record<string, any> | null>(null);
+  const [editHistory, setEditHistory] = useState<{ user: string, action: string, date: string, details?: string }[]>([]);
+
+  // Existing files state (for edit view)
+  const [existingMainPolicyDeleted, setExistingMainPolicyDeleted] = useState(false);
+  const [existingAppendix, setExistingAppendix] = useState<{name: string, size: string}[]>([
+    { name: "W10_Requirements_Review.pdf", size: "1.2 MB" },
+    { name: "Ergonomic_Guidelines_2023.pdf", size: "845 KB" }
+  ]);
+
+  // Sync scroll refs
+  const editContainerRef = useRef<HTMLDivElement>(null);
+  const leftColRef = useRef<HTMLDivElement>(null);
+  const rightColRef = useRef<HTMLDivElement>(null);
+  const [rightOffset, setRightOffset] = useState(0);
+  const [leftOffset, setLeftOffset] = useState(0);
+
+  useEffect(() => {
+    const container = editContainerRef.current;
+    if (!container || !editingPolicy) return;
+
+    const handleScroll = () => {
+      const left = leftColRef.current;
+      const right = rightColRef.current;
+      if (!left || !right) return;
+
+      const leftH = left.scrollHeight;
+      const rightH = right.scrollHeight;
+      const containerH = container.clientHeight;
+      const scrollT = container.scrollTop;
+      const maxScroll = container.scrollHeight - containerH;
+
+      if (maxScroll <= 0) return;
+
+      const ratio = Math.min(Math.max(scrollT / maxScroll, 0), 1);
+
+      if (leftH > rightH) {
+        // Left is longer, move Right down so they finish together
+        const diff = leftH - rightH;
+        setRightOffset(diff * ratio);
+        setLeftOffset(0);
+      } else if (rightH > leftH) {
+        // Right is longer, move Left down
+        const diff = rightH - leftH;
+        setLeftOffset(diff * ratio);
+        setRightOffset(0);
+      } else {
+        setLeftOffset(0);
+        setRightOffset(0);
+      }
+    };
+
+    container.addEventListener('scroll', handleScroll);
+    window.addEventListener('resize', handleScroll);
+
+    // Use ResizeObserver to handle content changes (like adding appendix files)
+    const observer = new ResizeObserver(handleScroll);
+    if (leftColRef.current) observer.observe(leftColRef.current);
+    if (rightColRef.current) observer.observe(rightColRef.current);
+
+    // Initial calculation
+    setTimeout(handleScroll, 100);
+    
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleScroll);
+      observer.disconnect();
+    };
+  }, [editingPolicy, editConditions, appendixFiles, existingAppendix, existingMainPolicyDeleted, editName, editDepartment]);
+
+  useEffect(() => {
+    if (editingPolicy) {
+      setIsLoadingDetails(true);
+      const timer = setTimeout(() => setIsLoadingDetails(false), 600);
+      return () => clearTimeout(timer);
+    }
+  }, [editingPolicy]);
 
   function formatFileSize(bytes: number): string {
     if (bytes < 1024) return bytes + ' B';
@@ -29,34 +235,44 @@ export default function PolicyStudio() {
   // Status dropdown & edit states
   const [editStatus, setEditStatus] = useState<PolicyStatus>("Active");
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
-  
-  // Existing files state (for edit view)
-  const [existingMainPolicyDeleted, setExistingMainPolicyDeleted] = useState(false);
-  const [existingAppendix, setExistingAppendix] = useState<{name: string, size: string}[]>([
-    { name: "W10_Requirements_Review.pdf", size: "1.2 MB" },
-    { name: "Ergonomic_Guidelines_2023.pdf", size: "845 KB" }
-  ]);
 
   useEffect(() => {
     if (editingPolicy && editingPolicy !== "new") {
       const p = policies.find(x => x.id === editingPolicy);
-      if (p) setEditStatus(p.status);
-      setExistingMainPolicyDeleted(false);
-      setExistingAppendix([
-        { name: "W10_Requirements_Review.pdf", size: "1.2 MB" },
-        { name: "Ergonomic_Guidelines_2023.pdf", size: "845 KB" }
-      ]);
-      setEditAppendixFiles([]);
-      setMainPolicyFile(null);
+      if (p) {
+        setEditStatus(p.status);
+        setEditName(p.name);
+        setEditDepartment(p.department);
+        setEditVersion(p.version);
+        setEditDate("2023-10-12");
+        setExistingMainPolicyDeleted(false);
+        setEditConditions(p.aiConditions || MOCK_POLICY_DETAILS[0]?.mandatory_conditions || null);
+        setEditHistory(p.history || [
+          { user: "Sarah Miller", action: "Policy Created", date: "Oct 12, 2023", details: "Initial draft uploaded" },
+          { user: "James Wilson", action: "Updated Appendix", date: "Jan 15, 2024", details: "Added W10 Requirements Review" }
+        ]);
+        if (p.existingAppendix) {
+          setExistingAppendix(p.existingAppendix);
+        } else {
+          setExistingAppendix([
+            { name: "W10_Requirements_Review.pdf", size: "1.2 MB" },
+            { name: "Ergonomic_Guidelines_2023.pdf", size: "845 KB" }
+          ]);
+        }
+        setAppendixFiles(p.appendixFiles || []);
+        setMainPolicyFile(p.mainFile || null);
+      }
     } else if (editingPolicy === "new") {
       setEditStatus("Active");
+      setEditName("");
+      setEditDepartment("");
+      setEditVersion("");
+      setEditDate("");
       setMainPolicyFile(null);
       setAppendixFiles([]);
     }
     setStatusDropdownOpen(false);
   }, [editingPolicy, policies]);
-
-  const currentPolicy = policies.find(p => p.id === editingPolicy);
 
   const StatusDropdown = () => (
     <div className="relative">
@@ -93,297 +309,295 @@ export default function PolicyStudio() {
     </div>
   );
 
-  // ─── Create New Policy View ──────────────────────────────────────────────────
-  if (editingPolicy === "new") {
+  const handleSave = async () => {
+    setIsSaving(true);
+    setSavingStep(0);
+    await new Promise(r => setTimeout(r, 1000));
+    setSavingStep(1);
+    await new Promise(r => setTimeout(r, 1000));
+    setSavingStep(2);
+    await new Promise(r => setTimeout(r, 1000));
+
+    // Record History
+    const now = new Date();
+    const formattedDate = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + 
+                          ' ' + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+    const newHistoryEntry = {
+      user: "HR Admin",
+      action: editingPolicy === "new" ? "Policy Created" : "Policy Updated",
+      date: formattedDate,
+      details: editingPolicy === "new" ? `Initial policy creation: ${editName}` : `Modified policy: ${editName}`
+    };
+    const updatedHistory = [newHistoryEntry, ...editHistory];
+
+    if (editingPolicy === "new") {
+      const newPolicy: Policy = {
+        id: "pol-" + Math.random().toString(36).substr(2, 9),
+        name: editName || "New Policy",
+        version: editVersion || "V1.0",
+        department: editDepartment || "General",
+        lastModified: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        status: editStatus,
+        icon: FileText,
+        mainFile: mainPolicyFile,
+        appendixFiles: appendixFiles,
+        existingAppendix: existingAppendix,
+        aiConditions: editConditions || undefined,
+        history: updatedHistory
+      };
+      setPolicies([newPolicy, ...policies]);
+    } else {
+      setPolicies(policies.map(p => p.id === editingPolicy ? { 
+        ...p, 
+        status: editStatus,
+        name: editName,
+        department: editDepartment,
+        version: editVersion,
+        mainFile: mainPolicyFile,
+        appendixFiles: appendixFiles,
+        existingAppendix: existingAppendix,
+        aiConditions: editConditions || undefined,
+        history: updatedHistory
+      } : p));
+    }
+
+    setIsSaving(false);
+    setEditingPolicy(null);
+  };
+
+  if (editingPolicy) {
+    const isNew = editingPolicy === "new";
+
+    if (isSaving) {
+      return (
+        <div className="flex-1 flex flex-col relative w-full h-full bg-surface text-on-surface overflow-hidden p-6 animate-in fade-in duration-500">
+           <style>{`
+             @keyframes pulse-scan {
+               0% { transform: translateY(-100%); opacity: 0; }
+               50% { opacity: 1; }
+               100% { transform: translateY(400px); opacity: 0; }
+             }
+             .animate-pulse-scan {
+               animation: pulse-scan 3s linear infinite;
+             }
+           `}</style>
+           <HrProcessingScreen currentStep={savingStep} onBack={() => setIsSaving(false)} />
+        </div>
+      );
+    }
+
+    if (isLoadingDetails) {
+      return (
+        <div className="flex-1 flex flex-col p-6 max-w-7xl mx-auto w-full h-full bg-surface">
+          <div className="flex items-center gap-4 mb-8">
+            <div className="h-8 w-48 bg-surface-container animate-pulse rounded-lg" />
+          </div>
+          <div className="grid grid-cols-12 gap-8 h-full">
+            <div className="col-span-7 flex flex-col gap-8">
+              <div className="h-64 bg-surface-container animate-pulse rounded-2xl" />
+              <div className="h-96 bg-surface-container animate-pulse rounded-2xl" />
+            </div>
+            <div className="col-span-5 flex flex-col gap-8">
+              <div className="h-48 bg-surface-container animate-pulse rounded-2xl" />
+              <div className="h-64 bg-surface-container animate-pulse rounded-2xl" />
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="flex-1 flex flex-col relative overflow-hidden w-full h-full bg-surface text-on-surface">
-        {/* Page Content */}
-        <div className="flex-1 flex flex-col p-6 max-w-7xl mx-auto w-full min-h-0 overflow-y-auto">
+        <div 
+          ref={editContainerRef}
+          className="flex-1 flex flex-col p-6 max-w-7xl mx-auto w-full min-h-0 overflow-y-auto scroll-smooth"
+        >
           <div className="mb-6 flex flex-wrap items-center gap-4 shrink-0">
-            <button onClick={() => setEditingPolicy(null)} className="p-2 -ml-2 rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest transition-colors cursor-pointer" aria-label="Back to Policy Studio">
-              <ArrowLeft size={22} strokeWidth={2.5} />
+            <button onClick={() => setEditingPolicy(null)} className="flex items-center gap-2 text-on-surface-variant hover:text-primary transition-colors cursor-pointer group" aria-label="Back to Policy Studio">
+              <ArrowLeft size={20} strokeWidth={2.5} className="group-hover:-translate-x-1 transition-transform" />
+              <span className="font-semibold font-body text-sm">Back to Policy Studio</span>
             </button>
-            <h2 className="font-headline text-[2rem] leading-tight font-bold text-on-surface tracking-[-0.02em]">Create New Policy</h2>
-          </div>
-
-          {/* Policy Details Form */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 shrink-0">
-            <div className="flex flex-col gap-2">
-              <label className="font-body text-sm font-medium text-on-surface-variant">Policy Name</label>
-              <input
-                type="text"
-                placeholder="e.g. Remote Work Policy"
-                className="bg-surface-container-lowest border border-outline-variant rounded-xl px-4 py-3 text-sm font-body text-on-surface placeholder:text-outline-variant focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <label className="font-body text-sm font-medium text-on-surface-variant">Department</label>
-              <input
-                type="text"
-                placeholder="e.g. Human Resources"
-                className="bg-surface-container-lowest border border-outline-variant rounded-xl px-4 py-3 text-sm font-body text-on-surface placeholder:text-outline-variant focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <label className="font-body text-sm font-medium text-on-surface-variant">Version</label>
-              <input
-                type="text"
-                placeholder="e.g. v1.0"
-                className="bg-surface-container-lowest border border-outline-variant rounded-xl px-4 py-3 text-sm font-body text-on-surface placeholder:text-outline-variant focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <label className="font-body text-sm font-medium text-on-surface-variant">Effective Date</label>
-              <input
-                type="date"
-                className="bg-surface-container-lowest border border-outline-variant rounded-xl px-4 py-3 text-sm font-body text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
-              />
-            </div>
           </div>
           
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 flex-1 min-h-0">
-            {/* Left Column: Main Policy Upload */}
-            <div className="lg:col-span-7 flex flex-col gap-4 h-full">
-              <h3 className="font-headline text-xl font-semibold text-on-surface shrink-0">Main Policy</h3>
-              <input
-                ref={mainPolicyInputRef}
-                type="file"
-                accept=".pdf,.docx,.doc,.txt"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) setMainPolicyFile(file);
-                  e.target.value = '';
-                }}
-              />
-              {mainPolicyFile ? (
-                <div className="bg-surface-container-lowest rounded-xl p-6 shadow-[0_8px_40px_rgba(44,47,49,0.06)] flex flex-col items-center justify-center flex-1 border border-surface-container-low min-h-[240px]">
-                  <FileText className="text-error mb-2" size={48} />
-                  <p className="font-body text-base font-medium text-on-surface mb-1">{mainPolicyFile.name}</p>
-                  <p className="font-body text-xs text-on-surface-variant mb-6">{formatFileSize(mainPolicyFile.size)}</p>
-                  <div className="flex gap-4">
-                    <button
-                      onClick={() => mainPolicyInputRef.current?.click()}
-                      className="px-6 py-2 border border-outline text-on-surface rounded-full font-body text-sm font-medium hover:bg-surface-container-low transition-colors cursor-pointer"
-                    >
-                      Replace
-                    </button>
-                    <button
-                      onClick={() => setMainPolicyFile(null)}
-                      className="px-6 py-2 text-error font-body text-sm font-medium hover:bg-error-container/10 rounded-full transition-colors cursor-pointer"
-                    >
-                      Remove
-                    </button>
+          <div className="flex items-center gap-4 mb-6">
+            <h2 className="font-headline text-[2rem] leading-tight font-bold text-on-surface tracking-[-0.02em]">
+              {isNew ? "Create New Policy" : `${editName || "Edit Policy"}`}
+            </h2>
+          </div>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 flex-1 min-h-0 items-start">
+            {/* Left Column: Policy Details (if edit), Main Policy & Appendix */}
+            <div 
+              ref={leftColRef}
+              className="lg:col-span-7 flex flex-col gap-8 pr-2 pb-4 h-fit transition-transform duration-75 ease-out will-change-transform"
+              style={{ transform: `translateY(${leftOffset}px)` }}
+            >
+              
+              {/* Form Details (Only shown here in Edit View) */}
+              {!isNew && (
+                <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-[0_8px_40px_rgba(44,47,49,0.06)] border border-outline-variant/10 shrink-0">
+                  <h3 className="font-headline text-lg font-bold text-on-surface mb-5">Policy Details</h3>
+                  <div className="flex flex-col gap-5">
+                    <div className="flex flex-col gap-1.5">
+                      <label className="font-body text-xs font-bold text-on-surface-variant uppercase tracking-wider">Policy Name</label>
+                      <input
+                        type="text"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        placeholder="e.g. Remote Work Policy"
+                        className="bg-surface-container-low border border-outline-variant/30 rounded-xl px-4 py-3 text-sm font-body text-on-surface placeholder:text-outline-variant focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="font-body text-xs font-bold text-on-surface-variant uppercase tracking-wider">Department</label>
+                      <input
+                        type="text"
+                        value={editDepartment}
+                        onChange={(e) => setEditDepartment(e.target.value)}
+                        placeholder="e.g. Human Resources"
+                        className="bg-surface-container-low border border-outline-variant/30 rounded-xl px-4 py-3 text-sm font-body text-on-surface placeholder:text-outline-variant focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="font-body text-xs font-bold text-on-surface-variant uppercase tracking-wider">Version</label>
+                      <input
+                        type="text"
+                        value={editVersion}
+                        onChange={(e) => setEditVersion(e.target.value)}
+                        placeholder="e.g. v1.0"
+                        className="bg-surface-container-low border border-outline-variant/30 rounded-xl px-4 py-3 text-sm font-body text-on-surface placeholder:text-outline-variant focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="font-body text-xs font-bold text-on-surface-variant uppercase tracking-wider">Effective Date</label>
+                      <input
+                        type="date"
+                        value={editDate}
+                        onChange={(e) => setEditDate(e.target.value)}
+                        className="bg-surface-container-low border border-outline-variant/30 rounded-xl px-4 py-3 text-sm font-body text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                      />
+                    </div>
                   </div>
-                </div>
-              ) : (
-                <div
-                  onClick={() => mainPolicyInputRef.current?.click()}
-                  className="bg-surface-container-lowest rounded-xl p-8 shadow-[0_8px_40px_rgba(44,47,49,0.06)] flex flex-col items-center justify-center flex-1 border-2 border-dashed border-outline-variant hover:border-primary/40 hover:bg-primary/[0.02] transition-all cursor-pointer group min-h-[240px]"
-                >
-                  <div className="w-16 h-16 rounded-2xl bg-primary-container/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
-                    <Upload className="text-primary" size={28} />
-                  </div>
-                  <p className="font-body text-base font-medium text-on-surface mb-1">Upload Policy Document</p>
-                  <p className="font-body text-xs text-on-surface-variant mb-4">Drag and drop or click to browse</p>
-                  <p className="font-body text-[11px] text-outline-variant">Supports PDF, DOCX, TXT • Max 10 MB</p>
                 </div>
               )}
-            </div>
-            
-            {/* Right Column: Appendix */}
-            <div className="lg:col-span-5 flex flex-col gap-4 h-full">
-              <h3 className="font-headline text-xl font-semibold text-on-surface shrink-0">Appendix (Optional)</h3>
-              <input
-                ref={appendixInputRef}
-                type="file"
-                accept=".pdf,.docx,.doc,.txt,.xlsx,.xls,.csv"
-                multiple
-                className="hidden"
-                onChange={(e) => {
-                  const files = Array.from(e.target.files || []);
-                  if (files.length) setAppendixFiles(prev => [...prev, ...files]);
-                  e.target.value = '';
-                }}
-              />
-              <div className="flex flex-col flex-1 overflow-y-auto pr-2 gap-4">
-                <button
-                  onClick={() => appendixInputRef.current?.click()}
-                  className="w-full border-2 border-dashed border-outline-variant bg-surface-container-low/50 hover:bg-surface-container-low rounded-xl p-4 flex flex-col items-center justify-center transition-all group shrink-0 cursor-pointer"
-                >
-                  <div className="w-10 h-10 rounded-full bg-surface-container-lowest shadow-sm flex items-center justify-center mb-2 group-hover:scale-105 transition-transform">
-                    <Plus className="text-primary" size={20} />
-                  </div>
-                  <p className="font-body font-medium text-on-surface text-sm">Add Source</p>
-                  <p className="font-body text-xs text-on-surface-variant mt-1">Drag and drop or click to upload</p>
-                </button>
-                {appendixFiles.length > 0 && (
-                  <div className="flex flex-col gap-3">
-                    {appendixFiles.map((file, idx) => (
-                      <div key={`${file.name}-${idx}`} className="bg-surface-container-lowest rounded-xl p-3 shadow-[0_4px_20px_rgba(44,47,49,0.04)] flex items-center justify-between group hover:bg-surface-container-highest transition-colors">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <FileText className="text-error shrink-0" size={18} />
-                          <div className="min-w-0">
-                            <span className="font-body text-sm font-medium text-on-surface truncate block">{file.name}</span>
-                            <span className="font-body text-[11px] text-on-surface-variant">{formatFileSize(file.size)}</span>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => setAppendixFiles(prev => prev.filter((_, i) => i !== idx))}
-                          className="text-on-surface-variant hover:text-error opacity-0 group-hover:opacity-100 transition-opacity p-1 cursor-pointer"
-                        >
-                          <Trash2 size={16} />
+              
+              {/* Main Policy */}
+              <div className="flex flex-col gap-4">
+                <h3 className="font-headline text-xl font-semibold text-on-surface shrink-0">Main Policy</h3>
+                <input
+                  ref={mainPolicyInputRef}
+                  type="file"
+                  accept=".pdf,.docx,.doc,.txt"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) setMainPolicyFile(file);
+                    e.target.value = '';
+                  }}
+                />
+                
+                {mainPolicyFile ? (
+                  <div className="flex flex-col gap-4 border border-outline-variant/30 rounded-2xl overflow-hidden bg-surface-container-lowest">
+                    {mainPolicyFile.type === "application/pdf" ? (
+                      <iframe
+                        src={URL.createObjectURL(mainPolicyFile)}
+                        className="w-full h-[400px] border-b border-outline-variant/20"
+                      />
+                    ) : (
+                      <div className="w-full h-[400px] border-b border-outline-variant/20 bg-surface-container-low flex flex-col items-center justify-center">
+                         <FileText className="text-primary mb-3" size={48} />
+                         <p className="font-body text-base font-medium text-on-surface">{mainPolicyFile.name}</p>
+                         <p className="font-body text-xs text-on-surface-variant">Preview not available</p>
+                      </div>
+                    )}
+                    <div className="p-4 flex items-center justify-between">
+                      <div className="flex flex-col">
+                        <p className="font-body text-sm font-medium text-on-surface truncate">{mainPolicyFile.name}</p>
+                        <p className="font-body text-xs text-on-surface-variant">{formatFileSize(mainPolicyFile.size)}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button onClick={() => mainPolicyInputRef.current?.click()} className="px-4 py-1.5 border border-outline text-on-surface rounded-full font-body text-xs font-medium hover:bg-surface-container-low transition-colors cursor-pointer">
+                          Replace
+                        </button>
+                        <button onClick={() => setMainPolicyFile(null)} className="px-4 py-1.5 text-error font-body text-xs font-medium hover:bg-error-container/10 rounded-full transition-colors cursor-pointer">
+                          Remove
                         </button>
                       </div>
-                    ))}
+                    </div>
+                  </div>
+                ) : !isNew && !existingMainPolicyDeleted ? (
+                  <div className="flex flex-col gap-4 border border-outline-variant/30 rounded-2xl overflow-hidden bg-surface-container-lowest">
+                    {/* Mock PDF Viewer for existing file */}
+                    <div className="w-full h-[400px] border-b border-outline-variant/20 bg-surface-container-lowest flex flex-col items-center justify-center p-8 text-center relative overflow-hidden group">
+                       <div className="absolute inset-0 bg-primary/5 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity" />
+                       <FileText className="text-primary/60 mb-4" size={56} strokeWidth={1} />
+                       <p className="font-headline text-lg font-medium text-on-surface mb-2">Remote_Work_Policy_v2.4_FINAL.pdf</p>
+                       <p className="font-body text-sm text-on-surface-variant mb-6">Existing Document • 2.4 MB</p>
+                    </div>
+                    <div className="p-4 flex items-center justify-between">
+                      <div className="flex flex-col">
+                        <p className="font-body text-sm font-medium text-on-surface truncate">Remote_Work_Policy_v2.4_FINAL.pdf</p>
+                        <p className="font-body text-xs text-on-surface-variant">Uploaded on Oct 12, 2023</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button onClick={() => mainPolicyInputRef.current?.click()} className="px-4 py-1.5 border border-outline text-on-surface rounded-full font-body text-xs font-medium hover:bg-surface-container-low transition-colors cursor-pointer">
+                          Replace
+                        </button>
+                        <button onClick={() => setExistingMainPolicyDeleted(true)} className="px-4 py-1.5 text-error font-body text-xs font-medium hover:bg-error-container/10 rounded-full transition-colors cursor-pointer">
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    onClick={() => mainPolicyInputRef.current?.click()}
+                    className="bg-surface-container-lowest rounded-2xl p-8 shadow-[0_8px_40px_rgba(44,47,49,0.06)] flex flex-col items-center justify-center border-2 border-dashed border-outline-variant hover:border-primary/40 hover:bg-primary/[0.02] transition-all cursor-pointer group min-h-[240px]"
+                  >
+                    <div className="w-16 h-16 rounded-2xl bg-primary-container/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
+                      <Upload className="text-primary" size={28} />
+                    </div>
+                    <p className="font-body text-base font-medium text-on-surface mb-1">Upload Policy Document</p>
+                    <p className="font-body text-xs text-on-surface-variant mb-4">Drag and drop or click to browse</p>
+                    <p className="font-body text-[11px] text-outline-variant">Supports PDF, DOCX, TXT • Max 10 MB</p>
                   </div>
                 )}
               </div>
-            </div>
-          </div>
-        </div>
-        
-        {/* Bottom Action Bar */}
-        <div className="shrink-0 bg-surface-bright/80 backdrop-blur-xl border-t border-surface-container-low p-4 z-40">
-          <div className="max-w-7xl mx-auto flex justify-between items-center gap-6 px-8">
-            <button onClick={() => setEditingPolicy(null)} className="px-6 py-3 border border-outline-variant text-on-surface rounded-xl font-body font-medium hover:bg-surface-container-low transition-colors active:scale-95 cursor-pointer">
-              Cancel
-            </button>
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-3">
-                <span className="font-body text-sm text-on-surface-variant">Policy Status:</span>
-                <StatusDropdown />
-              </div>
-              <button onClick={() => {
-                const newPolicy: Policy = {
-                  id: "pol-" + Math.random().toString(36).substr(2, 9),
-                  name: "New Policy",
-                  version: "V1.0",
-                  department: "General",
-                  lastModified: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-                  status: editStatus,
-                  icon: FileText
-                };
-                setPolicies([newPolicy, ...policies]);
-                setEditingPolicy(null);
-              }} className="bg-gradient-to-r from-primary to-primary-dim text-white rounded-xl px-8 py-3 font-body font-medium shadow-[0_0_20px_rgba(70,71,211,0.2)] hover:shadow-[0_0_30px_rgba(147,150,255,0.4)] active:scale-95 transition-all cursor-pointer">
-                Create Policy
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
-  if (editingPolicy && currentPolicy) {
-    return (
-      <div className="flex-1 flex flex-col relative overflow-hidden w-full h-full bg-surface text-on-surface">
-        {/* Page Content */}
-        <div className="flex-1 flex flex-col p-6 max-w-7xl mx-auto w-full min-h-0 overflow-y-auto">
-          <div className="mb-6 flex flex-wrap items-center gap-4 shrink-0">
-            <button onClick={() => setEditingPolicy(null)} className="p-2 -ml-2 rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest transition-colors cursor-pointer" aria-label="Back to Policy Studio">
-              <ArrowLeft size={22} strokeWidth={2.5} />
-            </button>
-            <h2 className="font-headline text-[2rem] leading-tight font-bold text-on-surface tracking-[-0.02em]">{currentPolicy.name} {currentPolicy.version}</h2>
-          </div>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 flex-1 min-h-0">
-            {/* Left Column: Main Policy */}
-            <div className="lg:col-span-7 flex flex-col gap-4 h-full">
-              <h3 className="font-headline text-xl font-semibold text-on-surface shrink-0">Main Policy</h3>
-              <input
-                ref={mainPolicyInputRef}
-                type="file"
-                accept=".pdf,.docx,.doc,.txt"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) setMainPolicyFile(file);
-                  e.target.value = '';
-                }}
-              />
-              {mainPolicyFile ? (
-                <div className="bg-surface-container-lowest rounded-xl p-6 shadow-[0_8px_40px_rgba(44,47,49,0.06)] flex flex-col items-center justify-center flex-1 border border-surface-container-low min-h-[240px]">
-                  <FileText className="text-error mb-2" size={48} />
-                  <p className="font-body text-base font-medium text-on-surface mb-1">{mainPolicyFile.name}</p>
-                  <p className="font-body text-xs text-on-surface-variant mb-6">{formatFileSize(mainPolicyFile.size)}</p>
-                  <div className="flex gap-4">
-                    <button
-                      onClick={() => mainPolicyInputRef.current?.click()}
-                      className="px-6 py-2 border border-outline text-on-surface rounded-full font-body text-sm font-medium hover:bg-surface-container-low transition-colors cursor-pointer"
-                    >
-                      Replace
-                    </button>
-                    <button
-                      onClick={() => setMainPolicyFile(null)}
-                      className="px-6 py-2 text-error font-body text-sm font-medium hover:bg-error-container/10 rounded-full transition-colors cursor-pointer"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                </div>
-              ) : !existingMainPolicyDeleted ? (
-                <div className="bg-surface-container-lowest rounded-xl p-6 shadow-[0_8px_40px_rgba(44,47,49,0.06)] flex flex-col items-center justify-center flex-1 border border-surface-container-low min-h-[240px]">
-                  <FileText className="text-error mb-2" size={48} />
-                  <p className="font-body text-base font-medium text-on-surface mb-1">Remote_Work_Policy_v2.4_FINAL.pdf</p>
-                  <p className="font-body text-xs text-on-surface-variant mb-6">Uploaded on Oct 12, 2023 • 2.4 MB</p>
-                  <div className="flex gap-4">
-                    <button onClick={() => mainPolicyInputRef.current?.click()} className="px-6 py-2 border border-outline text-on-surface rounded-full font-body text-sm font-medium hover:bg-surface-container-low transition-colors cursor-pointer">
-                      Replace
-                    </button>
-                    <button onClick={() => setExistingMainPolicyDeleted(true)} className="px-6 py-2 text-error font-body text-sm font-medium hover:bg-error-container/10 rounded-full transition-colors cursor-pointer">
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div
-                  onClick={() => mainPolicyInputRef.current?.click()}
-                  className="bg-surface-container-lowest rounded-xl p-8 shadow-[0_8px_40px_rgba(44,47,49,0.06)] flex flex-col items-center justify-center flex-1 border-2 border-dashed border-outline-variant hover:border-primary/40 hover:bg-primary/[0.02] transition-all cursor-pointer group min-h-[240px]"
-                >
-                  <div className="w-16 h-16 rounded-2xl bg-primary-container/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
-                    <Upload className="text-primary" size={28} />
-                  </div>
-                  <p className="font-body text-base font-medium text-on-surface mb-1">Upload Policy Document</p>
-                  <p className="font-body text-xs text-on-surface-variant mb-4">Drag and drop or click to browse</p>
-                  <p className="font-body text-[11px] text-outline-variant">Supports PDF, DOCX, TXT • Max 10 MB</p>
-                </div>
-              )}
-            </div>
-            
-            {/* Right Column: Appendix */}
-            <div className="lg:col-span-5 flex flex-col gap-4 h-full">
-              <h3 className="font-headline text-xl font-semibold text-on-surface shrink-0">Appendix (Optional)</h3>
-              <input
-                ref={editAppendixInputRef}
-                type="file"
-                accept=".pdf,.docx,.doc,.txt,.xlsx,.xls,.csv"
-                multiple
-                className="hidden"
-                onChange={(e) => {
-                  const files = Array.from(e.target.files || []);
-                  if (files.length) setEditAppendixFiles(prev => [...prev, ...files]);
-                  e.target.value = '';
-                }}
-              />
-              <div className="flex flex-col flex-1 overflow-y-auto pr-2 gap-4">
-                <button
-                  onClick={() => editAppendixInputRef.current?.click()}
-                  className="w-full border-2 border-dashed border-outline-variant bg-surface-container-low/50 hover:bg-surface-container-low rounded-xl p-4 flex flex-col items-center justify-center transition-all group shrink-0 cursor-pointer"
-                >
-                  <div className="w-10 h-10 rounded-full bg-surface-container-lowest shadow-sm flex items-center justify-center mb-2 group-hover:scale-105 transition-transform">
-                    <Plus className="text-primary" size={20} />
-                  </div>
-                  <p className="font-body font-medium text-on-surface text-sm">Add Source</p>
-                  <p className="font-body text-xs text-on-surface-variant mt-1">Drag and drop or click to upload</p>
-                </button>
+              {/* Appendix */}
+              <div className="flex flex-col gap-4">
+                <h3 className="font-headline text-xl font-semibold text-on-surface shrink-0">Appendix (Optional)</h3>
+                <input
+                  ref={appendixInputRef}
+                  type="file"
+                  accept=".pdf,.docx,.doc,.txt,.xlsx,.xls,.csv"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files || []);
+                    if (files.length) setAppendixFiles(prev => [...prev, ...files]);
+                    e.target.value = '';
+                  }}
+                />
                 <div className="flex flex-col gap-3">
+                  {/* Upload button for Appendix */}
+                  <button
+                    onClick={() => appendixInputRef.current?.click()}
+                    className="w-full border-2 border-dashed border-outline-variant bg-surface-container-low/50 hover:bg-surface-container-low rounded-xl p-4 flex flex-col items-center justify-center transition-all group shrink-0 cursor-pointer"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-surface-container-lowest shadow-sm flex items-center justify-center mb-2 group-hover:scale-105 transition-transform">
+                      <Plus className="text-primary" size={20} />
+                    </div>
+                    <p className="font-body font-medium text-on-surface text-sm">Add Source</p>
+                    <p className="font-body text-xs text-on-surface-variant mt-1">Drag and drop or click to upload</p>
+                  </button>
+                  
                   {/* Existing Appendix Items */}
-                  {existingAppendix.map((item, idx) => (
-                    <div key={`existing-${idx}`} className="bg-surface-container-lowest rounded-xl p-3 shadow-[0_4px_20px_rgba(44,47,49,0.04)] flex items-center justify-between group hover:bg-surface-container-highest transition-colors">
+                  {!isNew && existingAppendix.map((item, idx) => (
+                    <div key={`existing-${idx}`} className="bg-surface-container-lowest rounded-xl p-3 border border-outline-variant/20 shadow-sm flex items-center justify-between group hover:bg-surface-container-highest transition-colors">
                       <div className="flex items-center gap-3 min-w-0">
-                        <FileText className="text-error shrink-0" size={18} />
+                        <FileText className="text-on-surface-variant shrink-0" size={18} />
                         <div className="min-w-0">
                           <span className="font-body text-sm font-medium text-on-surface truncate block">{item.name}</span>
                           <span className="font-body text-[11px] text-on-surface-variant">{item.size}</span>
@@ -397,18 +611,19 @@ export default function PolicyStudio() {
                       </button>
                     </div>
                   ))}
+                  
                   {/* Newly uploaded appendix files */}
-                  {editAppendixFiles.map((file, idx) => (
-                    <div key={`edit-${file.name}-${idx}`} className="bg-surface-container-lowest rounded-xl p-3 shadow-[0_4px_20px_rgba(44,47,49,0.04)] flex items-center justify-between group hover:bg-surface-container-highest transition-colors">
+                  {appendixFiles.map((file, idx) => (
+                    <div key={`edit-${file.name}-${idx}`} className="bg-surface-container-lowest rounded-xl p-3 border border-outline-variant/20 shadow-sm flex items-center justify-between group hover:bg-surface-container-highest transition-colors">
                       <div className="flex items-center gap-3 min-w-0">
-                        <FileText className="text-error shrink-0" size={18} />
+                        <FileText className="text-primary shrink-0" size={18} />
                         <div className="min-w-0">
                           <span className="font-body text-sm font-medium text-on-surface truncate block">{file.name}</span>
                           <span className="font-body text-[11px] text-on-surface-variant">{formatFileSize(file.size)}</span>
                         </div>
                       </div>
                       <button
-                        onClick={() => setEditAppendixFiles(prev => prev.filter((_, i) => i !== idx))}
+                        onClick={() => setAppendixFiles(prev => prev.filter((_, i) => i !== idx))}
                         className="text-on-surface-variant hover:text-error opacity-0 group-hover:opacity-100 transition-opacity p-1 cursor-pointer"
                       >
                         <Trash2 size={16} />
@@ -417,25 +632,253 @@ export default function PolicyStudio() {
                   ))}
                 </div>
               </div>
+
+              {/* Change History Panel (Moved to Bottom Left) */}
+              {!isNew && (
+                <div className="bg-surface-container-lowest rounded-2xl shadow-[0_8px_40px_rgba(44,47,49,0.06)] border border-outline-variant/10 overflow-hidden flex flex-col shrink-0 mt-4 animate-in fade-in slide-in-from-left-4 duration-500">
+                  <div className="p-4 bg-surface-container-low border-b border-outline-variant/10 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <History className="text-primary w-5 h-5 shrink-0" />
+                      <h3 className="font-headline font-bold text-on-surface text-sm">Change History</h3>
+                    </div>
+                    <span className="px-2 py-0.5 bg-primary/10 text-primary text-[10px] font-bold rounded-full uppercase tracking-wider">{editHistory.length} Entries</span>
+                  </div>
+                  
+                  <div className="p-4 flex flex-col gap-4 max-h-[320px] overflow-y-auto">
+                    {editHistory.length > 0 ? (
+                      <div className="flex flex-col gap-4 relative">
+                        <div className="absolute top-2 bottom-2 left-[19px] w-0.5 bg-outline-variant/10" />
+                        {editHistory.map((entry, idx) => (
+                          <div key={idx} className="flex gap-4 relative">
+                            <div className="w-10 h-10 rounded-full bg-surface-container-lowest border border-outline-variant/20 flex items-center justify-center shrink-0 z-10">
+                              <User size={16} className="text-on-surface-variant" />
+                            </div>
+                            <div className="flex-1 flex flex-col pt-0.5">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-sm font-bold text-on-surface leading-none">{entry.action}</span>
+                                <div className="flex items-center gap-1 text-[10px] text-on-surface-variant">
+                                  <Clock size={10} />
+                                  {entry.date}
+                                </div>
+                              </div>
+                              <span className="text-xs text-on-surface-variant mt-1">{entry.user}</span>
+                              {entry.details && (
+                                <p className="text-[11px] text-on-surface-variant/60 mt-1.5 font-body italic leading-relaxed">
+                                  "{entry.details}"
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="py-8 text-center">
+                        <p className="text-xs text-on-surface-variant font-body">No history recorded yet.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            {/* Right Column: Policy Details (if new) & AI Overview (if edit) */}
+            <div 
+              ref={rightColRef}
+              className="lg:col-span-5 flex flex-col gap-6 pr-2 pb-4 h-fit transition-transform duration-75 ease-out will-change-transform"
+              style={{ transform: `translateY(${rightOffset}px)` }}
+            >
+              
+              {/* Form Details (Only shown here in New/Upload View) */}
+              {isNew && (
+                <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-[0_8px_40px_rgba(44,47,49,0.06)] border border-outline-variant/10 shrink-0">
+                  <h3 className="font-headline text-lg font-bold text-on-surface mb-5">Policy Details</h3>
+                  <div className="flex flex-col gap-5">
+                    <div className="flex flex-col gap-1.5">
+                      <label className="font-body text-xs font-bold text-on-surface-variant uppercase tracking-wider">Policy Name</label>
+                      <input
+                        type="text"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        placeholder="e.g. Remote Work Policy"
+                        className="bg-surface-container-low border border-outline-variant/30 rounded-xl px-4 py-3 text-sm font-body text-on-surface placeholder:text-outline-variant focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="font-body text-xs font-bold text-on-surface-variant uppercase tracking-wider">Department</label>
+                      <input
+                        type="text"
+                        value={editDepartment}
+                        onChange={(e) => setEditDepartment(e.target.value)}
+                        placeholder="e.g. Human Resources"
+                        className="bg-surface-container-low border border-outline-variant/30 rounded-xl px-4 py-3 text-sm font-body text-on-surface placeholder:text-outline-variant focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="font-body text-xs font-bold text-on-surface-variant uppercase tracking-wider">Version</label>
+                      <input
+                        type="text"
+                        value={editVersion}
+                        onChange={(e) => setEditVersion(e.target.value)}
+                        placeholder="e.g. v1.0"
+                        className="bg-surface-container-low border border-outline-variant/30 rounded-xl px-4 py-3 text-sm font-body text-on-surface placeholder:text-outline-variant focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="font-body text-xs font-bold text-on-surface-variant uppercase tracking-wider">Effective Date</label>
+                      <input
+                        type="date"
+                        value={editDate}
+                        onChange={(e) => setEditDate(e.target.value)}
+                        className="bg-surface-container-low border border-outline-variant/30 rounded-xl px-4 py-3 text-sm font-body text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* AI Overview Summary (Restored for Edit View only) */}
+              {!isNew && MOCK_POLICY_DETAILS && MOCK_POLICY_DETAILS[0] && (
+                <div className="bg-surface-container-lowest rounded-2xl shadow-[0_8px_40px_rgba(44,47,49,0.08)] border border-primary/20 overflow-hidden flex flex-col shrink-0 animate-in fade-in slide-in-from-right-4 duration-500">
+                  <div className="p-4 bg-gradient-to-r from-primary/10 to-primary/5 border-b border-primary/10 flex items-center gap-3">
+                    <Sparkles className="text-primary w-5 h-5 shrink-0" />
+                    <h3 className="font-headline font-bold text-primary">Overview Summary Generated from AI</h3>
+                  </div>
+                  <div className="p-6 flex flex-col gap-6">
+                    <div>
+                      <p className="font-body text-sm text-on-surface leading-relaxed whitespace-pre-wrap">
+                        {MOCK_POLICY_DETAILS[0].overview_summary}
+                      </p>
+                    </div>
+                    
+                    <div className="h-px bg-outline-variant/20 w-full" />
+
+                    <div>
+                      <h4 className="font-headline text-sm font-bold text-on-surface mb-3 uppercase tracking-wider">Mandatory Conditions</h4>
+                      <div className="flex flex-col gap-3">
+                        {editConditions && Object.entries(editConditions).slice(0, 4).map(([category, details]: [string, any]) => (
+                          <div key={category} className="bg-surface-container-low rounded-xl p-4 border border-outline-variant/10">
+                            <p className="font-semibold text-sm text-on-surface mb-2">{category}</p>
+                            <ul className="list-disc pl-5 flex flex-col gap-1">
+                              {details.condition.map((cond: string, i: number) => (
+                                <li key={i} className="text-xs text-on-surface-variant font-body leading-relaxed">{cond}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        ))}
+                        {editConditions && Object.entries(editConditions).length > 4 && (
+                          <div className="text-center pt-2">
+                             <button 
+                               onClick={() => setConditionsModalOpen(true)}
+                               className="w-full py-2.5 rounded-xl text-xs text-primary font-bold hover:bg-primary/5 border border-transparent hover:border-primary/10 transition-all flex items-center justify-center gap-2 cursor-pointer group"
+                             >
+                               Edit mandatory conditions
+                               <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+                             </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Policy Intelligence Panel (Restored) */}
+              <div className="bg-surface-container-lowest rounded-2xl shadow-[0_8px_40px_rgba(44,47,49,0.06)] border border-outline-variant/10 overflow-hidden flex flex-col shrink-0 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200 relative group">
+                <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-secondary to-transparent opacity-0 group-hover:opacity-100 transition-opacity animate-pulse-scan" />
+                
+                <div className="p-4 bg-surface-container-low border-b border-outline-variant/10 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <BarChart3 className="text-secondary w-5 h-5 shrink-0" />
+                    <h3 className="font-headline font-bold text-on-surface text-sm">Policy Intelligence</h3>
+                  </div>
+                  <span className="px-2 py-0.5 bg-secondary/10 text-secondary text-[10px] font-bold rounded-full uppercase tracking-wider">Live Analysis</span>
+                </div>
+                
+                <div className="p-5 flex flex-col gap-5">
+                  {/* Health Score */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex flex-col">
+                      <span className="text-xs text-on-surface-variant font-medium">Policy Health Score</span>
+                      <span className="text-[10px] text-outline-variant">Clarity & Compliance alignment</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 flex items-center justify-center relative">
+                        <svg className="w-full h-full -rotate-90" viewBox="0 0 48 48">
+                          {/* Background Circle */}
+                          <circle cx="24" cy="24" r="21" fill="none" stroke="currentColor" strokeWidth="4" className="text-secondary/20" />
+                          {/* Progress Circle */}
+                          <circle cx="24" cy="24" r="21" fill="none" stroke="currentColor" strokeWidth="4" className="text-secondary" strokeDasharray="131.95" strokeDashoffset="13.2" strokeLinecap="round" />
+                        </svg>
+                        <span className="absolute text-xs font-bold text-secondary">90%</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="h-px bg-outline-variant/10 w-full" />
+
+                  {/* Insights Grid */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-1.5 p-3 rounded-xl bg-surface-container-low/50 border border-outline-variant/5">
+                      <div className="flex items-center gap-2 text-secondary">
+                        <ShieldCheck size={14} />
+                        <span className="text-[10px] font-bold uppercase tracking-wider">Legal Risk</span>
+                      </div>
+                      <span className="text-sm font-bold text-on-surface">Low Risk</span>
+                    </div>
+                    <div className="flex flex-col gap-1.5 p-3 rounded-xl bg-surface-container-low/50 border border-outline-variant/5">
+                      <div className="flex items-center gap-2 text-primary">
+                        <Users size={14} />
+                        <span className="text-[10px] font-bold uppercase tracking-wider">Audience</span>
+                      </div>
+                      <span className="text-sm font-bold text-on-surface">All Employees</span>
+                    </div>
+                    <div className="flex flex-col gap-1.5 p-3 rounded-xl bg-surface-container-low/50 border border-outline-variant/5">
+                      <div className="flex items-center gap-2 text-tertiary">
+                        <Calendar size={14} />
+                        <span className="text-[10px] font-bold uppercase tracking-wider">Next Audit</span>
+                      </div>
+                      <span className="text-sm font-bold text-on-surface">Oct 24, 2024</span>
+                    </div>
+                    <div className="flex flex-col gap-1.5 p-3 rounded-xl bg-surface-container-low/50 border border-outline-variant/5">
+                      <div className="flex items-center gap-2 text-error">
+                        <AlertCircle size={14} />
+                        <span className="text-[10px] font-bold uppercase tracking-wider">Conflicts</span>
+                      </div>
+                      <span className="text-sm font-bold text-on-surface">None Found</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
         
+        {/* Mandatory Conditions Modal */}
+        {editConditions && (
+          <ConditionsModal 
+            isOpen={conditionsModalOpen} 
+            onClose={() => setConditionsModalOpen(false)} 
+            conditions={editConditions}
+            onSave={(newConditions) => {
+              setEditConditions(newConditions);
+              setConditionsModalOpen(false);
+            }}
+          />
+        )}
+        
         {/* Bottom Action Bar */}
         <div className="shrink-0 bg-surface-bright/80 backdrop-blur-xl border-t border-surface-container-low p-4 z-40">
-          <div className="max-w-7xl mx-auto flex justify-end items-center gap-6 px-8">
+          <div className="max-w-7xl mx-auto flex justify-between items-center gap-6 px-8">
+            <button onClick={() => setEditingPolicy(null)} className="px-6 py-3 border border-outline-variant text-on-surface rounded-xl font-body font-medium hover:bg-surface-container-low transition-colors active:scale-95 cursor-pointer">
+              Cancel
+            </button>
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-3">
-                <span className="font-body text-sm text-on-surface-variant">Policy Status:</span>
+                <span className="font-body text-sm text-on-surface-variant hidden sm:block">Policy Status:</span>
                 <StatusDropdown />
               </div>
-              <button onClick={() => {
-                if (editingPolicy) {
-                  setPolicies(policies.map(p => p.id === editingPolicy ? { ...p, status: editStatus } : p));
-                }
-                setEditingPolicy(null);
-              }} className="bg-gradient-to-r from-primary to-primary-dim text-white rounded-xl px-8 py-3 font-body font-medium shadow-[0_0_20px_rgba(70,71,211,0.2)] hover:shadow-[0_0_30px_rgba(147,150,255,0.4)] active:scale-95 transition-all cursor-pointer">
-                Save Changes
+              <button onClick={handleSave} className="bg-gradient-to-r from-primary to-primary-dim text-white rounded-xl px-8 py-3 font-body font-medium shadow-[0_0_20px_rgba(70,71,211,0.25)] hover:shadow-[0_0_30px_rgba(147,150,255,0.4)] active:scale-95 transition-all cursor-pointer">
+                {isNew ? "Create Policy" : "Save Changes"}
               </button>
             </div>
           </div>
@@ -450,8 +893,6 @@ export default function PolicyStudio() {
                           p.department.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesStatus && matchesSearch;
   });
-
-
 
   return (
     <div className="relative min-h-full p-6 md:p-10 lg:p-12 font-body antialiased selection:bg-primary-container selection:text-on-primary-container">
@@ -542,7 +983,7 @@ export default function PolicyStudio() {
                     </thead>
                     <tbody className="font-body text-on-surface">
                       {filteredPolicies.length > 0 ? (
-                        filteredPolicies.map((policy) => (
+                        filteredPolicies.slice(0, 3).map((policy) => (
                           <tr 
                             key={policy.id} 
                             onClick={() => setEditingPolicy(policy.id)}
@@ -623,6 +1064,212 @@ export default function PolicyStudio() {
   );
 }
 
+// ─── Mandatory Conditions Modal ──────────────────────────────────────────────────
+
+function ConditionsModal({ 
+  isOpen, 
+  onClose, 
+  conditions,
+  onSave
+}: { 
+  isOpen: boolean; 
+  onClose: () => void; 
+  conditions: Record<string, any>; 
+  onSave: (newConditions: Record<string, any>) => void;
+}) {
+  const [localConditions, setLocalConditions] = useState(conditions);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+
+  useEffect(() => {
+    setLocalConditions(conditions);
+  }, [conditions]);
+
+  if (!isOpen) return null;
+
+  const handleUpdateCondition = (category: string, index: number, value: string) => {
+    setLocalConditions(prev => {
+      const next = { ...prev };
+      const nextCategory = { ...next[category] };
+      const nextConditions = [...nextCategory.condition];
+      nextConditions[index] = value;
+      nextCategory.condition = nextConditions;
+      next[category] = nextCategory;
+      return next;
+    });
+  };
+
+  const handleAddCondition = (category: string) => {
+    setLocalConditions(prev => {
+      const next = { ...prev };
+      const nextCategory = { ...next[category] };
+      nextCategory.condition = [...nextCategory.condition, ""];
+      next[category] = nextCategory;
+      return next;
+    });
+  };
+
+  const handleRemoveCondition = (category: string, index: number) => {
+    setLocalConditions(prev => {
+      const next = { ...prev };
+      const nextCategory = { ...next[category] };
+      nextCategory.condition = nextCategory.condition.filter((_: any, i: number) => i !== index);
+      next[category] = nextCategory;
+      return next;
+    });
+  };
+
+  const handleAddNewCategory = () => {
+    if (newCategoryName.trim()) {
+      setLocalConditions(prev => ({
+        ...prev,
+        [newCategoryName.trim()]: { condition: [""] }
+      }));
+      setNewCategoryName("");
+      setIsAddingCategory(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+      <div className="absolute inset-0 bg-inverse-surface/40 backdrop-blur-sm cursor-pointer" onClick={onClose} />
+      
+      <div className="relative w-full max-w-2xl max-h-[85vh] bg-surface-container-lowest rounded-[2rem] shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
+        <div className="p-8 border-b border-outline-variant/10 flex items-center justify-between bg-gradient-to-r from-primary/10 via-primary/5 to-transparent shrink-0">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-primary/20 flex items-center justify-center">
+              <Sparkles className="text-primary w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="font-headline font-bold text-2xl text-on-surface">Mandatory Conditions</h3>
+              <p className="text-sm text-on-surface-variant font-body">Review and edit AI extracted rules</p>
+            </div>
+          </div>
+          <button 
+            onClick={onClose} 
+            className="w-10 h-10 rounded-full bg-surface-container-low flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors cursor-pointer"
+          >
+            <X size={20} />
+          </button>
+        </div>
+        
+        <div className="flex-1 overflow-y-auto p-8 flex flex-col gap-6">
+          {Object.entries(localConditions).map(([category, details]) => (
+            <div key={category} className="bg-surface-container-low/50 rounded-2xl p-6 border border-outline-variant/10 hover:bg-surface-container-low transition-colors group">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="font-headline font-bold text-lg text-on-surface flex items-center gap-3">
+                  <div className="w-2 h-2 rounded-full bg-primary shadow-[0_0_8px_rgba(70,71,211,0.5)]" />
+                  {category}
+                </h4>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => handleAddCondition(category)}
+                    className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors cursor-pointer"
+                    title="Add condition"
+                  >
+                    <Plus size={18} />
+                  </button>
+                  <button 
+                    onClick={() => {
+                      if (confirm(`Are you sure you want to remove the entire "${category}" category?`)) {
+                        setLocalConditions(prev => {
+                          const next = { ...prev };
+                          delete next[category];
+                          return next;
+                        });
+                      }
+                    }}
+                    className="p-2 text-on-surface-variant hover:text-error hover:bg-error/5 rounded-lg transition-colors cursor-pointer"
+                    title="Delete category"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-3">
+                {details.condition.map((cond: string, i: number) => (
+                  <div key={i} className="flex gap-2 group/item">
+                    <div className="flex-1 relative">
+                      <input
+                        type="text"
+                        value={cond}
+                        onChange={(e) => handleUpdateCondition(category, i, e.target.value)}
+                        className="w-full bg-surface-container-lowest border border-outline-variant/20 rounded-xl px-4 py-2.5 text-sm text-on-surface font-body focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                        placeholder="Enter condition..."
+                      />
+                    </div>
+                    <button 
+                      onClick={() => handleRemoveCondition(category, i)}
+                      className="p-2.5 text-on-surface-variant hover:text-error hover:bg-error/5 rounded-xl transition-all cursor-pointer shrink-0"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+
+          {/* Add New Category UI */}
+          {isAddingCategory ? (
+            <div className="bg-primary/5 rounded-2xl p-6 border-2 border-dashed border-primary/20 animate-in slide-in-from-bottom-2 duration-300">
+              <h4 className="text-sm font-bold text-primary mb-4 uppercase tracking-wider">New Mandatory Category</h4>
+              <div className="flex gap-3">
+                <input
+                  autoFocus
+                  type="text"
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddNewCategory()}
+                  placeholder="e.g. Travel Limits, Eligibility..."
+                  className="flex-1 bg-surface-container-lowest border border-primary/30 rounded-xl px-4 py-3 text-sm text-on-surface font-body focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                />
+                <button 
+                  onClick={handleAddNewCategory}
+                  className="px-6 bg-primary text-white text-sm font-bold rounded-xl hover:opacity-90 transition-all active:scale-95 cursor-pointer"
+                >
+                  Add
+                </button>
+                <button 
+                  onClick={() => { setIsAddingCategory(false); setNewCategoryName(""); }}
+                  className="p-3 text-on-surface-variant hover:bg-surface-container-low rounded-xl transition-all cursor-pointer"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button 
+              onClick={() => setIsAddingCategory(true)}
+              className="w-full py-6 border-2 border-dashed border-outline-variant/20 rounded-2xl flex flex-col items-center justify-center gap-2 text-on-surface-variant hover:border-primary/30 hover:bg-primary/5 hover:text-primary transition-all group cursor-pointer"
+            >
+              <div className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                <PlusCircle size={20} />
+              </div>
+              <span className="text-sm font-bold font-headline">Add New Mandatory Category</span>
+            </button>
+          )}
+        </div>
+
+        <div className="p-6 border-t border-outline-variant/10 bg-surface-container-low/30 flex justify-between items-center shrink-0">
+          <button 
+            onClick={onClose}
+            className="px-6 py-3 text-on-surface-variant font-body font-bold hover:bg-surface-container-high rounded-xl transition-all cursor-pointer"
+          >
+            Cancel
+          </button>
+          <button 
+            onClick={() => onSave(localConditions)}
+            className="px-8 py-3 bg-primary text-white rounded-xl font-body font-bold hover:shadow-lg hover:shadow-primary/20 transition-all active:scale-95 cursor-pointer"
+          >
+            Save Conditions
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── View All Modal Component ───────────────────────────────────────────────────
 
 function ViewAllModal({
@@ -649,10 +1296,8 @@ function ViewAllModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
-      {/* Overlay */}
       <div className="absolute inset-0 bg-inverse-surface/30 backdrop-blur-sm cursor-pointer" onClick={onClose} />
 
-      {/* Modal Content */}
       <div className="relative w-full max-w-4xl max-h-[85dvh] flex flex-col bg-surface-container-lowest rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
         <div className="flex items-center justify-between px-6 py-5 border-b border-outline-variant/15 shrink-0">
           <div>
@@ -664,7 +1309,6 @@ function ViewAllModal({
           </button>
         </div>
 
-        {/* Search Bar in Modal */}
         <div className="px-6 py-4 bg-surface border-b border-outline-variant/10 shrink-0">
           <div className="flex items-center gap-2.5 bg-surface-container-low rounded-xl px-4 py-2.5 ring-1 ring-outline-variant/20 focus-within:ring-primary/40 focus-within:bg-surface-container-lowest transition-all">
             <Search className="w-4 h-4 text-on-surface-variant shrink-0" strokeWidth={2} />
@@ -678,7 +1322,6 @@ function ViewAllModal({
           </div>
         </div>
 
-        {/* Scrollable Table */}
         <div className="flex-1 overflow-y-auto min-h-0">
           <table className="w-full text-left border-collapse">
             <thead className="sticky top-0 z-10">
@@ -723,7 +1366,6 @@ function ViewAllModal({
           </table>
         </div>
 
-        {/* Footer */}
         <div className="px-6 py-4 border-t border-outline-variant/10 shrink-0 flex items-center justify-end bg-surface">
           <button onClick={onClose} className="px-6 py-2 rounded-xl bg-primary text-on-primary text-sm font-semibold hover:bg-primary-dim transition-all shadow-md cursor-pointer">
             Done
