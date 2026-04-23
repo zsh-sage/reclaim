@@ -635,8 +635,6 @@ export function VerificationScreen({
   // (with 32px total side padding so it doesn't hug the edges)
   const baseScale   = Math.min(1, (containerWidth - 32) / A4_WIDTH);
   const totalScale  = +(baseScale * previewZoom).toFixed(3);
-  // The scaled doc's rendered height, so the scroll container knows how tall to be
-  const scaledHeight = 1123 * totalScale;
 
   const previewPanel = (
     <div className="flex-1 bg-surface-container/50 rounded-2xl flex flex-col overflow-hidden min-h-[500px] lg:min-h-0">
@@ -689,33 +687,38 @@ export function VerificationScreen({
         style={{ touchAction: "pinch-zoom" }}
       >
         {/*
-          Sizing shell: tells the scroll container how tall the scaled content is,
-          so the scrollbar tracks the correct virtual height.
+          Centering row: when the scaled doc is narrower than the container
+          (zoomed out), margin:auto centres it. When wider (zoomed in),
+          overflow:auto on the parent produces the correct scrollbars.
         */}
-        <div style={{ width: "100%", height: scaledHeight, position: "relative" }}>
+        <div style={{ display: "flex", justifyContent: "center", padding: "16px" }}>
           {/*
-            Transform wrapper: fixed 794px width, scaled from top-center.
-            position:absolute + left:50% + translateX(-50%) centres the 794px
-            canvas horizontally in the container before scaling.
+            Dynamic bounding box: physically sized to the scaled dimensions so
+            overflow:auto sees the true footprint and generates accurate scrollbars.
+            transform-origin: top left paired with this approach eliminates clipping.
           */}
           <div
             style={{
-              position: "absolute",
-              top: 0,
-              left: "50%",
-              transform: `translateX(-50%) scale(${totalScale})`,
-              transformOrigin: "top center",
-              width: A4_WIDTH,
-              padding: "16px 0",
+              width:     A4_WIDTH * totalScale,
+              minHeight: 1123    * totalScale,
+              flexShrink: 0,
             }}
           >
-            <A4Preview
-              dbData={dbData}
-              mainCategory={mainCategory}
-              claimContext={claimContext}
-              receipts={ocrReceipts}
-              subTotal={subTotal}
-            />
+            <div
+              style={{
+                width:           A4_WIDTH,
+                transformOrigin: "top left",
+                transform:       `scale(${totalScale})`,
+              }}
+            >
+              <A4Preview
+                dbData={dbData}
+                mainCategory={mainCategory}
+                claimContext={claimContext}
+                receipts={ocrReceipts}
+                subTotal={subTotal}
+              />
+            </div>
           </div>
         </div>
       </div>
