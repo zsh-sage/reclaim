@@ -1,29 +1,40 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import {
   ChevronDown,
-  Clock,
-  CheckCircle2,
-  Circle,
   FileText,
   Upload,
   Trash2,
   Loader2,
-  Sparkles,
   Search,
-  AlertTriangle,
   Camera,
+  ImageIcon,
+  ZoomIn,
+  ZoomOut,
+  Maximize2,
+  Pencil,
+  Check,
+  X,
 } from "lucide-react";
 
-// ─── Screen Components ────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
+import type {
+  UploadedFile,
+  OcrReceiptData,
+  ClaimContext,
+  ClaimSubmissionPayload,
+} from "../../../src/types/claim";
+
+// ─── Mock data (swap for real API calls at backend handoff) ───────────────────
+import { POLICY_DATA } from "../../../src/mocks/policyData";
+import { MOCK_DB_DATA, MOCK_OCR_RECEIPTS } from "../../../src/mocks/claimMockData";
+
+// ─── Screen components ────────────────────────────────────────────────────────
 import { ProcessingScreen } from "./_components/ProcessingScreen";
-import { VerificationScreen, type ExtractedData } from "./_components/VerificationScreen";
-import { RetryFailedScreen } from "./_components/RetryFailedScreen";
-import { DoubleFailedScreen } from "./_components/DoubleFailedScreen";
-import { HrEscalationScreen } from "./_components/HrEscalationScreen";
+import { VerificationScreen } from "./_components/VerificationScreen";
 import { SuccessModal, type SuccessType } from "./_components/SuccessModal";
-import { CameraModal } from "./_components/CameraModal";
+// CameraModal removed — using native <input capture="environment"> instead
 
 // ─── Server Actions ───────────────────────────────────────────────────────────
 import { getPolicies } from "@/lib/actions/policies";
@@ -31,67 +42,39 @@ import type { Policy, SubCategoryConfig } from "@/lib/api/types";
 
 // ─── Stage type ───────────────────────────────────────────────────────────────
 
-type Stage =
-  | "form"
-  | "processing"
-  | "verification"
-  | "retry_failed"
-  | "double_failed"
-  | "hr_escalation";
+type Stage = "form" | "processing" | "verification";
 
-// ─── Form data types ──────────────────────────────────────────────────────────
+// ─── Timing constants for OCR simulation ─────────────────────────────────────
+// Per receipt: Scan(0ms) → Read(700ms) → Extract(1400ms) → done(2200ms)
+const STEP_MS = [0, 700, 1400, 2200] as const;
 
-interface DocumentSlot {
-  id: string;
-  label: string;
-  hint: string;
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const MAX_FILES = 10;
+const ACCEPT = ".pdf,.jpg,.jpeg,.png";
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function uid() {
+  return Math.random().toString(36).slice(2, 10);
 }
-
-// Local alias for component use — maps from Policy type
-interface MainCategoryConfig {
-  main_category: string;
-  reimbursable_category: string[];
-  mandatory_conditions: Record<string, SubCategoryConfig>;
-}
-
-// Policy data is fetched via server action in the component below.
-// See lib/actions/policies.ts for the data source and fallback mock data.
-
-// ─── Helper ───────────────────────────────────────────────────────────────────
-
-function buildDocSlots(config: SubCategoryConfig): DocumentSlot[] {
-  return config.required_documents.map((label, idx) => ({
-    id: `doc-${idx}`,
-    label,
-    hint: config.condition[0] ?? "Required document",
-  }));
-}
-
-// ─── Image compression (client-side, no backend needed) ───────────────────────
 
 function compressImage(file: File, quality = 0.85, maxWidth = 2048): Promise<File> {
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     const img = new Image();
     const url = URL.createObjectURL(file);
     img.onload = () => {
       let { width, height } = img;
-      if (width > maxWidth) {
-        height = Math.round((height * maxWidth) / width);
-        width  = maxWidth;
-      }
+      if (width > maxWidth) { height = Math.round((height * maxWidth) / width); width = maxWidth; }
       const canvas = document.createElement("canvas");
-      canvas.width  = width;
-      canvas.height = height;
+      canvas.width = width; canvas.height = height;
       const ctx = canvas.getContext("2d");
       if (!ctx) { URL.revokeObjectURL(url); resolve(file); return; }
       ctx.drawImage(img, 0, 0, width, height);
       URL.revokeObjectURL(url);
-      const baseName = file.name.replace(/\.[^.]+$/, "");
+      const base = file.name.replace(/\.[^.]+$/, "");
       canvas.toBlob(
-        (blob) => {
-          if (!blob) { resolve(file); return; }
-          resolve(new File([blob], `${baseName}.jpg`, { type: "image/jpeg" }));
-        },
+        blob => resolve(blob ? new File([blob], `${base}.jpg`, { type: "image/jpeg" }) : file),
         "image/jpeg",
         quality,
       );
@@ -101,12 +84,9 @@ function compressImage(file: File, quality = 0.85, maxWidth = 2048): Promise<Fil
   });
 }
 
-// ─── Click Outside Hook ───────────────────────────────────────────────────────
+// ─── useOnClickOutside ────────────────────────────────────────────────────────
 
-function useOnClickOutside(
-  ref: React.RefObject<HTMLElement | null>,
-  handler: () => void,
-) {
+function useOnClickOutside(ref: React.RefObject<HTMLElement | null>, handler: () => void) {
   useEffect(() => {
     const listener = (e: MouseEvent | TouchEvent) => {
       if (!ref.current || ref.current.contains(e.target as Node)) return;
@@ -121,7 +101,7 @@ function useOnClickOutside(
   }, [ref, handler]);
 }
 
-// ─── Custom Select ────────────────────────────────────────────────────────────
+// ─── CustomSelect ─────────────────────────────────────────────────────────────
 
 interface CustomSelectProps {
   options: string[];
@@ -131,37 +111,25 @@ interface CustomSelectProps {
   disabled?: boolean;
 }
 
-function CustomSelect({
-  options,
-  value,
-  onChange,
-  placeholder,
-  disabled = false,
-}: CustomSelectProps) {
+function CustomSelect({ options, value, onChange, placeholder, disabled = false }: CustomSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearch] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useOnClickOutside(dropdownRef, () => setIsOpen(false));
 
-  const filtered = options.filter(opt =>
-    opt.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
+  const filtered = options.filter(o => o.toLowerCase().includes(searchQuery.toLowerCase()));
 
   return (
-    <div
-      className={`relative ${disabled ? "opacity-50 pointer-events-none" : ""}`}
-      ref={dropdownRef}
-    >
+    <div className={`relative ${disabled ? "opacity-50 pointer-events-none" : ""}`} ref={dropdownRef}>
       <button
         type="button"
         onClick={() => setIsOpen(o => !o)}
         disabled={disabled}
-        className={`w-full flex items-center justify-between text-left text-base rounded-2xl px-4 py-4 transition-all duration-200 font-body ${
-          disabled
+        className={`w-full flex items-center justify-between text-left text-base rounded-2xl px-4 py-4 transition-all duration-200 font-body ${disabled
             ? "bg-surface-container-low border border-outline-variant/20 text-on-surface-variant cursor-not-allowed"
             : "bg-surface-container-lowest border border-outline-variant/30 text-on-surface cursor-pointer shadow-[0_2px_12px_rgba(44,47,49,0.06)] hover:border-primary/50 focus:border-primary focus:ring-4 focus:ring-primary/10"
-        }`}
+          }`}
       >
         <span className={value ? "text-on-surface truncate pr-4" : "text-on-surface-variant/70 truncate pr-4"}>
           {value || placeholder}
@@ -177,41 +145,30 @@ function CustomSelect({
           {options.length > 5 && (
             <div className="p-3 border-b border-outline-variant/10 sticky top-0 bg-surface-container-lowest shrink-0">
               <div className="relative">
-                <Search
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-outline-variant"
-                  strokeWidth={1.75}
-                />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-outline-variant" strokeWidth={1.75} />
                 <input
                   type="text"
-                  placeholder="Search options..."
+                  placeholder="Search options…"
                   value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
+                  onChange={e => setSearch(e.target.value)}
                   className="w-full bg-surface-container-low text-on-surface text-sm rounded-xl py-2 pl-9 pr-3 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-on-surface-variant/50 border border-transparent focus:border-primary/30"
                 />
               </div>
             </div>
           )}
-
           <div className="max-h-64 overflow-y-auto overscroll-contain py-2 flex-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-outline-variant/30 [&::-webkit-scrollbar-thumb]:rounded-full">
             {filtered.length === 0 ? (
-              <div className="px-4 py-4 text-sm text-on-surface-variant text-center font-body">
-                No options found
-              </div>
+              <div className="px-4 py-4 text-sm text-on-surface-variant text-center font-body">No options found</div>
             ) : (
               filtered.map(opt => (
                 <button
                   key={opt}
                   type="button"
-                  onClick={() => {
-                    onChange(opt);
-                    setIsOpen(false);
-                    setSearchQuery("");
-                  }}
-                  className={`w-full text-left px-4 py-3 text-sm font-body transition-colors ${
-                    value === opt
+                  onClick={() => { onChange(opt); setIsOpen(false); setSearch(""); }}
+                  className={`w-full text-left px-4 py-3 text-sm font-body transition-colors ${value === opt
                       ? "bg-primary/10 text-primary font-semibold"
                       : "text-on-surface hover:bg-surface-container-highest/50 active:bg-surface-container-highest"
-                  }`}
+                    }`}
                 >
                   {opt}
                 </button>
@@ -224,169 +181,279 @@ function CustomSelect({
   );
 }
 
-// ─── DocSlotCard ──────────────────────────────────────────────────────────────
+// ─── Inline Document Viewer (used in form stage right panel) ──────────────────
 
-interface UploadedFile {
-  name: string;
-  size: number;
-  previewUrl: string; // blob URL — revoke on remove/reset
-  type: string;       // MIME type e.g. "image/jpeg", "application/pdf"
+interface DocViewerProps {
+  file: UploadedFile | null;
 }
 
-interface DocSlotCardProps {
-  slot: DocumentSlot;
-  uploaded: UploadedFile | null;
-  onUpload: (file: File) => void;
-  onRemove: () => void;
-  index: number;
-}
+function DocViewer({ file }: DocViewerProps) {
+  const [zoom, setZoom] = useState(1);
 
-function DocSlotCard({ slot, uploaded, onUpload, onRemove, index }: DocSlotCardProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [dragging, setDragging]       = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [cameraOpen, setCameraOpen]   = useState(false);
+  // Reset zoom when file changes
+  useEffect(() => { setZoom(1); }, [file?.id]);
 
-  async function processFile(file: File) {
-    setIsUploading(true);
-    // Compress images client-side before handing off
-    let finalFile = file;
-    if (file.type.startsWith("image/")) {
-      try { finalFile = await compressImage(file); } catch { /* fallback to original */ }
-    }
-    await new Promise(r => setTimeout(r, 900));
-    setIsUploading(false);
-    onUpload(finalFile);
+  if (!file) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center gap-4 bg-surface-container-low/30 rounded-2xl border-2 border-dashed border-outline-variant/20 min-h-[360px]">
+        <div className="w-16 h-16 rounded-2xl bg-surface-container flex items-center justify-center">
+          <FileText className="w-8 h-8 text-outline-variant/50" strokeWidth={1.25} />
+        </div>
+        <div className="text-center px-6">
+          <p className="text-sm font-semibold text-on-surface-variant font-headline">No receipt selected</p>
+          <p className="text-xs text-on-surface-variant/60 font-body mt-1">Click a receipt from the list to preview it here.</p>
+        </div>
+      </div>
+    );
   }
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (file) processFile(file);
-  }
-
-  function handleDrop(e: React.DragEvent) {
-    e.preventDefault();
-    setDragging(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file) processFile(file);
-  }
+  const isImage = file.type.startsWith("image/");
+  const isPDF = file.type === "application/pdf";
 
   return (
-    <div className="bg-surface-container-lowest rounded-2xl p-4 flex flex-col gap-3 shadow-[0_8px_40px_-8px_rgba(44,47,49,0.06)] transition-all duration-200">
-      {/* Slot header */}
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex-1 min-w-0">
-          <h4 className="text-sm font-semibold text-on-surface font-headline leading-snug">
-            {slot.label}
-          </h4>
-          <p className="text-xs text-on-surface-variant font-body mt-0.5 leading-relaxed">
-            {slot.hint}
-          </p>
+    <div className="flex-1 flex flex-col bg-surface-container-lowest rounded-2xl border border-outline-variant/15 shadow-[0_8px_40px_-8px_rgba(44,47,49,0.08)] overflow-hidden min-h-[360px]">
+      {/* Toolbar */}
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-outline-variant/10 shrink-0">
+        <div className="flex items-center gap-2 min-w-0">
+          <FileText className="w-4 h-4 text-primary shrink-0" strokeWidth={1.75} />
+          <span className="text-sm font-medium text-on-surface font-body truncate">{file.name}</span>
         </div>
-        <div className="shrink-0 mt-0.5">
-          {uploaded ? (
-            <CheckCircle2 className="w-5 h-5 text-green-500" strokeWidth={2} />
-          ) : (
-            <Circle className="w-5 h-5 text-outline-variant" strokeWidth={1.5} />
-          )}
-        </div>
+        {isImage && (
+          <div className="flex items-center gap-1.5 shrink-0 ml-3">
+            <button onClick={() => setZoom(z => Math.max(0.5, +(z - 0.25).toFixed(2)))} aria-label="Zoom out"
+              className="w-7 h-7 bg-surface-container border border-outline-variant/20 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface active:scale-90 transition-all">
+              <ZoomOut className="w-3.5 h-3.5" strokeWidth={1.75} />
+            </button>
+            <span className="text-[11px] font-semibold text-on-surface-variant w-9 text-center font-label">
+              {Math.round(zoom * 100)}%
+            </span>
+            <button onClick={() => setZoom(z => Math.min(3, +(z + 0.25).toFixed(2)))} aria-label="Zoom in"
+              className="w-7 h-7 bg-surface-container border border-outline-variant/20 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface active:scale-90 transition-all">
+              <ZoomIn className="w-3.5 h-3.5" strokeWidth={1.75} />
+            </button>
+            <button onClick={() => setZoom(1)} aria-label="Reset zoom"
+              className="w-7 h-7 bg-surface-container border border-outline-variant/20 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface active:scale-90 transition-all">
+              <Maximize2 className="w-3.5 h-3.5" strokeWidth={1.75} />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Body */}
-      {uploaded ? (
-        /* Uploaded row */
-        <div className="flex items-center gap-3 bg-surface-container-low rounded-xl px-3 py-2.5">
-          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-            <FileText className="w-4 h-4 text-primary" strokeWidth={1.75} />
+      <div className="flex-1 overflow-auto bg-surface-container-low/20 flex items-center justify-center" style={{ minHeight: 0 }}>
+        {isImage ? (
+          <div className="w-full h-full overflow-auto flex items-center justify-center p-4" style={{ touchAction: "pinch-zoom" }}>
+            <img
+              src={file.previewUrl}
+              alt={file.name}
+              draggable={false}
+              style={{
+                transform: `scale(${zoom})`,
+                transformOrigin: "center center",
+                transition: "transform 0.15s ease",
+                maxWidth: "100%",
+                display: "block",
+              }}
+              className="rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.12)] select-none"
+            />
           </div>
-          <span className="text-sm text-on-surface font-medium truncate flex-1 font-body">
-            {uploaded.name}
-          </span>
-          <span className="text-xs text-on-surface-variant font-body shrink-0">
-            {(uploaded.size / 1024).toFixed(0)} KB
-          </span>
-          <button
-            id={`doc-remove-${index}`}
-            onClick={onRemove}
-            aria-label={`Remove ${slot.label}`}
-            className="p-1.5 rounded-lg text-on-surface-variant hover:bg-error/10 hover:text-error transition-all active:scale-90"
-          >
-            <Trash2 className="w-4 h-4" strokeWidth={1.75} />
-          </button>
-        </div>
-      ) : isUploading ? (
-        /* Loading */
-        <div className="border border-outline-variant/20 rounded-xl flex items-center justify-center py-9 px-4 text-center bg-surface-container-lowest">
-          <div className="flex flex-col items-center gap-3">
-            <Loader2 className="w-6 h-6 text-primary animate-spin" strokeWidth={2} />
-            <span className="text-sm font-medium text-on-surface font-body animate-pulse">
-              Uploading document…
-            </span>
+        ) : isPDF ? (
+          <iframe src={file.previewUrl} title={file.name} className="w-full h-full border-0" />
+        ) : (
+          <div className="flex flex-col items-center gap-4 py-16">
+            <FileText className="w-12 h-12 text-outline-variant" strokeWidth={1.25} />
+            <p className="text-sm text-on-surface-variant font-body">Preview not available</p>
           </div>
-        </div>
-      ) : (
-        <>
-          {/* ── Mobile: single tap-to-scan zone (< md) ── */}
-          <div
-            className="md:hidden flex flex-col items-center justify-center gap-4 py-8 px-4 rounded-[20px] border-[2.5px] border-dashed border-primary/40 bg-primary/3 cursor-pointer active:scale-[0.97] transition-all duration-300 shadow-[0_8px_24px_rgba(70,71,211,0.04)]"
-            onClick={() => setCameraOpen(true)}
-          >
-            <div className="w-14 h-14 rounded-[18px] bg-primary/10 flex items-center justify-center shadow-sm">
-              <Camera className="w-7 h-7 text-primary" strokeWidth={1.75} />
-            </div>
-            <div className="text-center">
-              <p className="text-sm font-bold text-primary font-headline tracking-wide">Tap to Scan</p>
-              <p className="text-xs text-primary/70 font-body mt-1 font-medium leading-relaxed">
-                We'll extract text automatically<br />with Reclaim AI.
-              </p>
-            </div>
-          </div>
-
-          {/* ── Desktop: drag-and-drop zone (≥ md) ── */}
-          <div
-            onDragOver={e => { e.preventDefault(); setDragging(true); }}
-            onDragLeave={() => setDragging(false)}
-            onDrop={handleDrop}
-            onClick={() => inputRef.current?.click()}
-            className={`hidden md:flex border-2 border-dashed rounded-xl flex-col items-center justify-center py-6 px-4 text-center cursor-pointer transition-all duration-200 group ${
-              dragging
-                ? "border-primary/60 bg-primary/5"
-                : "border-outline-variant/40 bg-surface-container-lowest hover:border-primary/40 hover:bg-primary/3"
-            }`}
-          >
-            <div className={`w-9 h-9 rounded-full flex items-center justify-center mb-2 transition-all duration-200 ${dragging ? "bg-primary/15 scale-110" : "bg-surface-container-low group-hover:bg-primary/10 group-hover:scale-110"}`}>
-              <Upload
-                className={`w-4 h-4 transition-colors ${dragging ? "text-primary" : "text-outline-variant group-hover:text-primary"}`}
-                strokeWidth={1.75}
-              />
-            </div>
-            <p className="text-sm font-medium text-on-surface font-body">Click to upload or drag &amp; drop</p>
-            <p className="text-xs text-on-surface-variant font-body mt-0.5">PDF, JPG or PNG (max 10 MB)</p>
-          </div>
-        </>
-      )}
-
-      {/* Hidden file input — shared by both mobile tiles and desktop dropzone */}
-      <input
-        ref={inputRef}
-        id={`doc-input-${index}`}
-        type="file"
-        accept=".pdf,.jpg,.jpeg,.png"
-        className="hidden"
-        onChange={handleFileChange}
-      />
-
-      {/* Camera modal — mobile only */}
-      <CameraModal
-        isOpen={cameraOpen}
-        onCapture={processFile}
-        onClose={() => setCameraOpen(false)}
-      />
+        )}
+      </div>
     </div>
   );
 }
 
-// ─── Main Page (Orchestrator) ─────────────────────────────────────────────────
+// ─── File card in the upload list ─────────────────────────────────────────────
+
+interface FileCardProps {
+  file: UploadedFile;
+  index: number;
+  isActive: boolean;
+  onSelect: () => void;
+  onRemove: () => void;
+  onRename: (newName: string) => void;
+}
+
+function FileCard({ file, index, isActive, onSelect, onRemove, onRename }: FileCardProps) {
+  const [editing, setEditing] = useState(false);
+  const [draftName, setDraftName] = useState(file.name);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  function commitRename() {
+    const trimmed = draftName.trim();
+    if (trimmed && trimmed !== file.name) onRename(trimmed);
+    else setDraftName(file.name);
+    setEditing(false);
+  }
+
+  function startEdit(e: React.MouseEvent) {
+    e.stopPropagation(); // don't trigger card click
+    setDraftName(file.name);
+    setEditing(true);
+    setTimeout(() => inputRef.current?.select(), 30);
+  }
+
+  const isImage = file.type.startsWith("image/");
+
+  return (
+    <div
+      onClick={onSelect}
+      className={`flex items-center gap-3 rounded-xl px-3 py-2.5 cursor-pointer transition-all duration-150 group ${isActive
+          ? "bg-primary/8 border border-primary/30 shadow-[0_0_0_2px_rgba(70,71,211,0.12)]"
+          : "bg-surface-container-lowest border border-outline-variant/15 hover:border-primary/20 hover:bg-primary/3 shadow-[0_2px_8px_-2px_rgba(44,47,49,0.06)]"
+        }`}
+    >
+      {/* Thumbnail */}
+      <div className="w-9 h-9 rounded-lg bg-surface-container overflow-hidden flex items-center justify-center shrink-0">
+        {isImage
+          ? <img src={file.previewUrl} alt={file.name} className="w-full h-full object-cover" />
+          : <FileText className="w-4 h-4 text-primary" strokeWidth={1.75} />
+        }
+      </div>
+
+      {/* Name / rename input */}
+      <div className="flex-1 min-w-0" onClick={e => editing && e.stopPropagation()}>
+        {editing ? (
+          <input
+            ref={inputRef}
+            type="text"
+            value={draftName}
+            onChange={e => setDraftName(e.target.value)}
+            onBlur={commitRename}
+            onKeyDown={e => {
+              if (e.key === "Enter") commitRename();
+              if (e.key === "Escape") { setDraftName(file.name); setEditing(false); }
+            }}
+            className="w-full text-sm font-medium text-on-surface font-body bg-surface-container-lowest border border-primary/40 rounded-lg px-2 py-0.5 focus:outline-none focus:ring-2 focus:ring-primary/20"
+            onClick={e => e.stopPropagation()}
+          />
+        ) : (
+          <p className="text-sm font-medium text-on-surface font-body truncate">{file.name}</p>
+        )}
+        <p className="text-xs text-on-surface-variant font-body mt-0.5">
+          {(file.size / 1024).toFixed(0)} KB
+        </p>
+      </div>
+
+      {/* Index badge */}
+      <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full font-label shrink-0 transition-colors ${isActive ? "bg-primary/15 text-primary" : "bg-surface-container text-on-surface-variant"
+        }`}>
+        #{index + 1}
+      </span>
+
+      {/* Action icons — always visible (tap-friendly on mobile, hover highlight on desktop) */}
+      <div className="flex items-center gap-0.5 shrink-0">
+        {editing ? (
+          <>
+            <button
+              onClick={e => { e.stopPropagation(); commitRename(); }}
+              aria-label="Confirm rename"
+              className="p-1.5 rounded-lg text-green-600 hover:bg-green-50 active:scale-90 transition-all"
+            >
+              <Check className="w-3.5 h-3.5" strokeWidth={2.5} />
+            </button>
+            <button
+              onClick={e => { e.stopPropagation(); setDraftName(file.name); setEditing(false); }}
+              aria-label="Cancel rename"
+              className="p-1.5 rounded-lg text-on-surface-variant hover:bg-surface-container active:scale-90 transition-all"
+            >
+              <X className="w-3.5 h-3.5" strokeWidth={2} />
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              onClick={startEdit}
+              aria-label={`Rename ${file.name}`}
+              className="p-1.5 rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface active:scale-90 transition-all"
+            >
+              <Pencil className="w-3.5 h-3.5" strokeWidth={1.75} />
+            </button>
+            <button
+              id={`remove-file-${index}`}
+              onClick={e => { e.stopPropagation(); onRemove(); }}
+              aria-label={`Remove ${file.name}`}
+              className="p-1.5 rounded-lg text-on-surface-variant hover:bg-error/10 hover:text-error active:scale-90 transition-all"
+            >
+              <Trash2 className="w-3.5 h-3.5" strokeWidth={1.75} />
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── BatchDropzone (dropzone only — no file list) ─────────────────────────────
+
+interface BatchDropzoneProps {
+  isFull: boolean;
+  isLoading: boolean;
+  onAdd: (files: File[]) => void;
+  inputRef: React.RefObject<HTMLInputElement | null>;
+  cameraRef: React.RefObject<HTMLInputElement | null>;
+}
+
+function BatchDropzone({ isFull, isLoading, onAdd, inputRef, cameraRef }: BatchDropzoneProps) {
+  const [dragging, setDragging] = useState(false);
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setDragging(false);
+    if (!isFull && e.dataTransfer.files.length) onAdd(Array.from(e.dataTransfer.files));
+  }
+
+  if (isFull) return null; // ceiling hit — hide dropzone entirely
+
+  return (
+    <>
+      {/* Mobile: tap to open native camera / gallery */}
+      <div
+        className="md:hidden flex flex-col items-center justify-center gap-4 py-7 px-4 rounded-[20px] border-[2.5px] border-dashed border-primary/40 bg-primary/3 cursor-pointer active:scale-[0.97] transition-all duration-300"
+        onClick={() => cameraRef.current?.click()}
+      >
+        <div className="w-12 h-12 rounded-[16px] bg-primary/10 flex items-center justify-center shadow-sm">
+          <Camera className="w-6 h-6 text-primary" strokeWidth={1.75} />
+        </div>
+        <div className="text-center">
+          <p className="text-sm font-bold text-primary font-headline tracking-wide">Tap to Scan / Upload</p>
+          <p className="text-xs text-primary/60 font-body mt-0.5">PDF, JPG or PNG · Max limit: 10 receipts.</p>
+        </div>
+      </div>
+
+      {/* Desktop: drag-and-drop */}
+      <div
+        onDragOver={e => { e.preventDefault(); setDragging(true); }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={handleDrop}
+        onClick={() => inputRef.current?.click()}
+        className={`hidden md:flex border-2 border-dashed rounded-2xl flex-col items-center justify-center py-9 px-6 text-center cursor-pointer transition-all duration-200 group ${dragging
+            ? "border-primary/60 bg-primary/5"
+            : "border-outline-variant/40 bg-surface-container-lowest hover:border-primary/40 hover:bg-primary/3"
+          }`}
+      >
+        {isLoading ? (
+          <Loader2 className="w-7 h-7 text-primary animate-spin mb-3" strokeWidth={1.75} />
+        ) : (
+          <div className={`w-11 h-11 rounded-full flex items-center justify-center mb-3 transition-all duration-200 ${dragging ? "bg-primary/15 scale-110" : "bg-surface-container-low group-hover:bg-primary/10 group-hover:scale-110"}`}>
+            <Upload className={`w-5 h-5 transition-colors ${dragging ? "text-primary" : "text-outline-variant group-hover:text-primary"}`} strokeWidth={1.75} />
+          </div>
+        )}
+        <p className="text-sm font-semibold text-on-surface font-body">Click to upload or drag & drop</p>
+        <p className="text-xs text-on-surface-variant font-body mt-1">PDF, JPG or PNG · Max limit: 10 receipts.</p>
+      </div>
+    </>
+  );
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function CaptureReceiptPage() {
   // ── Stage ──────────────────────────────────────────────────────────────────
@@ -409,173 +476,165 @@ export default function CaptureReceiptPage() {
 
   // ── Form state ─────────────────────────────────────────────────────────────
   const [mainCategory, setMainCategory] = useState("");
-  const [subCategory, setSubCategory]   = useState("");
-  const [uploads, setUploads]           = useState<Record<string, UploadedFile | null>>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [files, setFiles] = useState<UploadedFile[]>([]);
+  const [activeDocId, setActiveDocId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  // Native camera input — OS handles Retake/Use Photo, no custom modal needed
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   // ── Processing state ───────────────────────────────────────────────────────
+  const [processingIndex, setProcessingIndex] = useState(0);
   const [processingStep, setProcessingStep] = useState(0);
-  const [attemptCount, setAttemptCount]     = useState(0);
+  const [completedNames, setCompletedNames] = useState<string[]>([]);
 
   // ── Verification state ─────────────────────────────────────────────────────
-  const [extractedData, setExtractedData] = useState<ExtractedData>({
-    merchant: "",
-    amount: "",
-    date: "",
+  const [ocrReceipts, setOcrReceipts] = useState<OcrReceiptData[]>([]);
+  const [claimContext, setClaimContext] = useState<ClaimContext>({
+    travelDestination: "",
+    travelPurpose: "",
+    overseas: false,
+    departureDate: "",
+    arrivalDate: "",
   });
-  const [clientName, setClientName] = useState("");
-  const [purpose, setPurpose]       = useState("");
 
   // ── Success modal ──────────────────────────────────────────────────────────
-  const [showSuccess, setShowSuccess]   = useState(false);
-  const [successType, setSuccessType]   = useState<SuccessType>("claim");
+  const [showSuccess, setShowSuccess] = useState(false);
 
-  // ── Derived form values ────────────────────────────────────────────────────
+  // ── Derived ────────────────────────────────────────────────────────────────
   const selectedMain = policyData.find(d => d.main_category === mainCategory);
-  const selectedSubConfig =
-    selectedMain && subCategory
-      ? selectedMain.mandatory_conditions[subCategory]
-      : null;
-  const docSlots: DocumentSlot[] = selectedSubConfig ? buildDocSlots(selectedSubConfig) : [];
-  const allUploaded = docSlots.length > 0 && docSlots.every(s => uploads[s.id] != null);
-  const uploadedCount = docSlots.filter(s => uploads[s.id] != null).length;
+  const canProcess = files.length > 0 && mainCategory !== "";
+  const isFull = files.length >= MAX_FILES;
+  const activeFile = files.find(f => f.id === activeDocId) ?? null;
 
-  // ── Form handlers ──────────────────────────────────────────────────────────
-  function handleMainCategoryChange(v: string) {
-    setMainCategory(v);
-    setSubCategory("");
-    setUploads({});
-  }
-  function handleSubCategoryChange(v: string) {
-    setSubCategory(v);
-    setUploads({});
-  }
-  function handleUpload(slotId: string, file: File) {
-    const previewUrl = URL.createObjectURL(file);
-    setUploads(prev => ({
-      ...prev,
-      [slotId]: { name: file.name, size: file.size, previewUrl, type: file.type },
+  // ── File handlers ──────────────────────────────────────────────────────────
+  async function handleAddFiles(rawFiles: File[]) {
+    const remaining = MAX_FILES - files.length;
+    if (remaining <= 0) return;
+    const list = rawFiles.slice(0, remaining);
+    setIsLoading(true);
+    const processed = await Promise.all(
+      list.map(f => f.type.startsWith("image/") ? compressImage(f) : Promise.resolve(f)),
+    );
+    const added: UploadedFile[] = processed.map(f => ({
+      id: uid(),
+      name: f.name,
+      size: f.size,
+      previewUrl: URL.createObjectURL(f),
+      type: f.type,
     }));
-  }
-  function handleRemove(slotId: string) {
-    const existing = uploads[slotId];
-    if (existing?.previewUrl) URL.revokeObjectURL(existing.previewUrl);
-    setUploads(prev => ({ ...prev, [slotId]: null }));
+    setFiles(prev => {
+      const next = [...prev, ...added].slice(0, MAX_FILES);
+      // auto-select the first newly uploaded file
+      if (added.length > 0) setActiveDocId(added[0].id);
+      return next;
+    });
+    setIsLoading(false);
   }
 
-  // ── Kick off OCR processing ────────────────────────────────────────────────
-  async function handleProcessReceipt() {
-    if (!allUploaded) return;
-    setIsSubmitting(true);
-    await new Promise(r => setTimeout(r, 300)); // brief visual delay
-    setIsSubmitting(false);
+  function handleRemoveFile(id: string) {
+    setFiles(prev => {
+      const target = prev.find(f => f.id === id);
+      if (target?.previewUrl) URL.revokeObjectURL(target.previewUrl);
+      const next = prev.filter(f => f.id !== id);
+      // If we removed the active doc, select the previous one (or null)
+      if (activeDocId === id) {
+        const idx = prev.findIndex(f => f.id === id);
+        setActiveDocId(next[Math.max(0, idx - 1)]?.id ?? null);
+      }
+      return next;
+    });
+  }
+
+  function handleRenameFile(id: string, newName: string) {
+    setFiles(prev => prev.map(f => f.id === id ? { ...f, name: newName } : f));
+  }
+
+  // ── OCR simulation ─────────────────────────────────────────────────────────
+  const runOcr = useCallback(async (uploadedFiles: UploadedFile[]) => {
+    setCompletedNames([]);
+    for (let i = 0; i < uploadedFiles.length; i++) {
+      setProcessingIndex(i);
+      setProcessingStep(0);
+      await new Promise(r => setTimeout(r, STEP_MS[1]));
+      setProcessingStep(1);
+      await new Promise(r => setTimeout(r, STEP_MS[2] - STEP_MS[1]));
+      setProcessingStep(2);
+      await new Promise(r => setTimeout(r, STEP_MS[3] - STEP_MS[2]));
+      setCompletedNames(prev => [...prev, uploadedFiles[i].name]);
+    }
+    // Map mock OCR results (backend team: swap with real API call here)
+    const results: OcrReceiptData[] = uploadedFiles.map((_, idx) =>
+      MOCK_OCR_RECEIPTS[idx] ?? {
+        receiptIndex: idx,
+        success: false,
+        expenseDate: "",
+        merchant: "",
+        transport: 0,
+        accommodation: 0,
+        meals: 0,
+        others: 0,
+        notes: "",
+      },
+    );
+    setOcrReceipts(results);
+    setStage("verification");
+  }, []);
+
+  async function handleProcessReceipts() {
+    if (!canProcess) return;
+    setProcessingIndex(0);
     setProcessingStep(0);
     setStage("processing");
   }
 
-  // ── OCR simulation effect (runs whenever stage === "processing") ────────────
   useEffect(() => {
-    if (stage !== "processing") return;
-
-    setProcessingStep(0);
-
-    const t1 = setTimeout(() => setProcessingStep(1), 1500);
-    const t2 = setTimeout(() => setProcessingStep(2), 3000);
-    const t3 = setTimeout(() => {
-      // ── TODO: Replace with real OCR API call ──────────────────────────────
-      // const result = await ocrService.extract(uploadedFiles);
-      // if (result.ok) {
-      //   setExtractedData(result.data);
-      //   setStage("verification");
-      // } else {
-      //   const next = attemptCount + 1;
-      //   setAttemptCount(next);
-      //   setStage(next >= 2 ? "double_failed" : "retry_failed");
-      // }
-      // ─────────────────────────────────────────────────────────────────────
-
-      // Mock: always succeed
-      setExtractedData({
-        merchant: "Bouchon Bistro",
-        amount:   "RM 342.50",
-        date:     "October 24, 2023 at 8:45 PM",
-      });
-      setStage("verification");
-
-      // Mock: force failure for testing
-      // const nextAttempt = attemptCount + 1;
-      // setAttemptCount(nextAttempt);
-      // setStage(nextAttempt >= 2 ? "double_failed" : "retry_failed");
-    }, 4800);
-
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-      clearTimeout(t3);
-    };
+    if (stage === "processing") runOcr(files);
   }, [stage]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Verification submit ───────────────────────────────────────────────────
-  function handleVerificationSubmit() {
-    setSuccessType("claim");
+  // ── Submit ─────────────────────────────────────────────────────────────────
+  function handleSubmit() {
+    const subTotal = ocrReceipts.reduce(
+      (acc, r) => acc + r.transport + r.accommodation + r.meals + r.others,
+      0,
+    );
+    const payload: ClaimSubmissionPayload = {
+      dbData: MOCK_DB_DATA,
+      mainCategory,
+      claimContext,
+      receipts: ocrReceipts,
+      subTotal,
+      submittedAt: new Date().toISOString(),
+    };
+    // TODO: POST /api/claims  ← backend team replaces this console.log
+    console.log("CLAIM PAYLOAD:", JSON.stringify(payload, null, 2));
     setShowSuccess(true);
-
-    // ── Policy check runs silently in background — no UI feedback ──────────
-    // TODO: runPolicyCheck({ extractedData, clientName, purpose, uploads })
-    //   .then(result => { /* store or log result */ })
-    //   .catch(err  => { /* silent fail — log only */ });
   }
 
-  // ── Retry OCR ─────────────────────────────────────────────────────────────
-  function handleRetry() {
-    setAttemptCount(prev => prev + 1);
-    setUploads({}); // Require user to re-upload documents
-    setStage("form"); // Send back to form instead of directly processing
-  }
-
-  // ── Discard ───────────────────────────────────────────────────────────────
+  // ── Reset ──────────────────────────────────────────────────────────────────
   function resetAll() {
-    // Revoke all blob URLs to free memory
-    Object.values(uploads).forEach(f => {
-      if (f?.previewUrl) URL.revokeObjectURL(f.previewUrl);
-    });
+    files.forEach(f => { if (f.previewUrl) URL.revokeObjectURL(f.previewUrl); });
+    setFiles([]);
     setMainCategory("");
-    setSubCategory("");
-    setUploads({});
+    setActiveDocId(null);
+    setOcrReceipts([]);
+    setClaimContext({ travelDestination: "", travelPurpose: "", overseas: false, departureDate: "", arrivalDate: "" });
+    setProcessingIndex(0);
     setProcessingStep(0);
-    setAttemptCount(0);
-    setExtractedData({ merchant: "", amount: "", date: "" });
-    setClientName("");
-    setPurpose("");
-  }
-  function handleDiscard() {
-    resetAll();
-    setStage("form");
+    setCompletedNames([]);
   }
 
-  // ── HR escalation submit ──────────────────────────────────────────────────
-  function handleHrSubmit() {
-    setSuccessType("hr");
-    setShowSuccess(true);
-  }
-
-  // ── Reset after success ───────────────────────────────────────────────────
   function handleSubmitAnother() {
     setShowSuccess(false);
     resetAll();
     setStage("form");
   }
 
-  // ── Build uploaded files list for verification ────────────────────────────
-  const uploadedFiles = docSlots
-    .map(s => uploads[s.id])
-    .filter((f): f is UploadedFile => f != null);
-
   // ─────────────────────────────────────────────────────────────────────────
   // Render
   // ─────────────────────────────────────────────────────────────────────────
   return (
-    <div className="px-4 pt-6 pb-24 md:px-8 md:pt-8 md:pb-12 lg:px-12 lg:pt-10 lg:pb-10 max-w-5xl mx-auto w-full">
+    <div className="px-4 pt-6 pb-24 md:px-8 md:pt-8 md:pb-12 lg:px-12 lg:pt-10 lg:pb-10 max-w-screen-xl mx-auto w-full">
 
       {/* Ambient gradient blob */}
       <div
@@ -583,192 +642,189 @@ export default function CaptureReceiptPage() {
         className="pointer-events-none fixed -top-24 -left-24 w-96 h-96 rounded-full bg-linear-to-br from-primary/15 to-tertiary/10 blur-3xl z-0"
       />
 
-      <div className="relative z-10 flex flex-col gap-8">
+      <div className="relative z-10 flex flex-col gap-6">
 
-        {/* ── Page Header (only on form stage) ─────────────────────────────── */}
+        {/* ── Page Header (form stage only) ─────────────────────────────────── */}
         {stage === "form" && (
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-1">
             <h2
               className="font-headline font-extrabold text-3xl md:text-4xl text-on-surface tracking-tight"
               style={{ letterSpacing: "-0.02em" }}
             >
-              Capture Receipt
+              Capture Receipts
             </h2>
             <p className="text-base text-on-surface-variant font-body leading-relaxed">
-              Upload your expense document for AI processing. We support PDF, JPG and PNG formats.
+              Upload your receipts and Reclaim AI will extract the data for you.
             </p>
           </div>
         )}
 
-        {/* ── Stage Router ─────────────────────────────────────────────────── */}
+        {/* ── Stage Router ──────────────────────────────────────────────────── */}
 
         {stage === "processing" && (
-          <ProcessingScreen currentStep={processingStep} />
+          <ProcessingScreen
+            totalFiles={files.length}
+            currentIndex={processingIndex}
+            currentStep={processingStep}
+            completedFileNames={completedNames}
+          />
         )}
 
         {stage === "verification" && (
           <VerificationScreen
-            extractedData={extractedData}
-            uploadedFiles={uploadedFiles}
-            clientName={clientName}
-            purpose={purpose}
-            onClientNameChange={setClientName}
-            onPurposeChange={setPurpose}
+            dbData={MOCK_DB_DATA}
+            mainCategory={mainCategory}
+            ocrReceipts={ocrReceipts}
+            claimContext={claimContext}
+            onClaimContextChange={setClaimContext}
+            onReceiptsChange={setOcrReceipts}
             onBack={() => setStage("form")}
-            onSaveDraft={() => { /* TODO: save draft API */ }}
-            onSubmit={handleVerificationSubmit}
+            onSubmit={handleSubmit}
           />
         )}
 
-        {stage === "retry_failed" && (
-          <RetryFailedScreen onRetry={handleRetry} />
-        )}
-
-        {stage === "double_failed" && (
-          <DoubleFailedScreen
-            onDiscard={handleDiscard}
-            onEscalate={() => setStage("hr_escalation")}
-          />
-        )}
-
-        {stage === "hr_escalation" && (
-          <HrEscalationScreen
-            onBack={() => setStage("double_failed")}
-            onSubmit={handleHrSubmit}
-          />
-        )}
-
-        {/* ── FORM STAGE ───────────────────────────────────────────────────── */}
+        {/* ── FORM STAGE ────────────────────────────────────────────────────── */}
         {stage === "form" && (
           <div className="flex flex-col gap-6">
 
-            {attemptCount === 1 && (
-              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" strokeWidth={1.75} />
-                <div>
-                  <h4 className="text-sm font-semibold text-amber-800 font-headline">Re-upload Required</h4>
-                  <p className="text-xs text-amber-700/80 font-body mt-0.5">Please provide a clearer version of your document for our second attempt.</p>
-                </div>
-              </div>
-            )}
-
-            {/* 1. Main Category */}
-            <div className="flex flex-col gap-2 relative z-20">
+            {/* Category selector — full width, matches the upload area below */}
+            <div className="flex flex-col gap-2 relative z-20 w-full">
               <label className="text-sm font-semibold text-on-surface font-headline ml-1">
-                Main Category
+                Expense Category
               </label>
               <CustomSelect
                 options={policyData.map(d => d.main_category)}
                 value={mainCategory}
-                onChange={handleMainCategoryChange}
-                placeholder="Select a category..."
+                onChange={v => { setMainCategory(v); setFiles([]); setActiveDocId(null); }}
+                placeholder="Select a category…"
               />
-            </div>
-
-            {/* 2. Sub-category */}
-            <div className="flex flex-col gap-2 relative z-10">
-              <label className="text-sm font-semibold text-on-surface font-headline ml-1">
-                Sub-category
-              </label>
-              <CustomSelect
-                options={selectedMain?.reimbursable_category ?? []}
-                value={subCategory}
-                onChange={handleSubCategoryChange}
-                placeholder={mainCategory ? "Select a sub-category..." : "Select a main category first..."}
-                disabled={!mainCategory}
-              />
-            </div>
-
-            {/* 3. Required Documents */}
-            <div className={`flex flex-col gap-4 mt-2 transition-all duration-500 ${!subCategory ? "opacity-60 pointer-events-none" : "opacity-100"}`}>
-              <div className="flex items-center justify-between ml-1">
-                <label className="text-sm font-semibold text-on-surface font-headline">
-                  Required Documents
-                </label>
-                {subCategory && docSlots.length > 0 && (
-                  <span className="text-xs font-semibold text-primary bg-primary/10 px-3 py-1 rounded-full font-label">
-                    {uploadedCount} of {docSlots.length} Uploaded
-                  </span>
-                )}
-              </div>
-
-              {!subCategory ? (
-                <div className="bg-surface-container-lowest rounded-2xl flex flex-col items-center justify-center py-12 px-6 text-center shadow-[0_8px_40px_-8px_rgba(44,47,49,0.06)]">
-                  <div className="w-14 h-14 rounded-full bg-surface-container-low flex items-center justify-center mb-4">
-                    <Clock className="w-6 h-6 text-outline-variant" strokeWidth={1.5} />
-                  </div>
-                  <h3 className="text-base font-semibold text-on-surface font-headline mb-1">
-                    Waiting for selection
-                  </h3>
-                  <p className="text-sm text-on-surface-variant font-body max-w-xs leading-relaxed">
-                    Please select a category and sub-category to view required documents.
-                  </p>
-                </div>
-              ) : (
-                <div className="flex flex-col gap-3">
-                  {docSlots.map((slot, idx) => (
-                    <DocSlotCard
-                      key={slot.id}
-                      slot={slot}
-                      index={idx}
-                      uploaded={uploads[slot.id] ?? null}
-                      onUpload={file => handleUpload(slot.id, file)}
-                      onRemove={() => handleRemove(slot.id)}
-                    />
-                  ))}
-                </div>
+              {selectedMain && (
+                <p className="text-xs text-on-surface-variant font-body ml-1">
+                  Covers: {selectedMain.reimbursable_category.slice(0, 3).join(", ")} &amp; more.
+                </p>
               )}
             </div>
 
-            {/* Policy Conditions notice */}
-            {selectedSubConfig && selectedSubConfig.condition.length > 0 && (
-              <div className="bg-primary/5 rounded-2xl p-4 flex flex-col gap-2 border border-primary/10">
-                <p className="text-xs font-semibold text-primary font-headline uppercase tracking-wider">
-                  Policy Conditions
+            {/* Split-view upload area */}
+            {!mainCategory ? (
+              /* Empty state — no category selected yet */
+              <div className="bg-surface-container-lowest rounded-2xl flex flex-col items-center justify-center py-14 px-6 text-center shadow-[0_8px_40px_-8px_rgba(44,47,49,0.06)] border border-outline-variant/10">
+                <div className="w-14 h-14 rounded-full bg-surface-container-low flex items-center justify-center mb-4">
+                  <ImageIcon className="w-6 h-6 text-outline-variant" strokeWidth={1.5} />
+                </div>
+                <h3 className="text-base font-semibold text-on-surface font-headline mb-1">Select a category first</h3>
+                <p className="text-sm text-on-surface-variant font-body max-w-xs leading-relaxed">
+                  Choose an expense category above before uploading your receipts.
                 </p>
-                <ul className="flex flex-col gap-1.5">
-                  {selectedSubConfig.condition.map((c, i) => (
-                    <li
-                      key={i}
-                      className="text-sm text-on-surface-variant font-body leading-relaxed flex gap-2"
-                    >
-                      <span className="text-primary mt-0.5 shrink-0">•</span>
-                      {c}
-                    </li>
-                  ))}
-                </ul>
+              </div>
+            ) : (
+              /* Two-column split: left = upload controls, right = doc preview */
+              <div className="flex flex-col lg:flex-row gap-5 items-stretch" style={{ minHeight: 480 }}>
+
+                {/* ── Left: Dropzone + file list ─────────────────────────── */}
+                <div className="w-full lg:w-[380px] shrink-0 flex flex-col gap-4">
+
+                  {/* Dropzone */}
+                  <BatchDropzone
+                    isFull={isFull}
+                    isLoading={isLoading}
+                    onAdd={handleAddFiles}
+                    inputRef={fileInputRef}
+                    cameraRef={cameraInputRef}
+                  />
+
+                  {/* File list */}
+                  {files.length > 0 && (
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center justify-between ml-1">
+                        <span className="text-xs font-semibold text-on-surface-variant font-label">
+                          Uploaded Receipts
+                        </span>
+                        <span className="text-xs text-on-surface-variant/60 font-body">
+                          Max limit: 10 receipts.
+                        </span>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        {files.map((f, idx) => (
+                          <FileCard
+                            key={f.id}
+                            file={f}
+                            index={idx}
+                            isActive={activeDocId === f.id}
+                            onSelect={() => setActiveDocId(f.id)}
+                            onRemove={() => handleRemoveFile(f.id)}
+                            onRename={name => handleRenameFile(f.id, name)}
+                          />
+                        ))}
+                      </div>
+
+                      {/* Add more — only visible on desktop when not full */}
+                      {!isFull && (
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="hidden md:flex items-center justify-center gap-2 text-sm font-semibold text-primary font-body py-2 rounded-xl border border-dashed border-primary/30 hover:border-primary/60 hover:bg-primary/3 transition-all"
+                        >
+                          <Upload className="w-4 h-4" strokeWidth={1.75} />
+                          Add more receipts
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* ── Right: Document preview ────────────────────────────── */}
+                <div className="flex-1 flex flex-col">
+                  <DocViewer file={activeFile} />
+                </div>
               </div>
             )}
 
+            {/* Hidden file input — desktop multi-file picker */}
+            <input
+              ref={fileInputRef}
+              id="batch-file-input"
+              type="file"
+              accept={ACCEPT}
+              multiple
+              className="hidden"
+              onChange={e => { if (e.target.files) handleAddFiles(Array.from(e.target.files)); e.target.value = ""; }}
+            />
+
+            {/* Native camera input — mobile OS handles Retake/Use Photo natively */}
+            <input
+              ref={cameraInputRef}
+              id="camera-file-input"
+              type="file"
+              accept="image/*,application/pdf"
+              capture="environment"
+              className="hidden"
+              onChange={e => {
+                if (e.target.files?.[0]) handleAddFiles([e.target.files[0]]);
+                e.target.value = "";
+              }}
+            />
+
             {/* Bottom Action Bar */}
-            <div className="flex flex-row items-center gap-3 pt-6 border-t border-outline-variant/15 w-full">
+            <div className="flex flex-row items-center gap-3 pt-4 border-t border-outline-variant/15 w-full max-w-2xl lg:max-w-none">
               <button
                 id="save-draft-btn"
                 className="flex-1 px-6 py-3 rounded-xl font-semibold text-on-surface-variant bg-surface-container hover:bg-surface-container-high active:scale-[0.97] transition-all duration-200 font-body text-sm text-center"
               >
                 Save Draft
               </button>
-
               <button
-                id="process-receipt-btn"
-                disabled={!allUploaded || isSubmitting}
-                onClick={handleProcessReceipt}
-                className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm font-body transition-all duration-200 ${
-                  allUploaded && !isSubmitting
+                id="process-receipts-btn"
+                disabled={!canProcess}
+                onClick={handleProcessReceipts}
+                className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm font-body transition-all duration-200 ${canProcess
                     ? "bg-linear-to-r from-primary to-primary-dim text-on-primary shadow-[0_4px_16px_rgba(70,71,211,0.35)] hover:shadow-[0_6px_24px_rgba(70,71,211,0.45)] hover:scale-[1.02] active:scale-[0.97]"
                     : "bg-primary/30 text-on-primary/70 cursor-not-allowed"
-                }`}
+                  }`}
               >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />
-                    Starting…
-                  </>
-                ) : (
-                  <>
-                    Process Receipt
-                  </>
-                )}
+                {files.length > 0
+                  ? `Process ${files.length} Receipt${files.length !== 1 ? "s" : ""}`
+                  : "Process Receipts"}
               </button>
             </div>
           </div>
@@ -776,9 +832,9 @@ export default function CaptureReceiptPage() {
 
       </div>
 
-      {/* ── Success Modal (portal-like overlay) ──────────────────────────────── */}
+      {/* Success Modal */}
       {showSuccess && (
-        <SuccessModal type={successType} onSubmitAnother={handleSubmitAnother} />
+        <SuccessModal type={"claim" as SuccessType} onSubmitAnother={handleSubmitAnother} />
       )}
     </div>
   );
