@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     # LLM (via OpenRouter)
     OPENROUTER_API_KEY: str = ""
     OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"
-    CHAT_MODEL: str = "arcee-ai/trinity-large-preview:free"
+    CHAT_MODEL: str = "z-ai/glm-4.5-air:free"
     VISION_MODEL: str = "meta-llama/llama-3.2-11b-vision-instruct"
     EMBEDDING_MODEL: str = "openai/text-embedding-3-small"
 
