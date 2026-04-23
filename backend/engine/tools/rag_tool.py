@@ -1,98 +1,92 @@
-import sys
+"""
+Policy section retrieval for compliance evaluation.
+Uses pgvector cosine-similarity search on the 1536-dim embedding column.
+Falls back to keyword/ILIKE text search if embeddings are unavailable.
+"""
+from typing import List, Optional
 from uuid import UUID
-from typing import List
 
-from sqlmodel import Session, select
-from sqlalchemy import text as sql_text
+from sqlmodel import Session, select, text
 
-from core.models import PolicySection, SupportingDocumentEmbedding
+from core.models import PolicySection
+from engine.llm import get_embeddings
 
 
-def policy_rag_search(
-    query_embedding: List[float],
-    policy_id: UUID,
+def search_policy_sections(
+    policy_id: str,
     session: Session,
-    k: int = 5,
-) -> List[dict]:
+    keywords: Optional[List[str]] = None,
+    limit: int = 8,
+) -> str:
     """
-    Return top-k policy section dicts most similar to query_embedding,
-    filtered to the given policy_id. Uses cosine distance.
+    Retrieve policy section text relevant to the given keywords.
 
-    Returns list of dicts with 'content' and 'metadata_data' keys.
+    Embeds the query string and performs a pgvector cosine-similarity search
+    against policy_sections.embedding.  Falls back to in-Python keyword
+    filtering if embedding fails.
+
+    Returns a single concatenated string ready to inject into a prompt.
     """
-    # Try 1: SQLModel select with pgvector descriptor
-    try:
-        stmt = (
-            select(PolicySection)
-            .where(PolicySection.policy_id == policy_id)
-            .order_by(PolicySection.embedding.cosine_distance(query_embedding))
-            .limit(k)
-        )
-        results = session.exec(stmt).all()
-        return [{"content": r.content, "metadata_data": r.metadata_data} for r in results]
-    except Exception as e:
-        print(f"[policy_rag_search] ORM approach failed: {e}", file=sys.stderr)
+    policy_uuid = UUID(policy_id)
+    query_text = " ".join(keywords) if keywords else ""
 
-    # Fallback: Raw SQL via text()
-    try:
-        vec_str = "[" + ",".join(str(x) for x in query_embedding) + "]"
-        rows = session.execute(
-            sql_text(
-                "SELECT content, metadata FROM policy_sections "
-                "WHERE policy_id = CAST(:pid AS uuid) "
-                "ORDER BY embedding <=> CAST(:vec AS vector) "
-                "LIMIT :k"
-            ),
-            {"pid": str(policy_id), "vec": vec_str, "k": k},
-        ).mappings().all()
-        return [{"content": r["content"], "metadata_data": r["metadata"]} for r in rows]
-    except Exception as e:
-        print(f"[policy_rag_search] Raw SQL fallback failed: {e}", file=sys.stderr)
+    # --- Vector similarity path ---
+    if query_text:
+        try:
+            embedder = get_embeddings()
+            query_vector = embedder.embed_query(query_text)
 
-    return []
+            # pgvector cosine distance operator: <=>
+            # Lower distance == more similar.  We ORDER ASC and take `limit` rows.
+            sql = text("""
+                SELECT section_id, content
+                FROM policy_sections
+                WHERE policy_id = :policy_id
+                ORDER BY embedding <=> CAST(:qvec AS vector)
+                LIMIT :lim
+            """)
+            rows = session.execute(
+                sql,
+                {
+                    "policy_id": str(policy_uuid),
+                    "qvec": str(query_vector),
+                    "lim": limit,
+                },
+            ).fetchall()
 
+            if rows:
+                parts = [
+                    f"[Section {i}]\n{row[1][:1500]}"
+                    for i, row in enumerate(rows, 1)
+                ]
+                return "\n\n".join(parts)
 
-def document_rag_search(
-    query_embedding: List[float],
-    document_ids: List[UUID],
-    session: Session,
-    k: int = 5,
-) -> List[dict]:
-    """
-    Return top-k supporting document embedding dicts most similar to query_embedding,
-    filtered to the given list of document_ids.
+        except Exception as e:
+            print(f"Vector search failed, falling back to keyword search: {e}")
 
-    Returns list of dicts with 'content' key.
-    """
-    # Try 1: SQLModel select with pgvector descriptor
-    try:
-        stmt = (
-            select(SupportingDocumentEmbedding)
-            .where(SupportingDocumentEmbedding.document_id.in_(document_ids))
-            .order_by(SupportingDocumentEmbedding.embedding.cosine_distance(query_embedding))
-            .limit(k)
-        )
-        results = session.exec(stmt).all()
-        return [{"content": r.content} for r in results]
-    except Exception as e:
-        print(f"[document_rag_search] ORM approach failed: {e}", file=sys.stderr)
+    # --- Keyword fallback ---
+    all_sections = session.exec(
+        select(PolicySection)
+        .where(PolicySection.policy_id == policy_uuid)
+        .limit(100)
+    ).all()
 
-    # Fallback: Raw SQL via text()
-    try:
-        # PostgreSQL array literal format: {uuid1,uuid2,...}
-        pg_ids = "{" + ",".join(str(d) for d in document_ids) + "}"
-        vec_str = "[" + ",".join(str(x) for x in query_embedding) + "]"
-        rows = session.execute(
-            sql_text(
-                "SELECT content FROM supporting_documents_embeddings "
-                "WHERE document_id = ANY(CAST(:ids AS uuid[])) "
-                "ORDER BY embedding <=> CAST(:vec AS vector) "
-                "LIMIT :k"
-            ),
-            {"ids": pg_ids, "vec": vec_str, "k": k},
-        ).mappings().all()
-        return [{"content": r["content"]} for r in rows]
-    except Exception as e:
-        print(f"[document_rag_search] Raw SQL fallback failed: {e}", file=sys.stderr)
+    if not all_sections:
+        return ""
 
-    return []
+    if keywords:
+        kw_lower = [k.lower() for k in keywords if k]
+        matched = [
+            s for s in all_sections
+            if any(kw in s.content.lower() for kw in kw_lower)
+        ]
+        sections = matched[:limit] if matched else all_sections[:limit]
+    else:
+        sections = all_sections[:limit]
+
+    parts = []
+    for i, s in enumerate(sections, 1):
+        excerpt = s.content[:1500]
+        parts.append(f"[Section {i}]\n{excerpt}")
+
+    return "\n\n".join(parts)

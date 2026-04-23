@@ -1,3 +1,4 @@
+import logging
 from typing import List, Optional
 from uuid import UUID
 
@@ -6,17 +7,19 @@ from pydantic import BaseModel
 from sqlmodel import Session, select
 
 from api import deps
-from core.models import User, Reimbursement, SupportingDocument, UserRole
+from core.models import User, Reimbursement, SupportingDocument, UserRole, TravelSettlement, Policy
 from engine.agents.compliance_agent import run_compliance_workflow
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 class AnalyzeReimbursementRequest(BaseModel):
-    document_ids: List[str]
+    settlement_id: str              # required — from Workflow 2 upload response
     policy_id: str
-    main_category: str
-    sub_category: str
+    all_category: Optional[List[str]] = None
+    # document_ids is accepted but optional; the basket is sourced from the settlement
+    document_ids: Optional[List[str]] = None
 
 
 @router.get("/health")
@@ -47,14 +50,16 @@ def list_reimbursements(
             "reim_id": str(r.reim_id),
             "user_id": str(r.user_id),
             "policy_id": str(r.policy_id) if r.policy_id else None,
+            "settlement_id": str(r.settlement_id) if r.settlement_id else None,
             "main_category": r.main_category,
             "sub_category": r.sub_category,
             "currency": r.currency,
-            "amount": float(r.amount),
+            "totals": r.totals,
+            "line_items": r.line_items,
+            "confidence": r.confidence,
             "judgment": r.judgment,
             "status": r.status,
             "summary": r.summary,
-            "chain_of_thought": r.chain_of_thought,
             "created_at": r.created_at.isoformat() if r.created_at else None,
         }
         for r in reimbursements
@@ -67,50 +72,120 @@ def analyze_reimbursement(
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_user),
 ) -> dict:
-    """Run compliance analysis on uploaded documents against a policy."""
-    # Validate all document_ids belong to current user
-    for doc_id_str in request.document_ids:
-        try:
-            doc_uuid = UUID(doc_id_str)
-        except ValueError:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid document_id: {doc_id_str}",
+    """Run basket compliance analysis on a TravelSettlement against a policy."""
+    try:
+        settlement_uuid = UUID(request.settlement_id)
+        policy_uuid = UUID(request.policy_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid settlement_id or policy_id",
+        )
+
+    settlement = db.get(TravelSettlement, settlement_uuid)
+    if not settlement:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Settlement {request.settlement_id} not found",
+        )
+
+    # Fetch policy to get main_category and reimbursable categories
+    policy = db.get(Policy, policy_uuid)
+    if not policy:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Policy {request.policy_id} not found",
+        )
+
+    # Auto-fetch main_category from policy (first reimbursable category)
+    main_category = ""
+    if policy.reimbursable_category and len(policy.reimbursable_category) > 0:
+        main_category = policy.reimbursable_category[0]
+
+    if not main_category:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Policy has no reimbursable categories",
+        )
+
+    # Cache check: return cached result if no human edits and settlement was already evaluated
+    has_edits = bool(
+        db.exec(
+            select(SupportingDocument).where(
+                SupportingDocument.settlement_id == settlement_uuid,
+                SupportingDocument.human_edited == True,  # noqa: E712
             )
-        doc = db.get(SupportingDocument, doc_uuid)
-        if not doc or doc.user_id != current_user.user_id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Document {doc_id_str} not found or does not belong to you",
-            )
+        ).first()
+    )
+
+    if not has_edits and settlement.reimbursement_id:
+        cached = db.get(Reimbursement, settlement.reimbursement_id)
+        if cached:
+            return {
+                "reim_id": str(cached.reim_id),
+                "settlement_id": str(cached.settlement_id) if cached.settlement_id else None,
+                "judgment": cached.judgment,
+                "status": cached.status,
+                "summary": cached.summary,
+                "line_items": cached.line_items,
+                "totals": cached.totals,
+                "confidence": cached.confidence,
+                "currency": cached.currency,
+                "main_category": cached.main_category,
+                "sub_category": cached.sub_category,
+                "created_at": cached.created_at.isoformat() if cached.created_at else None,
+                "cached": True,
+                "message": "Using cached result (no human edits detected)",
+            }
+
+    all_category = request.all_category
+    if not all_category:
+        all_category = settlement.all_category or []
+    if not all_category:
+        # Use all reimbursable categories from policy if not provided
+        all_category = policy.reimbursable_category or [main_category]
 
     try:
         result = run_compliance_workflow(
-            document_ids=request.document_ids,
+            settlement_id=request.settlement_id,
             policy_id=request.policy_id,
-            main_category=request.main_category,
-            sub_category=request.sub_category,
+            main_category=main_category,
             user_id=str(current_user.user_id),
+            all_category=all_category,
             session=db,
+            document_ids=request.document_ids,
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Compliance workflow failed: {e}")
+        logger.exception(f"Compliance workflow failed")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Compliance workflow failed: {type(e).__name__}: {str(e)}"
+        )
 
-    # Fetch and return the full reimbursement row
     if result.get("reimbursement_id"):
         reim = db.get(Reimbursement, UUID(result["reimbursement_id"]))
         if reim:
             return {
                 "reim_id": str(reim.reim_id),
+                "settlement_id": str(reim.settlement_id) if reim.settlement_id else None,
                 "judgment": reim.judgment,
                 "status": reim.status,
                 "summary": reim.summary,
-                "chain_of_thought": reim.chain_of_thought,
-                "amount": float(reim.amount),
+                "line_items": reim.line_items,
+                "totals": reim.totals,
+                "confidence": reim.confidence,
                 "currency": reim.currency,
                 "main_category": reim.main_category,
                 "sub_category": reim.sub_category,
                 "created_at": reim.created_at.isoformat() if reim.created_at else None,
+                "cached": False,
+                "message": "Re-evaluated due to human edits" if has_edits else "First-time evaluation",
             }
 
-    return result
+    return {
+        **result,
+        "main_category": main_category,
+        "sub_category": all_category or [],
+        "cached": False,
+        "message": "First-time evaluation"
+    }

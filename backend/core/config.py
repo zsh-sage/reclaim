@@ -12,10 +12,15 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = "postgresql://admin:password@localhost:5432/smart_reimburse"
 
-    # LLM (via OpenRouter)
+    # LLM (ILMU API for chat model)
+    LLM_API_KEY: str = ""
+    LLM_BASE_URL: str = "https://api.ilmu.ai/v1"
+    # CHAT_MODEL: str = "ilmu-glm-5.1"
+    CHAT_MODEL: str = "google/gemini-2.5-flash-lite"
+    
+    # (OpenRouter) for vision and embedding model
     OPENROUTER_API_KEY: str = ""
     OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"
-    CHAT_MODEL: str = "z-ai/glm-4.5-air:free"
     VISION_MODEL: str = "meta-llama/llama-3.2-11b-vision-instruct"
     EMBEDDING_MODEL: str = "openai/text-embedding-3-small"
 

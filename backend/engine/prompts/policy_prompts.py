@@ -27,10 +27,9 @@ Unified Policy Text:
 """
 
 POLICY_CONDITIONS_PROMPT = """
-For the categories identified, extract the mandatory constraints and required documents from the unified policy text.
+For the categories identified, extract the mandatory constraints from the unified policy text.
 
-1. Conditions: Extract ONLY strict, mandatory constraints (e.g., "must", "shall", numerical limits, time limits, deadlines).
-2. Required Documents: Identify any specific documents, receipts, approvals, or forms needed to claim this expense. (e.g., receipt)
+Conditions: Extract ONLY strict, mandatory constraints (e.g., "must", "shall", numerical limits, time limits, deadlines).
 
 Target Categories: {categories}
 
@@ -43,10 +42,6 @@ Your JSON must match this exact schema structure:
 {{
     "procedures": {{
         "Category Name" : {{
-            "required_documents": [
-                "document_name1",
-                "document_name2"
-            ],
             "condition": [
                 "Condition 1",
                 "Condition 2"

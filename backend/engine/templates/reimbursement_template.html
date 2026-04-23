@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Business Travel Settlement — {{ employee.name }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #f4f7ff;
+      --white: #ffffff;
+      --dark: #1a1a2e;
+      --accent: #2563eb;
+      --accent-light: #eff4ff;
+      --accent-mid: #bfcff8;
+      --muted: #5a6a85;
+      --border: #d0d9ee;
+      --green: #059669;
+      --green-light: #ecfdf5;
+      --yellow: #d97706;
+      --yellow-light: #fffbeb;
+      --red: #dc2626;
+      --alt-row: #f8faff;
+      --radius: 10px;
+      --radius-sm: 6px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', Arial, sans-serif;
+      font-size: 13px;
+      background: var(--bg);
+      color: var(--dark);
+      min-height: 100vh;
+      padding: 32px 24px;
+    }
+
+    /* ── Print toolbar ── */
+    .print-bar {
+      background: var(--dark);
+      color: #e2e8f0;
+      padding: 10px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      border-radius: var(--radius);
+      margin-bottom: 24px;
+    }
+    .print-bar span { opacity: 0.7; }
+    .btn-print {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 7px 18px;
+      border-radius: var(--radius-sm);
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      letter-spacing: 0.3px;
+    }
+    .btn-print:hover { background: #1d4ed8; }
+
+    /* ── Document card ── */
+    .document {
+      max-width: 900px;
+      margin: 0 auto;
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: 0 4px 24px rgba(37,99,235,0.08), 0 1px 4px rgba(0,0,0,0.04);
+      overflow: hidden;
+    }
+
+    /* ── Document header ── */
+    .doc-header {
+      background: var(--dark);
+      padding: 28px 36px 24px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+    }
+    .doc-header-left .doc-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: -0.5px;
+      line-height: 1.2;
+    }
+    .doc-header-left .doc-subtitle {
+      font-size: 12px;
+      color: #94a3b8;
+      margin-top: 4px;
+      font-weight: 400;
+      letter-spacing: 0.3px;
+    }
+    .doc-header-right {
+      text-align: right;
+    }
+    .doc-header-right .company-name {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 1px;
+    }
+    .doc-header-right .doc-date {
+      font-size: 11px;
+      color: #64748b;
+      margin-top: 3px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* ── Accent bar ── */
+    .accent-bar {
+      height: 4px;
+      background: linear-gradient(90deg, var(--accent) 0%, #7c3aed 100%);
+    }
+
+    /* ── Body padding ── */
+    .doc-body { padding: 28px 36px; }
+
+    /* ── Section label ── */
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--accent);
+      margin-bottom: 12px;
+      margin-top: 24px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ── Info grid ── */
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      margin-bottom: 4px;
+    }
+    .info-row {
+      display: contents;
+    }
+    .info-cell {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      border-right: 1px solid var(--border);
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+    }
+    .info-cell:nth-child(2n) { border-right: none; }
+    .info-cell.full-width {
+      grid-column: 1 / -1;
+      border-right: none;
+    }
+    .info-cell:last-child, .info-cell:nth-last-child(2) { border-bottom: none; }
+    .info-lbl {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+      min-width: 110px;
+    }
+    .info-val {
+      font-size: 12.5px;
+      color: var(--dark);
+      font-weight: 500;
+      word-break: break-word;
+    }
+
+    /* ── Expense table ── */
+    .expense-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+    }
+    .expense-table thead tr {
+      background: var(--dark);
+      color: #ffffff;
+    }
+    .expense-table th {
+      padding: 10px 8px;
+      text-align: center;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      border: none;
+    }
+    .expense-table th.left { text-align: left; padding-left: 14px; }
+    .expense-table tbody tr { background: var(--white); }
+    .expense-table tbody tr.alt { background: var(--alt-row); }
+    .expense-table tbody tr:hover { background: var(--accent-light); }
+    .expense-table td {
+      padding: 9px 8px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+      color: var(--dark);
+      vertical-align: middle;
+    }
+    .expense-table td.left { text-align: left; padding-left: 14px; }
+    .expense-table td.no {
+      color: var(--muted);
+      font-size: 11px;
+      font-family: 'JetBrains Mono', monospace;
+      width: 32px;
+    }
+    .desc-main { font-weight: 600; font-size: 12px; }
+    .desc-cat {
+      font-size: 10px;
+      color: var(--accent);
+      margin-top: 2px;
+      font-weight: 500;
+    }
+    .amount {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 500;
+      font-size: 12px;
+    }
+    .amount.dash { color: var(--border); }
+
+    /* ── Subtotal / total rows ── */
+    .subtotal-row td {
+      font-weight: 600;
+      background: var(--accent-light);
+      color: var(--dark);
+      border-top: 2px solid var(--accent-mid);
+      border-bottom: none;
+      padding: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+    }
+    .subtotal-row td.left { padding-left: 14px; font-family: 'Inter', sans-serif; font-size: 12px; }
+    .total-row td {
+      font-weight: 700;
+      font-size: 13px;
+      background: var(--dark);
+      color: #ffffff;
+      padding: 11px 8px;
+      border: none;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .total-row td.left {
+      padding-left: 14px;
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .total-amount {
+      color: #60a5fa;
+    }
+
+    /* ── Warning box ── */
+    .warning-box {
+      margin: 20px 0;
+      padding: 12px 16px;
+      border-left: 4px solid var(--yellow);
+      background: var(--yellow-light);
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      font-size: 12px;
+      color: #78350f;
+    }
+    .warning-box strong { display: block; margin-bottom: 5px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    /* ── Summary chips ── */
+    .summary-chips {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin: 20px 0 0;
+    }
+    .chip {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 10px 20px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--alt-row);
+      min-width: 120px;
+    }
+    .chip .chip-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); margin-bottom: 4px; }
+    .chip .chip-val { font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 700; color: var(--dark); }
+    .chip.grand {
+      background: var(--accent);
+      border-color: var(--accent);
+      flex: 1;
+    }
+    .chip.grand .chip-label { color: rgba(255,255,255,0.7); }
+    .chip.grand .chip-val { color: #ffffff; font-size: 18px; }
+
+    /* ── Disclaimer ── */
+    .disclaimer {
+      font-size: 11.5px;
+      line-height: 1.7;
+      margin: 24px 0;
+      color: var(--muted);
+      padding: 14px 16px;
+      background: var(--alt-row);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+    }
+    .disclaimer strong { color: var(--dark); display: block; margin-bottom: 5px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    /* ── Signature ── */
+    .sig-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 28px;
+    }
+    .sig-box {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px 12px;
+      background: var(--alt-row);
+    }
+    .sig-role {
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 36px;
+      display: block;
+    }
+    .sig-line {
+      border-top: 1px solid var(--muted);
+      padding-top: 6px;
+      font-size: 10px;
+      color: var(--muted);
+    }
+
+    /* ── Footer ── */
+    .doc-footer {
+      background: var(--dark);
+      padding: 12px 36px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .doc-footer span {
+      font-size: 10px;
+      color: #475569;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .doc-footer .brand { color: var(--accent); font-weight: 600; font-family: 'Inter', sans-serif; font-size: 11px; letter-spacing: 0.5px; }
+
+    /* ── Print ── */
+    @media print {
+      body { background: white; padding: 0; }
+      .print-bar { display: none; }
+      .document { box-shadow: none; border-radius: 0; }
+      .expense-table tbody tr:hover { background: var(--white); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="print-bar">
+    <span>Business Travel Settlement — {{ employee.name }} &nbsp;·&nbsp; {{ generated_date }}</span>
+    <button class="btn-print" onclick="window.print()">🖨 Print / Save as PDF</button>
+  </div>
+
+  <div class="document">
+
+    <!-- Header -->
+    <div class="doc-header">
+      <div class="doc-header-left">
+        <div class="doc-title">Business Travel Settlement</div>
+        <div class="doc-subtitle">Reimbursement Claim Form</div>
+      </div>
+      <div class="doc-header-right">
+        <div class="company-name">RECLAIM</div>
+        <div class="doc-date">{{ generated_date }}</div>
+      </div>
+    </div>
+    <div class="accent-bar"></div>
+
+    <div class="doc-body">
+
+      <!-- Employee Info -->
+      <div class="section-label">Employee Information</div>
+      <div class="info-grid">
+        <div class="info-cell">
+          <span class="info-lbl">Employee Name</span>
+          <span class="info-val">{{ employee.name }}</span>
+        </div>
+        <div class="info-cell">
+          <span class="info-lbl">Employee Code</span>
+          <span class="info-val">{{ employee.user_code or "—" }}</span>
+        </div>
+        <div class="info-cell">
+          <span class="info-lbl">Department</span>
+          <span class="info-val">{{ employee.department or "—" }}</span>
+        </div>
+        <div class="info-cell">
+          <span class="info-lbl">Currency</span>
+          <span class="info-val">{{ totals.currency }}</span>
+        </div>
+        <div class="info-cell">
+          <span class="info-lbl">Destination</span>
+          <span class="info-val">{{ employee.destination or "—" }}</span>
+        </div>
+        <div class="info-cell">
+          <span class="info-lbl">Overseas</span>
+          <span class="info-val">{% if employee.overseas is true %}Yes{% elif employee.overseas is false %}No{% else %}—{% endif %}</span>
+        </div>
+        <div class="info-cell">
+          <span class="info-lbl">Departure Date</span>
+          <span class="info-val">{{ employee.departure_date or "—" }}</span>
+        </div>
+        <div class="info-cell">
+          <span class="info-lbl">Arrival Date</span>
+          <span class="info-val">{{ employee.arrival_date or "—" }}</span>
+        </div>
+        <div class="info-cell full-width">
+          <span class="info-lbl">Purpose</span>
+          <span class="info-val">{{ employee.purpose or "—" }}</span>
+        </div>
+        <div class="info-cell full-width">
+          <span class="info-lbl">Submitted On</span>
+          <span class="info-val">{{ generated_date }}</span>
+        </div>
+      </div>
+
+      <!-- Expense Details -->
+      <div class="section-label">Expense Details</div>
+
+      <table class="expense-table">
+        <thead>
+          <tr>
+            <th style="width:36px">#</th>
+            <th style="width:90px">Date</th>
+            <th class="left">Description</th>
+            <th style="width:90px">Transport</th>
+            <th style="width:90px">Accommodation</th>
+            <th style="width:72px">Meals</th>
+            <th style="width:72px">Others</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in receipts %}
+          <tr class="{% if loop.index is odd %}{% else %}alt{% endif %}">
+            <td class="no">{{ loop.index }}</td>
+            <td style="font-family:'JetBrains Mono',monospace;font-size:11px;">{{ r.date }}</td>
+            <td class="left">
+              <div class="desc-main">{{ r.description }}</div>
+              <div class="desc-cat">{{ r.category }}</div>
+            </td>
+            <td class="amount">{% if r.transportation > 0 %}{{ "%.2f"|format(r.transportation) }}{% else %}<span class="dash">—</span>{% endif %}</td>
+            <td class="amount">{% if r.accommodation > 0 %}{{ "%.2f"|format(r.accommodation) }}{% else %}<span class="dash">—</span>{% endif %}</td>
+            <td class="amount">{% if r.meals > 0 %}{{ "%.2f"|format(r.meals) }}{% else %}<span class="dash">—</span>{% endif %}</td>
+            <td class="amount">{% if r.others > 0 %}{{ "%.2f"|format(r.others) }}{% else %}<span class="dash">—</span>{% endif %}</td>
+          </tr>
+          {% endfor %}
+          <tr class="subtotal-row">
+            <td colspan="3" class="left">Sub-Total</td>
+            <td>{{ "%.2f"|format(totals.transportation) }}</td>
+            <td>{{ "%.2f"|format(totals.accommodation) }}</td>
+            <td>{{ "%.2f"|format(totals.meals) }}</td>
+            <td>{{ "%.2f"|format(totals.others) }}</td>
+          </tr>
+          <tr class="total-row">
+            <td colspan="6" class="left" style="text-align:right;padding-right:16px;">
+              Amount Due ({{ totals.currency }})
+            </td>
+            <td class="total-amount">{{ "%.2f"|format(totals.grand_total) }}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Summary chips -->
+      <div class="summary-chips">
+        <div class="chip">
+          <span class="chip-label">🚌 Transport</span>
+          <span class="chip-val">{{ "%.2f"|format(totals.transportation) }}</span>
+        </div>
+        <div class="chip">
+          <span class="chip-label">🏨 Accommodation</span>
+          <span class="chip-val">{{ "%.2f"|format(totals.accommodation) }}</span>
+        </div>
+        <div class="chip">
+          <span class="chip-label">🍽 Meals</span>
+          <span class="chip-val">{{ "%.2f"|format(totals.meals) }}</span>
+        </div>
+        <div class="chip">
+          <span class="chip-label">📦 Others</span>
+          <span class="chip-val">{{ "%.2f"|format(totals.others) }}</span>
+        </div>
+        <div class="chip grand">
+          <span class="chip-label">{{ totals.currency }} Total Due</span>
+          <span class="chip-val">{{ "%.2f"|format(totals.grand_total) }}</span>
+        </div>
+      </div>
+
+      {% if all_warnings %}
+      <div class="warning-box">
+        <strong>⚠ Flagged Warnings</strong>
+        {% for w in all_warnings %}&bull; {{ w }}<br>{% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- Disclaimer -->
+      <div class="disclaimer">
+        <strong>Declaration</strong>
+        I confirm that I have ensured that all items claimed for reimbursement or payment requested herein are for
+        legitimate business purposes, comply with relevant RECLAIM policies, and under no circumstances constitute
+        payment for any bribe or facilitation payment to a government official.
+      </div>
+
+      <!-- Signatures -->
+      <div class="section-label">Authorisation</div>
+      <div class="sig-grid">
+        <div class="sig-box">
+          <span class="sig-role">Submitted by</span>
+          <div class="sig-line">{{ employee.name }} &nbsp;·&nbsp; {{ generated_date }}</div>
+        </div>
+        <div class="sig-box">
+          <span class="sig-role">Approved by</span>
+          <div class="sig-line">&nbsp;</div>
+        </div>
+        <div class="sig-box">
+          <span class="sig-role">Verified by</span>
+          <div class="sig-line">&nbsp;</div>
+        </div>
+      </div>
+
+    </div><!-- /doc-body -->
+
+    <!-- Footer -->
+    <div class="doc-footer">
+      <span class="brand">RECLAIM</span>
+      <span>Generated {{ generated_date }} &nbsp;·&nbsp; Business Travel Settlement</span>
+    </div>
+
+  </div><!-- /document -->
+
+</body>
+</html>

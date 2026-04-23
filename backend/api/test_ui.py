@@ -7,7 +7,7 @@ from fastapi.responses import HTMLResponse
 from sqlmodel import Session, select
 
 from api import deps
-from core.models import User, Policy, SupportingDocument, Reimbursement, PolicySection
+from core.models import User, Policy, SupportingDocument, Reimbursement, PolicySection, TravelSettlement
 
 router = APIRouter()
 
@@ -95,12 +95,15 @@ def get_reimbursements(db: Session = Depends(deps.get_db)) -> List[dict]:
             "reim_id": str(r.reim_id),
             "user_id": str(r.user_id),
             "policy_id": str(r.policy_id) if r.policy_id else None,
+            "settlement_id": str(r.settlement_id) if r.settlement_id else None,
             "main_category": r.main_category,
             "sub_category": r.sub_category,
             "judgment": r.judgment,
             "status": r.status,
-            "amount": float(r.amount),
+            "totals": r.totals,
+            "line_items_count": len(r.line_items) if r.line_items else 0,
             "currency": r.currency,
+            "confidence": r.confidence,
             "summary": r.summary,
             "created_at": r.created_at.isoformat() if r.created_at else None,
         }
@@ -108,9 +111,28 @@ def get_reimbursements(db: Session = Depends(deps.get_db)) -> List[dict]:
     ]
 
 
+@router.get("/db/settlements")
+def get_settlements(db: Session = Depends(deps.get_db)) -> List[dict]:
+    settlements = db.exec(select(TravelSettlement)).all()
+    return [
+        {
+            "settlement_id": str(s.settlement_id),
+            "reimbursement_id": str(s.reimbursement_id) if s.reimbursement_id else None,
+            "main_category": s.main_category,
+            "all_category": s.all_category,
+            "employee_name": s.employee_name,
+            "employee_department": s.employee_department,
+            "currency": s.currency,
+            "grand_total": s.totals.get("grand_total") if s.totals else None,
+            "receipt_count": len(s.receipts) if s.receipts else 0,
+            "created_at": s.created_at.isoformat() if s.created_at else None,
+        }
+        for s in settlements
+    ]
+
+
 @router.get("/db/policy_sections")
 def get_policy_sections(db: Session = Depends(deps.get_db)) -> List[dict]:
-    # Limit to 50 rows, omit embedding (too large)
     sections = db.exec(select(PolicySection).limit(50)).all()
     return [
         {

@@ -7,7 +7,10 @@
 
 # testing
 /coverage
-backend/test/
+backend/test/*
+!backend/test/demo.html
+!backend/test/agent_workflows.md
+backend/engine/templates/save.html
 
 # next.js
 /.next/
@@ -56,7 +59,7 @@ Makefile
 
 # plans mds
 agent_workflow_plans.md
-CLAUDE.md
+# CLAUDE.md
 
 # agent
 .claude/
