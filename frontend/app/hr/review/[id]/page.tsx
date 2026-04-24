@@ -1,7 +1,7 @@
 "use client";
 import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
-import { ArrowLeft, AlertTriangle, Clock, ShieldCheck, ShieldX, ChevronDown, ZoomIn, Pencil, FileText, Download } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ArrowLeft, AlertTriangle, Clock, ShieldCheck, ShieldX, ChevronDown, ZoomIn, Pencil, FileText, ExternalLink, Download, X, Loader2 } from "lucide-react";
 import { ClaimBundle, LineItem, MOCK_BUNDLES } from "../../hr_components/mockData";
 
 type Decision = "approve_full" | "approve_adjusted" | "reject" | null;
