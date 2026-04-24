@@ -462,19 +462,11 @@ export default function CaptureReceiptPage() {
   const [stage, setStage] = useState<Stage>("form");
 
   // ── Policy data (fetched via server action) ────────────────────────────────
-  const [policyData, setPolicyData] = useState<MainCategoryConfig[]>([]);
-  const [rawPolicies, setRawPolicies] = useState<Policy[]>([]);
+  const [policyData, setPolicyData] = useState<Policy[]>([]);
 
   useEffect(() => {
     getPolicies().then((policies) => {
-      setRawPolicies(policies);
-      // Map Policy type to local MainCategoryConfig shape
-      const mapped: MainCategoryConfig[] = policies.map((p) => ({
-        main_category: p.title,
-        reimbursable_category: p.reimbursable_category,
-        mandatory_conditions: {},
-      }));
-      setPolicyData(mapped);
+      setPolicyData(policies);
     });
   }, []);
 
@@ -517,7 +509,7 @@ export default function CaptureReceiptPage() {
   const [showSuccess, setShowSuccess] = useState(false);
 
   // ── Derived ────────────────────────────────────────────────────────────────
-  const selectedMain = policyData.find(d => d.main_category === mainCategory);
+  const selectedMain = policyData.find(d => d.title === mainCategory);
   const canProcess = files.length > 0 && mainCategory !== "";
   const isFull = files.length >= MAX_FILES;
   const activeFile = files.find(f => f.id === activeDocId) ?? null;
@@ -650,7 +642,7 @@ export default function CaptureReceiptPage() {
       return;
     }
 
-    const policy = rawPolicies.find(p => p.title === mainCategory);
+    const policy = policyData.find(p => p.title === mainCategory);
     if (!policy) {
       setSubmitError("Please select a valid policy category.");
       return;
@@ -800,7 +792,7 @@ export default function CaptureReceiptPage() {
                 Expense Category
               </label>
               <CustomSelect
-                options={policyData.map(d => d.main_category)}
+                options={policyData.map(d => d.title)}
                 value={mainCategory}
                 onChange={v => { setMainCategory(v); setFiles([]); setActiveDocId(null); }}
                 placeholder="Select a category…"

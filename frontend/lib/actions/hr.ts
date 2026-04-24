@@ -110,7 +110,11 @@ function mapToBundle(r: ReimbursementRaw): ClaimBundle {
     arrival_date: "",
     is_overseas: false,
     line_items: lineItems,
-    totals: r.totals ?? { total_requested: 0, total_deduction: 0, net_approved: 0 },
+    totals: {
+      total_requested: r.totals?.total_requested ?? 0,
+      total_deduction: r.totals?.total_deduction ?? 0,
+      net_approved: r.totals?.net_approved ?? 0,
+    },
     overall_judgment: (r.judgment as "APPROVED" | "REJECTED" | "PARTIAL_APPROVE" | "PENDING") ?? "PENDING",
     confidence: r.confidence ?? 0,
     summary: r.summary ?? "",

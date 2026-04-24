@@ -16,12 +16,12 @@ export interface ApiResult<T> {
 /** Matches GET /api/v1/auth/me → UserResponse */
 export interface User {
   id: string;           // UUID mapped from user_id in auth.ts
-  user_code: string | null;
+  user_code?: string | null;
   email: string;
   name: string;
   role: "HR" | "Employee";
   department?: string;
-  rank: number;
+  rank?: number;
   privilege_level?: string;
 }
 
@@ -79,16 +79,18 @@ export interface ReimbursementRaw {
   employee_rank: number;
   currency: string;
   totals: {
-    total_requested: number;
-    total_deduction: number;
-    net_approved: number;
+    total_requested?: number;
+    net_approved?: number;
+    total_deduction?: number;
+    [key: string]: any;
   };
   line_items: ReimbursementLineItem[];
-  judgment: "APPROVE" | "REJECT" | "PARTIAL_APPROVE" | "MANUAL REVIEW";
+  judgment: string;
   confidence: number | null;
   status: string;
   summary: string;
   created_at: string | null;
+  updated_at: string | null;
 }
 
 /** Map a backend ReimbursementRaw into the frontend ClaimSummary shape. */
@@ -96,8 +98,8 @@ export function mapReimbursementToClaim(r: ReimbursementRaw): ClaimSummary {
   // Format currency + amount → "$850.00"
   const currencySymbol: Record<string, string> = { USD: "$", MYR: "RM", EUR: "€", GBP: "£" };
   const symbol = currencySymbol[r.currency] ?? `${r.currency} `;
-  const netApproved = r.totals?.net_approved ?? 0;
-  const formattedAmount = `${symbol}${netApproved.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const amountValue = r.totals?.total_requested ?? 0;
+  const formattedAmount = `${symbol}${amountValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   // Format ISO date → "Oct 24, 2023"
   let displayDate = "";
@@ -122,10 +124,10 @@ export function mapReimbursementToClaim(r: ReimbursementRaw): ClaimSummary {
     id: r.reim_id,
     date: displayDate,
     category: r.main_category,
-    subCategory: Array.isArray(r.sub_category) ? r.sub_category.join(", ") : r.sub_category,
+    subCategory: Array.isArray(r.sub_category) && r.sub_category.length > 0 ? r.sub_category.join(", ") : "General",
     merchant: r.summary?.split(".")[0] ?? "",   // first sentence of summary
     amount: formattedAmount,
-    amountNumeric: netApproved,
+    amountNumeric: r.totals?.total_requested ?? 0,
     status: statusMap[r.status] ?? "Pending",
   };
 }
@@ -168,6 +170,7 @@ export interface Policy {
   title: string;
   reimbursable_category: string[];
   overview_summary: string;
+  mandatory_conditions: string;
   status: string;
   effective_date: string | null;
   source_file_url: string;

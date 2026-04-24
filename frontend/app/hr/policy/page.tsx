@@ -245,7 +245,6 @@ export default function PolicyStudio() {
 
   const [policies, setPolicies] = useState<Policy[]>(MOCK_POLICIES);
   const [saveError, setSaveError] = useState<string | null>(null);
-
   // Load real policies from backend on mount
   useEffect(() => {
     getPolicies().then((backendPolicies) => {
