@@ -75,8 +75,8 @@ export interface ReimbursementRaw {
   settlement_id: string | null;
   main_category: string;
   sub_category: string[];
-  employee_department: string | null;
-  employee_rank: number;
+  employee_department?: string | null;
+  employee_rank?: number | null;
   currency: string;
   totals: {
     total_requested: number;

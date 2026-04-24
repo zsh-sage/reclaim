@@ -203,8 +203,16 @@ export async function getClaims(status?: string): Promise<ClaimSummary[]> {
 export async function getClaimById(
   id: string
 ): Promise<DetailedClaim | null> {
-  const result = await apiGet<DetailedClaim>(`${API_PREFIX}/employee/claims/${id}`);
-  return result.data ?? null;
+  const result = await apiGet<ReimbursementRaw>(`${API_PREFIX}/reimbursements/${id}`);
+  if (!result.data) return null;
+  const summary = mapReimbursementToClaim(result.data);
+  return {
+    ...summary,
+    timeline: [],
+    receipts: [],
+    clientName: "",
+    purpose: "",
+  };
 }
 
 /** Trigger OCR/AI extraction on an uploaded receipt. */
