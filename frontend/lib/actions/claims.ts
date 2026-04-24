@@ -5,6 +5,7 @@
 // Falls back to mock data until the backend endpoints are built.
 // ──────────────────────────────────────────────────────────────────────────────
 
+import { cookies } from "next/headers";
 import { apiGet, apiPost, API_PREFIX } from "@/lib/api/client";
 import type {
   ClaimSummary,
@@ -12,8 +13,21 @@ import type {
   ExtractedData,
   ClaimSubmissionPayload,
   ReimbursementRaw,
+  DocumentUploadResponse,
+  EditDocumentRequest,
+  EditDocumentResponse,
+  AnalyzeRequest,
+  AnalyzeResponse,
 } from "@/lib/api/types";
 import { mapReimbursementToClaim } from "@/lib/api/types";
+
+const API_URL = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+async function getAuthHeaders(): Promise<Record<string, string>> {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("session")?.value;
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 // ─── Mock Fallback ───────────────────────────────────────────────────────────
 
@@ -212,4 +226,71 @@ export async function submitClaim(
     payload
   );
   return result;
+}
+
+/** Upload receipt files to backend for OCR processing. */
+export async function uploadDocuments(files: File[]): Promise<DocumentUploadResponse | { error: string }> {
+  try {
+    const headers = await getAuthHeaders();
+    const form = new FormData();
+    files.forEach(f => form.append("files", f));
+    const res = await fetch(`${API_URL}${API_PREFIX}/documents/upload`, {
+      method: "POST",
+      headers,
+      body: form,
+      cache: "no-store",
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      return { error: body?.detail ?? `Upload failed (${res.status})` };
+    }
+    return await res.json();
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Upload failed" };
+  }
+}
+
+/** Send human OCR corrections to a specific document. */
+export async function editDocument(
+  documentId: string,
+  edits: EditDocumentRequest
+): Promise<EditDocumentResponse | { error: string }> {
+  try {
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${API_URL}${API_PREFIX}/documents/${documentId}/edits`, {
+      method: "POST",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify(edits),
+      cache: "no-store",
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      return { error: body?.detail ?? `Edit failed (${res.status})` };
+    }
+    return await res.json();
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Edit failed" };
+  }
+}
+
+/** Run compliance analysis on an uploaded settlement against a policy. */
+export async function analyzeCompliance(
+  req: AnalyzeRequest
+): Promise<AnalyzeResponse | { error: string }> {
+  try {
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${API_URL}${API_PREFIX}/reimbursements/analyze`, {
+      method: "POST",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify(req),
+      cache: "no-store",
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      return { error: body?.detail ?? `Analysis failed (${res.status})` };
+    }
+    return await res.json();
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Analysis failed" };
+  }
 }
