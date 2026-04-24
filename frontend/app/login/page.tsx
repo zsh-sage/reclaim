@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -15,9 +14,10 @@ const formSchema = z.object({
 
 export default function LoginPage() {
   const { login, isLoading } = useAuth();
-  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activePortal, setActivePortal] = useState<"employee" | "hr">("employee");
+  const [restrictionToast, setRestrictionToast] = useState<string | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -48,47 +48,73 @@ export default function LoginPage() {
     }
   };
 
+  useEffect(() => {
+    if (!restrictionToast) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      setRestrictionToast(null);
+    }, 2600);
+
+    return () => window.clearTimeout(timer);
+  }, [restrictionToast]);
+
+  const handleForgotPassword = () => {
+    setRestrictionToast("Feature Restricted during MVP Stages");
+  };
+
   return (
-    <main className="flex-grow flex w-full min-h-screen">
+    <main className="flex w-full min-h-dvh h-dvh overflow-hidden">
       {/* Left Side: Split Gradient Anchor */}
-      <div className="hidden lg:flex w-1/2 split-gradient relative overflow-hidden items-center justify-center p-12">
+      <div className="hidden lg:flex w-1/2 split-gradient relative overflow-hidden items-center justify-center p-12 xl:p-16">
         {/* Decorative Elements */}
         <div
           className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=2070&auto=format&fit=crop')] opacity-10 bg-cover bg-center mix-blend-overlay"
           data-alt="Abstract fluid geometry with soft light interacting with translucent materials, creating a sense of deep, corporate technology structure."
         ></div>
         <div className="relative z-10 text-on-primary max-w-xl">
-          <div className="mb-8">
-            <span className="material-symbols-outlined text-6xl">blur_on</span>
-          </div>
-          <h1 className="font-headline text-5xl font-extrabold tracking-tight mb-6 leading-tight">
-            The Kinetic Workspace.
+          <span className="inline-flex items-center rounded-full border border-white/35 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em]">
+            AI-Assisted Reimbursements
+          </span>
+          <h1 className="font-headline text-5xl xl:text-6xl font-extrabold tracking-tight mt-4 mb-4 leading-tight">
+            Reclaim.
           </h1>
-          <p className="text-lg opacity-90 font-light leading-relaxed">
-            Access your intuitive digital environment. Designed for clarity,
-            precision, and a seamless operational flow.
+          <p className="text-base xl:text-lg opacity-90 font-light leading-relaxed max-w-lg text-justify">
+            An AI expense platform that pairs OCR with an intelligent agent that thinks, evaluates, and proposes decisions for every claim. By enabling HR to operate through "efficiency by exception," the agent auto-clears valid submissions and isolates only policy violations or suspicious edits for final human review, instantly turning scattered receipts into audit-ready data.
           </p>
         </div>
         {/* Floating accent blobs to break rigid template feel */}
         <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-tertiary rounded-full blur-[120px] opacity-40"></div>
         <div className="absolute top-1/4 -right-24 w-72 h-72 bg-primary rounded-full blur-[100px] opacity-30"></div>
+        <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(transparent_96%,rgba(255,255,255,0.09)_96%),linear-gradient(90deg,transparent_96%,rgba(255,255,255,0.09)_96%)] bg-[size:26px_26px] opacity-10"></div>
       </div>
       {/* Right Side: Interaction Canvas */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 lg:p-24 bg-surface">
-        <div className="w-full max-w-md">
+      <div className="w-full lg:w-1/2 h-full flex items-center justify-center px-5 py-4 sm:px-8 sm:py-6 lg:px-14 lg:py-10 bg-surface overflow-hidden">
+        <div className="w-full max-w-md h-full flex flex-col justify-center">
           {/* Brand Header (Mobile Only) */}
-          <div className="lg:hidden mb-12 flex items-center gap-3">
-            <span className="material-symbols-outlined text-primary text-3xl">
-              blur_on
-            </span>
+          <div className="lg:hidden mb-6 flex flex-col items-center justify-center gap-3 text-center">
             <h2 className="font-headline text-2xl font-black tracking-tighter text-primary">
               Reclaim
             </h2>
+            <span className="inline-flex items-center rounded-full border border-white/35 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em]">
+              AI-Assisted Reimbursements
+            </span>
           </div>
           {/* Main Glassmorphic Card */}
-          <div className="glass-card rounded-[2rem] p-8 sm:p-10 shadow-ambient-lg border border-white/40">
+          <div className="glass-card rounded-[1.75rem] p-6 sm:p-8 shadow-ambient-lg border border-white/40">
+            <div className="min-h-10 mb-1" aria-live="polite">
+              {restrictionToast && (
+                <div
+                  role="status"
+                  className="rounded-xl border border-tertiary/20 bg-surface-container-lowest/95 px-4 py-2.5 text-center text-xs font-semibold text-tertiary shadow-sm"
+                >
+                  {restrictionToast}
+                </div>
+              )}
+            </div>
             {/* Header */}
-            <div className="mb-10 text-center">
+            <div className="mb-7 text-center">
               <h2 className="font-headline text-3xl font-bold tracking-tight text-on-surface mb-3">
                 Welcome to Reclaim
               </h2>
@@ -97,16 +123,38 @@ export default function LoginPage() {
               </p>
             </div>
             {/* Portal Toggle */}
-            <div className="flex p-1 bg-surface-container-high rounded-full mb-8 relative">
-              <button className="flex-1 py-2.5 text-sm font-semibold rounded-full bg-surface-container-lowest text-primary shadow-sm transition-all relative z-10">
+            <div className="flex p-1 bg-surface-container-high rounded-full mb-8 relative overflow-hidden">
+              {/* Animated sliding background */}
+              <div
+                className={`absolute inset-1 w-[calc(50%-8px)] bg-surface-container-lowest rounded-full shadow-sm transition-all duration-250 ease-out ${
+                  activePortal === "hr" ? "translate-x-[calc(100%+8px)]" : "translate-x-0"
+                }`}
+              />
+              <button
+                type="button"
+                onClick={() => setActivePortal("employee")}
+                className={`flex-1 py-2.5 text-sm rounded-full relative z-10 transition-colors duration-300 font-medium ${
+                  activePortal === "employee"
+                    ? "font-semibold text-primary"
+                    : "text-on-surface-variant hover:text-on-surface"
+                }`}
+              >
                 Employee Portal
               </button>
-              <button className="flex-1 py-2.5 text-sm font-medium rounded-full text-on-surface-variant hover:text-on-surface transition-all relative z-10">
+              <button
+                type="button"
+                onClick={() => setActivePortal("hr")}
+                className={`flex-1 py-2.5 text-sm rounded-full relative z-10 transition-colors duration-300 font-medium ${
+                  activePortal === "hr"
+                    ? "font-semibold text-primary"
+                    : "text-on-surface-variant hover:text-on-surface"
+                }`}
+              >
                 HR Dashboard
               </button>
             </div>
             {/* Form Area */}
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
               {/* Error Display */}
               {error && (
                 <div className="bg-error-container text-error p-3 rounded-lg text-sm text-center">
@@ -147,12 +195,13 @@ export default function LoginPage() {
                   >
                     Password
                   </label>
-                  <a
+                  <button
+                    type="button"
+                    onClick={handleForgotPassword}
                     className="text-xs font-semibold text-primary hover:text-primary-dim hover:underline decoration-primary/30 underline-offset-4 transition-all"
-                    href="#"
                   >
                     Forgot Password?
-                  </a>
+                  </button>
                 </div>
                 <div className="relative group">
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-outline-variant group-focus-within:text-primary transition-colors w-5 h-5" />
@@ -183,7 +232,7 @@ export default function LoginPage() {
               </div>
               {/* Submit Button */}
               <button
-                className="w-full mt-8 py-4 px-6 bg-gradient-to-r from-primary to-primary-dim text-white rounded-xl font-headline font-semibold text-lg hover:shadow-[0_0_20px_rgba(147,150,255,0.4)] active:scale-[0.98] transition-all duration-200 flex justify-center items-center gap-2"
+                className="w-full mt-8 py-4 px-6 bg-gradient-to-r from-primary to-primary-dim text-white rounded-xl font-headline font-semibold text-lg hover:shadow-[0_0_20px_rgba(147,150,255,0.4)] active:scale-[0.98] transition-all duration-250 flex justify-center items-center gap-2"
                 type="submit"
                 disabled={isLoading}
               >

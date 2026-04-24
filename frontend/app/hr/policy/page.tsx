@@ -138,6 +138,17 @@ export default function PolicyStudio() {
   const [appendixFiles, setAppendixFiles] = useState<File[]>([]);
   const mainPolicyInputRef = useRef<HTMLInputElement>(null);
   const appendixInputRef = useRef<HTMLInputElement>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (mainPolicyFile && mainPolicyFile.type === "application/pdf") {
+      const url = URL.createObjectURL(mainPolicyFile);
+      setPreviewUrl(url);
+      return () => URL.revokeObjectURL(url);
+    } else {
+      setPreviewUrl(null);
+    }
+  }, [mainPolicyFile]);
 
   // Form state
   const [editName, setEditName] = useState("");
@@ -575,7 +586,7 @@ export default function PolicyStudio() {
                   <div className="flex flex-col gap-4 border border-outline-variant/30 rounded-2xl overflow-hidden bg-surface-container-lowest">
                     {mainPolicyFile.type === "application/pdf" ? (
                       <iframe
-                        src={URL.createObjectURL(mainPolicyFile)}
+                        src={previewUrl || ""}
                         className="w-full h-[400px] border-b border-outline-variant/20"
                       />
                     ) : (
@@ -708,51 +719,7 @@ export default function PolicyStudio() {
               </div>
 
               {/* Change History Panel (Moved to Bottom Left) */}
-              {!isNew && (
-                <div className="bg-surface-container-lowest rounded-2xl shadow-[0_8px_40px_rgba(44,47,49,0.06)] border border-outline-variant/10 overflow-hidden flex flex-col shrink-0 mt-4 animate-in fade-in slide-in-from-left-4 duration-500">
-                  <div className="p-4 bg-surface-container-low border-b border-outline-variant/10 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <History className="text-primary w-5 h-5 shrink-0" />
-                      <h3 className="font-headline font-bold text-on-surface text-sm">Change History</h3>
-                    </div>
-                    <span className="px-2 py-0.5 bg-primary/10 text-primary text-[10px] font-bold rounded-full uppercase tracking-wider">{editHistory.length} Entries</span>
-                  </div>
-                  
-                  <div className="p-4 flex flex-col gap-4 max-h-[320px] overflow-y-auto">
-                    {editHistory.length > 0 ? (
-                      <div className="flex flex-col gap-4 relative">
-                        <div className="absolute top-2 bottom-2 left-[19px] w-0.5 bg-outline-variant/10" />
-                        {editHistory.map((entry, idx) => (
-                          <div key={idx} className="flex gap-4 relative">
-                            <div className="w-10 h-10 rounded-full bg-surface-container-lowest border border-outline-variant/20 flex items-center justify-center shrink-0 z-10">
-                              <User size={16} className="text-on-surface-variant" />
-                            </div>
-                            <div className="flex-1 flex flex-col pt-0.5">
-                              <div className="flex items-center justify-between gap-2">
-                                <span className="text-sm font-bold text-on-surface leading-none">{entry.action}</span>
-                                <div className="flex items-center gap-1 text-[10px] text-on-surface-variant">
-                                  <Clock size={10} />
-                                  {entry.date}
-                                </div>
-                              </div>
-                              <span className="text-xs text-on-surface-variant mt-1">{entry.user}</span>
-                              {entry.details && (
-                                <p className="text-[11px] text-on-surface-variant/60 mt-1.5 font-body italic leading-relaxed">
-                                  "{entry.details}"
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="py-8 text-center">
-                        <p className="text-xs text-on-surface-variant font-body">No history recorded yet.</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
+
             </div>
             
             {/* Right Column: Policy Details (if new) & AI Overview (if edit) */}
@@ -810,45 +777,68 @@ export default function PolicyStudio() {
                 </div>
               )}
 
-              {/* AI Overview Summary (Restored for Edit View only) */}
+              {/* AI Overview Summary (Beautified) */}
               {!isNew && MOCK_POLICY_DETAILS && MOCK_POLICY_DETAILS[0] && (
-                <div className="bg-surface-container-lowest rounded-2xl shadow-[0_8px_40px_rgba(44,47,49,0.08)] border border-primary/20 overflow-hidden flex flex-col shrink-0 animate-in fade-in slide-in-from-right-4 duration-500">
-                  <div className="p-4 bg-gradient-to-r from-primary/10 to-primary/5 border-b border-primary/10 flex items-center gap-3">
-                    <Sparkles className="text-primary w-5 h-5 shrink-0" />
-                    <h3 className="font-headline font-bold text-primary">Overview Summary Generated from AI</h3>
-                  </div>
-                  <div className="p-6 flex flex-col gap-6">
-                    <div>
-                      <p className="font-body text-sm text-on-surface leading-relaxed whitespace-pre-wrap">
-                        {MOCK_POLICY_DETAILS[0].overview_summary}
-                      </p>
+                <div className="bg-surface-container-lowest rounded-3xl shadow-[0_20px_50px_rgba(44,47,49,0.08)] border border-primary/20 overflow-hidden flex flex-col shrink-0 animate-in fade-in slide-in-from-right-4 duration-700">
+                  <div className="p-5 bg-gradient-to-r from-primary/15 via-primary/5 to-transparent border-b border-primary/10 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-2xl bg-white shadow-sm flex items-center justify-center">
+                        <Sparkles className="text-primary w-5 h-5 animate-pulse" />
+                      </div>
+                      <div>
+                        <h3 className="font-headline font-bold text-primary tracking-tight">AI Policy Insights</h3>
+                        <p className="text-[10px] text-primary/60 font-bold uppercase tracking-widest">Auto-generated Analysis</p>
+                      </div>
                     </div>
+                  </div>
+                  
+                  <div className="p-8 flex flex-col gap-8">
+                    {(() => {
+                      const { intro, bullets } = parseBulletPoints(MOCK_POLICY_DETAILS[0].overview_summary);
+                      return (
+                        <div className="flex flex-col gap-6">
+                          <p className="font-body text-[15px] text-on-surface leading-relaxed text-pretty">
+                            {intro}
+                          </p>
+                          {bullets.length > 0 && (
+                            <div className="bg-primary/[0.03] rounded-2xl p-5 border border-primary/5">
+                              <h4 className="text-[11px] font-bold text-primary uppercase tracking-[0.1em] mb-4">Key Takeaways</h4>
+                              <PremiumBulletList items={bullets} />
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
                     
-                    <div className="h-px bg-outline-variant/20 w-full" />
+                    <div className="h-px bg-gradient-to-r from-transparent via-outline-variant/20 to-transparent w-full" />
 
                     <div>
-                      <h4 className="font-headline text-sm font-bold text-on-surface mb-3 uppercase tracking-wider">Mandatory Conditions</h4>
-                      <div className="flex flex-col gap-3">
-                        {editConditions && Object.entries(editConditions).slice(0, 4).map(([category, details]: [string, any]) => (
-                          <div key={category} className="bg-surface-container-low rounded-xl p-4 border border-outline-variant/10">
-                            <p className="font-semibold text-sm text-on-surface mb-2">{category}</p>
-                            <ul className="list-disc pl-5 flex flex-col gap-1">
-                              {details.condition.map((cond: string, i: number) => (
-                                <li key={i} className="text-xs text-on-surface-variant font-body leading-relaxed">{cond}</li>
-                              ))}
-                            </ul>
+                      <div className="flex items-center justify-between mb-5">
+                        <h4 className="font-headline text-sm font-bold text-on-surface uppercase tracking-wider">Mandatory Conditions</h4>
+                        <div className="px-2 py-0.5 bg-surface-container-high rounded-full text-[10px] font-bold text-on-surface-variant uppercase">
+                          Review Required
+                        </div>
+                      </div>
+                      
+                      <div className="flex flex-col gap-4">
+                        {editConditions && Object.entries(editConditions).slice(0, 3).map(([category, details]: [string, any]) => (
+                          <div key={category} className="bg-surface-container-low/40 rounded-2xl p-5 border border-outline-variant/10 hover:bg-surface-container-low transition-colors group">
+                            <p className="font-headline font-bold text-sm text-on-surface mb-3 flex items-center gap-2">
+                              <div className="w-1.5 h-1.5 rounded-full bg-primary/40 group-hover:bg-primary transition-colors" />
+                              {category}
+                            </p>
+                            <PremiumBulletList items={details.condition} />
                           </div>
                         ))}
-                        {editConditions && Object.entries(editConditions).length > 4 && (
-                          <div className="text-center pt-2">
-                             <button 
-                               onClick={() => setConditionsModalOpen(true)}
-                               className="w-full py-2.5 rounded-xl text-xs text-primary font-bold hover:bg-primary/5 border border-transparent hover:border-primary/10 transition-all flex items-center justify-center gap-2 cursor-pointer group"
-                             >
-                               Edit mandatory conditions
-                               <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
-                             </button>
-                          </div>
+                        
+                        {editConditions && Object.entries(editConditions).length > 3 && (
+                          <button 
+                            onClick={() => setConditionsModalOpen(true)}
+                            className="w-full mt-2 py-4 rounded-2xl text-sm text-primary font-bold bg-primary/[0.04] hover:bg-primary/[0.08] border border-primary/10 transition-all flex items-center justify-center gap-3 cursor-pointer group"
+                          >
+                            <span>View & Edit All {Object.entries(editConditions).length} Categories</span>
+                            <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                          </button>
                         )}
                       </div>
                     </div>
@@ -856,73 +846,7 @@ export default function PolicyStudio() {
                 </div>
               )}
 
-              {/* Policy Intelligence Panel (Restored) */}
-              <div className="bg-surface-container-lowest rounded-2xl shadow-[0_8px_40px_rgba(44,47,49,0.06)] border border-outline-variant/10 overflow-hidden flex flex-col shrink-0 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200 relative group">
-                <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-secondary to-transparent opacity-0 group-hover:opacity-100 transition-opacity animate-pulse-scan" />
-                
-                <div className="p-4 bg-surface-container-low border-b border-outline-variant/10 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <BarChart3 className="text-secondary w-5 h-5 shrink-0" />
-                    <h3 className="font-headline font-bold text-on-surface text-sm">Policy Intelligence</h3>
-                  </div>
-                  <span className="px-2 py-0.5 bg-secondary/10 text-secondary text-[10px] font-bold rounded-full uppercase tracking-wider">Live Analysis</span>
-                </div>
-                
-                <div className="p-5 flex flex-col gap-5">
-                  {/* Health Score */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex flex-col">
-                      <span className="text-xs text-on-surface-variant font-medium">Policy Health Score</span>
-                      <span className="text-[10px] text-outline-variant">Clarity & Compliance alignment</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 flex items-center justify-center relative">
-                        <svg className="w-full h-full -rotate-90" viewBox="0 0 48 48">
-                          {/* Background Circle */}
-                          <circle cx="24" cy="24" r="21" fill="none" stroke="currentColor" strokeWidth="4" className="text-secondary/20" />
-                          {/* Progress Circle */}
-                          <circle cx="24" cy="24" r="21" fill="none" stroke="currentColor" strokeWidth="4" className="text-secondary" strokeDasharray="131.95" strokeDashoffset="13.2" strokeLinecap="round" />
-                        </svg>
-                        <span className="absolute text-xs font-bold text-secondary">90%</span>
-                      </div>
-                    </div>
-                  </div>
 
-                  <div className="h-px bg-outline-variant/10 w-full" />
-
-                  {/* Insights Grid */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="flex flex-col gap-1.5 p-3 rounded-xl bg-surface-container-low/50 border border-outline-variant/5">
-                      <div className="flex items-center gap-2 text-secondary">
-                        <ShieldCheck size={14} />
-                        <span className="text-[10px] font-bold uppercase tracking-wider">Legal Risk</span>
-                      </div>
-                      <span className="text-sm font-bold text-on-surface">Low Risk</span>
-                    </div>
-                    <div className="flex flex-col gap-1.5 p-3 rounded-xl bg-surface-container-low/50 border border-outline-variant/5">
-                      <div className="flex items-center gap-2 text-primary">
-                        <Users size={14} />
-                        <span className="text-[10px] font-bold uppercase tracking-wider">Audience</span>
-                      </div>
-                      <span className="text-sm font-bold text-on-surface">All Employees</span>
-                    </div>
-                    <div className="flex flex-col gap-1.5 p-3 rounded-xl bg-surface-container-low/50 border border-outline-variant/5">
-                      <div className="flex items-center gap-2 text-tertiary">
-                        <Calendar size={14} />
-                        <span className="text-[10px] font-bold uppercase tracking-wider">Next Audit</span>
-                      </div>
-                      <span className="text-sm font-bold text-on-surface">Oct 24, 2024</span>
-                    </div>
-                    <div className="flex flex-col gap-1.5 p-3 rounded-xl bg-surface-container-low/50 border border-outline-variant/5">
-                      <div className="flex items-center gap-2 text-error">
-                        <AlertCircle size={14} />
-                        <span className="text-[10px] font-bold uppercase tracking-wider">Conflicts</span>
-                      </div>
-                      <span className="text-sm font-bold text-on-surface">None Found</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -1140,6 +1064,7 @@ export default function PolicyStudio() {
     </div>
   );
 }
+
 
 // ─── Mandatory Conditions Modal ──────────────────────────────────────────────────
 
@@ -1449,6 +1374,47 @@ function ViewAllModal({
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─── Beautified UI Components ───────────────────────────────────────────────────
+
+function parseBulletPoints(text: string) {
+  const lines = text.split('\n');
+  const introLines: string[] = [];
+  const bullets: string[] = [];
+  
+  lines.forEach(line => {
+    const trimmed = line.trim();
+    if (trimmed.startsWith('-') || trimmed.startsWith('•') || trimmed.startsWith('*')) {
+      // Remove the marker and trim
+      const content = trimmed.replace(/^[-•*]\s*/, '');
+      if (content) bullets.push(content);
+    } else if (trimmed) {
+      introLines.push(trimmed);
+    }
+  });
+  
+  return { 
+    intro: introLines.join(' '), 
+    bullets 
+  };
+}
+
+function PremiumBulletList({ items }: { items: string[] }) {
+  return (
+    <div className="flex flex-col gap-3.5">
+      {items.map((item, i) => (
+        <div key={i} className="flex gap-4 items-start group/item">
+          <div className="mt-1 flex-shrink-0 w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center group-hover/item:bg-primary/20 transition-all group-hover/item:scale-110 duration-300">
+            <CheckCircle2 className="w-3 h-3 text-primary" strokeWidth={3} />
+          </div>
+          <p className="text-[13px] text-on-surface-variant font-body leading-relaxed group-hover/item:text-on-surface transition-colors">
+            {item}
+          </p>
+        </div>
+      ))}
     </div>
   );
 }
