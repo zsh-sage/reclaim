@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import List, Literal, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 class StatusUpdateRequest(BaseModel):
-    status: str  # "APPROVED" | "REJECTED"
+    status: Literal["APPROVED", "REJECTED"]
 
 
 class AnalyzeReimbursementRequest(BaseModel):
