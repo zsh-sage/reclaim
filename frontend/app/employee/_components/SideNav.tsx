@@ -50,7 +50,7 @@ export default function SideNav() {
               <Link
                 key={href}
                 href={href}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl font-body text-sm transition-all duration-200 hover:translate-x-0.5 active:scale-[0.97] ${
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl font-body text-sm transition-all duration-200 active:scale-[0.97] ${
                   isActive
                     ? "bg-surface-container font-bold text-primary"
                     : "font-medium text-on-surface hover:bg-surface-container/60 hover:text-on-surface"
