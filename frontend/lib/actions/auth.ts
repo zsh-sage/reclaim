@@ -59,11 +59,16 @@ export async function login(
     }
 
     const raw = await userRes.json();
+    if (!raw.user_id) return { user: null, error: "Malformed user profile response" };
     const user: User = {
-      ...raw,
-      id: raw.user_id,
-      user_code: raw.user_code ?? null,
-      rank: raw.rank ?? 0,
+      id:              raw.user_id,
+      email:           raw.email,
+      name:            raw.name,
+      role:            raw.role,
+      department:      raw.department,
+      user_code:       raw.user_code   ?? null,
+      rank:            raw.rank        ?? 0,
+      privilege_level: raw.privilege_level,
     };
     return { user, error: null };
   } catch (err) {
@@ -99,11 +104,16 @@ export async function getCurrentUser(): Promise<User | null> {
     if (!res.ok) return null;
 
     const raw = await res.json();
+    if (!raw.user_id) return null;
     return {
-      ...raw,
-      id: raw.user_id,
-      user_code: raw.user_code ?? null,
-      rank: raw.rank ?? 0,
+      id:              raw.user_id,
+      email:           raw.email,
+      name:            raw.name,
+      role:            raw.role,
+      department:      raw.department,
+      user_code:       raw.user_code   ?? null,
+      rank:            raw.rank        ?? 0,
+      privilege_level: raw.privilege_level,
     };
   } catch {
     return null;
