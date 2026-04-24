@@ -15,8 +15,8 @@ class Settings(BaseSettings):
     # LLM (ILMU API for chat model)
     LLM_API_KEY: str = ""
     LLM_BASE_URL: str = "https://api.ilmu.ai/v1"
-    # CHAT_MODEL: str = "ilmu-glm-5.1"
-    CHAT_MODEL: str = "google/gemini-2.5-flash-lite"
+    CHAT_MODEL: str = "ilmu-glm-5.1"
+    # CHAT_MODEL: str = "google/gemini-2.5-flash-lite"
     
     # (OpenRouter) for vision and embedding model
     OPENROUTER_API_KEY: str = ""

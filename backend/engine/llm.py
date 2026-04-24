@@ -26,8 +26,8 @@ def get_vision_llm() -> ChatOpenAI:
 def get_agent_llm() -> ChatOpenAI:
     """LLM for tool-calling agent — no JSON mode (required for bind_tools)."""
     return ChatOpenAI(
-        base_url=settings.OPENROUTER_BASE_URL,
-        api_key=settings.OPENROUTER_API_KEY,
+        base_url=settings.LLM_BASE_URL,
+        api_key=settings.LLM_API_KEY,
         model=settings.CHAT_MODEL,
     )
 

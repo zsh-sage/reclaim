@@ -10,6 +10,7 @@ def create_users():
         employee = db.exec(statement).first()
         if not employee:
             employee = User(
+                user_code="SWE123",
                 email="employee@example.com",
                 hashed_password=get_password_hash("password"),
                 name="Demo Employee",
@@ -28,6 +29,7 @@ def create_users():
         hr = db.exec(statement).first()
         if not hr:
             hr = User(
+                user_code="HR001",
                 email="hr@example.com",
                 hashed_password=get_password_hash("password"),
                 name="Demo HR",

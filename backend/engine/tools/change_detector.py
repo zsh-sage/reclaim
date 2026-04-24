@@ -8,8 +8,8 @@ EDITABLE_FIELDS = {
 SEVERITY_MATRIX = {
     "date": "HIGH",
     "total_amount": "HIGH",
-    "departure_date": "HIGH",
-    "arrival_date": "HIGH",
+    "departure_date": "MEDIUM",
+    "arrival_date": "MEDIUM",
     "destination": "MEDIUM",
     "currency": "MEDIUM",
     "overseas": "MEDIUM",
