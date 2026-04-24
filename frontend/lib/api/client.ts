@@ -52,27 +52,36 @@ async function handleResponse<T>(res: Response): Promise<ApiResult<T>> {
   return { data, error: null };
 }
 
+/** Execute fetch and handle both network errors and API errors. */
+async function safeFetch<T>(input: RequestInfo | URL, init?: RequestInit): Promise<ApiResult<T>> {
+  try {
+    const res = await fetch(input, init);
+    return await handleResponse<T>(res);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { data: null, error: `Network request failed: ${msg}` };
+  }
+}
+
 // ─── Public API ──────────────────────────────────────────────────────────────
 
 export async function apiGet<T>(path: string): Promise<ApiResult<T>> {
   const headers = await getAuthHeaders();
-  const res = await fetch(`${API_URL}${path}`, {
+  return safeFetch<T>(`${API_URL}${path}`, {
     method: "GET",
     headers,
     cache: "no-store",
   });
-  return handleResponse<T>(res);
 }
 
 export async function apiPost<T>(path: string, body?: unknown): Promise<ApiResult<T>> {
   const headers = await getAuthHeaders();
-  const res = await fetch(`${API_URL}${path}`, {
+  return safeFetch<T>(`${API_URL}${path}`, {
     method: "POST",
     headers,
     body: body !== undefined ? JSON.stringify(body) : undefined,
     cache: "no-store",
   });
-  return handleResponse<T>(res);
 }
 
 export async function apiPostForm<T>(path: string, formBody: URLSearchParams): Promise<ApiResult<T>> {
@@ -83,32 +92,56 @@ export async function apiPostForm<T>(path: string, formBody: URLSearchParams): P
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 
-  const res = await fetch(`${API_URL}${path}`, {
+  return safeFetch<T>(`${API_URL}${path}`, {
     method: "POST",
     headers,
     body: formBody.toString(),
     cache: "no-store",
   });
-  return handleResponse<T>(res);
 }
 
 export async function apiPut<T>(path: string, body: unknown): Promise<ApiResult<T>> {
   const headers = await getAuthHeaders();
-  const res = await fetch(`${API_URL}${path}`, {
+  return safeFetch<T>(`${API_URL}${path}`, {
     method: "PUT",
     headers,
     body: JSON.stringify(body),
     cache: "no-store",
   });
-  return handleResponse<T>(res);
 }
 
 export async function apiDelete<T>(path: string): Promise<ApiResult<T>> {
   const headers = await getAuthHeaders();
-  const res = await fetch(`${API_URL}${path}`, {
+  return safeFetch<T>(`${API_URL}${path}`, {
     method: "DELETE",
     headers,
     cache: "no-store",
   });
-  return handleResponse<T>(res);
+}
+
+export async function apiPatch<T>(path: string, body: unknown): Promise<ApiResult<T>> {
+  const headers = await getAuthHeaders();
+  return safeFetch<T>(`${API_URL}${path}`, {
+    method: "PATCH",
+    headers,
+    body: JSON.stringify(body),
+    cache: "no-store",
+  });
+}
+
+export async function apiPostMultipart<T>(path: string, formData: FormData): Promise<ApiResult<T>> {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("session")?.value;
+  const headers: HeadersInit = {
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    // Note: Do NOT set Content-Type. The browser/fetch automatically sets it 
+    // to multipart/form-data with the correct boundary when body is FormData.
+  };
+
+  return safeFetch<T>(`${API_URL}${path}`, {
+    method: "POST",
+    headers,
+    body: formData,
+    cache: "no-store",
+  });
 }

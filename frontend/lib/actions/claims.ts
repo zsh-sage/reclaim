@@ -5,7 +5,8 @@
 // Falls back to mock data until the backend endpoints are built.
 // ──────────────────────────────────────────────────────────────────────────────
 
-import { apiGet, apiPost, API_PREFIX } from "@/lib/api/client";
+import { cookies } from "next/headers";
+import { apiGet, apiPost, apiPostMultipart, API_PREFIX } from "@/lib/api/client";
 import type {
   ClaimSummary,
   DetailedClaim,
@@ -212,4 +213,44 @@ export async function submitClaim(
     payload
   );
   return result;
+}
+
+/** Upload receipt files to backend for OCR processing. */
+export async function uploadDocuments(files: File[]): Promise<DocumentUploadResponse | { error: string }> {
+  try {
+    const form = new FormData();
+    files.forEach(f => form.append("files", f));
+    const result = await apiPostMultipart<DocumentUploadResponse>(`${API_PREFIX}/documents/upload`, form);
+    if (result.error) return { error: result.error };
+    return result.data!;
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Upload failed" };
+  }
+}
+
+/** Send human OCR corrections to a specific document. */
+export async function editDocument(
+  documentId: string,
+  edits: EditDocumentRequest
+): Promise<EditDocumentResponse | { error: string }> {
+  try {
+    const result = await apiPost<EditDocumentResponse>(`${API_PREFIX}/documents/${documentId}/edits`, edits);
+    if (result.error) return { error: result.error };
+    return result.data!;
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Edit failed" };
+  }
+}
+
+/** Run compliance analysis on an uploaded settlement against a policy. */
+export async function analyzeCompliance(
+  req: AnalyzeRequest
+): Promise<AnalyzeResponse | { error: string }> {
+  try {
+    const result = await apiPost<AnalyzeResponse>(`${API_PREFIX}/reimbursements/analyze`, req);
+    if (result.error) return { error: result.error };
+    return result.data!;
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Analysis failed" };
+  }
 }

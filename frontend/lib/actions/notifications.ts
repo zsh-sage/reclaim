@@ -46,7 +46,7 @@ const MOCK_NOTIFICATIONS: Notification[] = [
 
 /** Fetch all notifications for the current user. */
 export async function getNotifications(): Promise<Notification[]> {
-  const result = await apiGet<Notification[]>(`${API_PREFIX}/notifications`);
+  const result = await apiGet<Notification[]>(`${API_PREFIX}/notifications/`);
   return result.data ?? MOCK_NOTIFICATIONS;
 }
 
