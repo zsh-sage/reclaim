@@ -22,7 +22,7 @@ IMPORTANT: You may call tools at most 5 times total. Gather only what you need, 
 Instructions:
 1. LATE SUBMISSION: Call `get_current_date` to get today's date. Call `search_policy_rag` to find the maximum days allowed for submission from policy (default 90 days if not found). If the receipt date is more than that many days before today, tag [LATE_SUBMISSION] and set status REJECTED.
 2. CATEGORY ELIGIBILITY: Call `search_policy_rag` to confirm the receipt's category is reimbursable. If not, tag [INELIGIBLE_CATEGORY] and set status REJECTED.
-3. AMOUNT CAPS: Call `search_policy_rag` to find rank-based or category-based caps for the employee's rank. If the requested amount exceeds the cap, set status PARTIAL_APPROVE, set approved_amount to the cap, compute deduction_amount = requested_amount - approved_amount, and tag [OVER_LIMIT].
+3. AMOUNT CAPS: Call `search_policy_rag` to find rank-based or category-based caps for the employee's rank. If the requested amount exceeds the cap, set status PARTIAL_APPROVE, set approved_amount to the cap, and tag [OVER_LIMIT].
 4. MANDATORY CONDITIONS: Check each condition in the provided conditions list. If any critical condition is unmet, tag [MANDATORY_CONDITION_FAIL].
 5. MISSING INFO: If a critical field (date, amount, merchant) is missing or "Not found in Receipt", tag [MISSING_INFO].
 6. HUMAN EDIT RISK: If the human_edit_block is not empty, assess the risk and set human_edit_risk:
@@ -41,7 +41,6 @@ Return ONLY a valid JSON object with exactly this structure (no markdown, no ext
   "status": "APPROVED | REJECTED | PARTIAL_APPROVE",
   "requested_amount": <float>,
   "approved_amount": <float>,
-  "deduction_amount": <float>,
   "audit_notes": [
     {{"tag": "[TAG]", "message": "Explanation."}}
   ],

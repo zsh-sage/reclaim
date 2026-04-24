@@ -20,15 +20,17 @@ def get_vision_llm() -> ChatOpenAI:
         base_url=settings.OPENROUTER_BASE_URL,
         api_key=settings.OPENROUTER_API_KEY,
         model=settings.VISION_MODEL,
+        model_kwargs={"response_format": {"type": "json_object"}},
     )
 
-# @lru_cache(maxsize=1)  # DISABLED — re-enable by uncommenting this line
+@lru_cache(maxsize=1)
 def get_agent_llm() -> ChatOpenAI:
     """LLM for tool-calling agent — no JSON mode (required for bind_tools)."""
     return ChatOpenAI(
         base_url=settings.LLM_BASE_URL,
         api_key=settings.LLM_API_KEY,
         model=settings.CHAT_MODEL,
+        model_kwargs={"response_format": {"type": "json_object"}},
     )
 
 @lru_cache(maxsize=1)

@@ -86,18 +86,23 @@ def _parse_line_item(content: str, receipt: dict) -> dict:
                 pass
 
     if parsed:
+        requested = float(parsed.get("requested_amount", 0) or 0)
+        approved = float(parsed.get("approved_amount", 0) or 0)
+        deducted = round(requested - approved, 2)
+        parsed["deduction_amount"] = deducted
         return parsed
 
     # Fallback
+    requested = float(receipt.get("total_amount", 0) or 0)
     return {
         "document_id": receipt.get("document_id", "unknown"),
         "date": receipt.get("date", ""),
         "category": receipt.get("category", ""),
         "description": receipt.get("merchant_name", ""),
         "status": "REJECTED",
-        "requested_amount": float(receipt.get("total_amount", 0) or 0),
+        "requested_amount": requested,
         "approved_amount": 0.0,
-        "deduction_amount": float(receipt.get("total_amount", 0) or 0),
+        "deduction_amount": requested,
         "audit_notes": [{"tag": "[PARSE_ERROR]", "message": "Could not parse compliance analysis."}],
         "human_edit_risk": "NONE",
     }
