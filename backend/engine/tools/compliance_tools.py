@@ -14,12 +14,16 @@ from engine.tools.rag_tool import search_policy_sections
 _session_lock = threading.Lock()
 
 
+class GetCurrentDateInput(BaseModel):
+    """No input required."""
+
+
 class SearchPolicyInput(BaseModel):
     """Input for policy search tool."""
     query: str
 
 
-@tool
+@tool(args_schema=GetCurrentDateInput)
 def get_current_date() -> str:
     """Returns today's date in YYYY-MM-DD format. Use this to check late submission policy."""
     return date.today().isoformat()

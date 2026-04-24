@@ -30,7 +30,6 @@ def get_agent_llm() -> ChatOpenAI:
         base_url=settings.LLM_BASE_URL,
         api_key=settings.LLM_API_KEY,
         model=settings.CHAT_MODEL,
-        model_kwargs={"response_format": {"type": "json_object"}},
     )
 
 @lru_cache(maxsize=1)
