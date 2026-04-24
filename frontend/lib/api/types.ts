@@ -84,7 +84,7 @@ export interface ReimbursementRaw {
     net_approved: number;
   };
   line_items: ReimbursementLineItem[];
-  judgment: string;
+  judgment: "APPROVE" | "REJECT" | "PARTIAL_APPROVE" | "MANUAL REVIEW";
   confidence: number | null;
   status: string;
   summary: string;
@@ -171,7 +171,6 @@ export interface Policy {
   status: string;
   effective_date: string | null;
   source_file_url: string;
-  mandatory_conditions: Record<string, unknown>;
 }
 
 export interface ExtractedData {
@@ -224,33 +223,29 @@ export interface DocumentUploadEmployee {
   id: string;
   user_code: string;
   department: string;
+  rank: number | null;
   destination: string | null;
   departure_date: string | null;
   arrival_date: string | null;
   location: string | null;
-  overseas: boolean;
+  overseas: boolean | null;
   purpose: string | null;
 }
 
 /** One OCR-processed receipt inside DocumentUploadResponse. */
 export interface OcrReceiptResult {
   document_id: string;
-  file_name: string;
-  merchant_name: string;
   date: string;
-  total_amount: number;
-  currency: string;
-  receipt_number: string;
-  items_summary: string;
+  description: string;
   category: string;
-  confidence: number;
-  destination: string | null;
-  departure_date: string | null;
-  arrival_date: string | null;
-  location: string | null;
-  overseas: boolean;
-  visual_anomalies_detected: boolean;
-  anomaly_description: string;
+  currency: string;
+  amount: number;
+  transportation: number;
+  accommodation: number;
+  meals: number;
+  others: number;
+  warnings: string[];
+  extracted_data: Record<string, unknown>;
 }
 
 /** Category-level totals inside DocumentUploadResponse. */
@@ -269,11 +264,11 @@ export interface DocumentUploadResponse {
   document_ids: string[];
   employee: DocumentUploadEmployee;
   receipts: OcrReceiptResult[];
-  skipped_receipts: { file_name: string; warning: string }[];
+  skipped_receipts: OcrReceiptResult[];
   totals: DocumentUploadTotals;
   all_warnings: string[];
   all_category: string[];
-  main_category: string;
+  main_category: string | null;
 }
 
 // ─── Document Edits ───────────────────────────────────────────────────────────
@@ -318,8 +313,8 @@ export interface AnalyzeRequest {
 /** Response for POST /api/v1/reimbursements/analyze. */
 export interface AnalyzeResponse {
   reim_id: string;
-  settlement_id: string;
-  judgment: "APPROVED" | "REJECTED" | "MANUAL REVIEW";
+  settlement_id: string | null;
+  judgment: "APPROVE" | "REJECT" | "PARTIAL_APPROVE" | "MANUAL REVIEW";
   status: string;
   summary: string;
   line_items: ReimbursementLineItem[];
@@ -328,11 +323,11 @@ export interface AnalyzeResponse {
     total_deduction: number;
     net_approved: number;
   };
-  confidence: number;
+  confidence: number | null;
   currency: string;
   main_category: string;
   sub_category: string[];
-  created_at: string;
+  created_at: string | null;
   cached: boolean;
   message: string;
 }
