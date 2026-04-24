@@ -2,7 +2,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 
-import { ArrowLeft, AlertTriangle, Clock, ShieldCheck, ShieldX, ChevronDown, ZoomIn, Pencil, FileText, ExternalLink, Download, X } from "lucide-react";
+import { ArrowLeft, AlertTriangle, Clock, ShieldCheck, ShieldX, ChevronDown, ZoomIn, Pencil, FileText, ExternalLink, Download, X, Loader2 } from "lucide-react";
 import { ClaimBundle, LineItem, MOCK_BUNDLES } from "../../hr_components/mockData";
 import { CheckCircle2, LayoutDashboard } from "lucide-react";
 import { SuccessModal } from "../../hr_components/SuccessModal";
@@ -18,7 +18,10 @@ const STATUS_CHIP: Record<string, string> = {
   PENDING: "bg-surface-container text-on-surface-variant",
 };
 const CAT: Record<string, string> = { meals: "Meals", transportation: "Transport", accommodation: "Stay", others: "Others" };
-const fmt = (n: number) => `MYR ${n.toLocaleString("en-MY", { minimumFractionDigits: 2 })}`;
+const fmt = (n: number | undefined | null) => {
+  if (n === undefined || n === null) return "MYR 0.00";
+  return `MYR ${n.toLocaleString("en-MY", { minimumFractionDigits: 2 })}`;
+};
 
 function Card({ title, children, right }: { title: React.ReactNode; children: React.ReactNode; right?: React.ReactNode }) {
   return (
@@ -54,10 +57,10 @@ function ClaimFormModal({
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  const totalRequested = bundle.totals.total_requested;
-  const totalApproved = bundle.totals.net_approved;
-  const totalDeducted = bundle.totals.total_deduction;
-  const effectiveStatus = bundle.overall_judgment.replace("_", " ");
+  const totalRequested = bundle?.totals?.total_requested || 0;
+  const totalApproved = bundle?.totals?.net_approved || 0;
+  const totalDeducted = bundle?.totals?.total_deduction || 0;
+  const effectiveStatus = (bundle?.overall_judgment || "").replace("_", " ");
 
   const statusChip: Record<string, string> = {
     APPROVED:             "bg-green-100 text-green-700",
@@ -214,10 +217,10 @@ function ClaimFormModal({
                         )}
                       </td>
                       <td className="py-2 px-3 border border-gray-200 text-right tabular-nums">
-                        {item.requested_amount.toFixed(2)}
+                        {(item.requested_amount || 0).toFixed(2)}
                       </td>
                       <td className="py-2 px-3 border border-gray-200 text-right tabular-nums font-semibold">
-                        {item.approved_amount.toFixed(2)}
+                        {(item.approved_amount || 0).toFixed(2)}
                       </td>
                       <td className="py-2 px-3 border border-gray-200 text-center">
                         <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${
