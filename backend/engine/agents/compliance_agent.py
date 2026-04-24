@@ -1,28 +1,26 @@
 """
 Compliance Workflow (Workflow 3) — Basket Evaluation
-Evaluates an entire TravelSettlement receipts basket against a policy using
-a ReAct-style LangGraph with two tools:
-  - get_current_date   : returns today's date (for 90-day late-submission checks)
-  - search_policy_rag  : keyword search over PolicySection rows
+5-node LangGraph pipeline:
+  load_context → analyze_receipts → aggregate_totals → final_judgment → save_reimbursement
+
+Per-receipt ReAct agents run in parallel; final_judgment agent produces the overall verdict.
 """
 import json
 import logging
 import re
-from datetime import date
-from typing import Annotated, Any, List, Optional
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Any, List, Optional
 from uuid import UUID
 
-from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
+from langchain_core.messages import HumanMessage
 from langgraph.graph import END, START, StateGraph
-from langgraph.graph.message import add_messages
-from langgraph.prebuilt import ToolNode
+from langgraph.prebuilt import create_react_agent
 from sqlmodel import Session, select
 from typing_extensions import TypedDict
 
 from core.models import Reimbursement, SupportingDocument, TravelSettlement, User, Policy
 from engine.llm import get_agent_llm
-from engine.prompts.compliance_prompts import AGENT_EVALUATION_PROMPT
-from engine.tools.rag_tool import search_policy_sections
+from engine.prompts.compliance_prompts import RECEIPT_ANALYSIS_PROMPT, FINAL_JUDGMENT_PROMPT
 from engine.tools.compliance_tools import get_current_date, make_search_policy_rag_tool
 
 logger = logging.getLogger(__name__)
@@ -41,23 +39,68 @@ class ComplianceWorkflowState(TypedDict):
     # Context loaded from DB
     user: Optional[Any]
     policy: Optional[Any]
-    receipts: List[dict]           # Full basket from TravelSettlement.receipts
+    receipts: List[dict]
     combined_conditions: List[str]
-    policy_sections_text: str
     currency: str
 
-    # ReAct message thread (managed by add_messages reducer)
-    messages: Annotated[list, add_messages]
-
-    # Parsed LLM output
+    # Results
     line_items: List[dict]
     totals: dict
     judgment: str
     confidence: float
     summary: str
-
-    # Saved record
     reimbursement_id: str
+
+
+# ── Helpers ────────────────────────────────────────────────────────────────────
+
+def _format_human_edit_block(human_edit: dict) -> str:
+    """Format _human_edit dict into a readable prompt block. Returns empty string if no changes."""
+    if not human_edit or not human_edit.get("has_changes"):
+        return ""
+
+    lines = [
+        "--- Human Edit Information ---",
+        f"Overall Risk: {human_edit.get('overall_risk', 'NONE')}",
+        "Changed Fields:",
+    ]
+    for field, info in (human_edit.get("changes_by_field") or {}).items():
+        orig = info.get("original", "N/A")
+        edited = info.get("edited", "N/A")
+        severity = info.get("severity", "UNKNOWN")
+        lines.append(f"  - {field}: {orig!r} → {edited!r}  [Severity: {severity}]")
+    return "\n".join(lines)
+
+
+def _parse_line_item(content: str, receipt: dict) -> dict:
+    """Parse JSON from LLM response for a single receipt. Returns a fallback dict on failure."""
+    parsed = None
+    try:
+        parsed = json.loads(content)
+    except Exception:
+        match = re.search(r"\{.*\}", content, re.DOTALL)
+        if match:
+            try:
+                parsed = json.loads(match.group())
+            except Exception:
+                pass
+
+    if parsed:
+        return parsed
+
+    # Fallback
+    return {
+        "document_id": receipt.get("document_id", "unknown"),
+        "date": receipt.get("date", ""),
+        "category": receipt.get("category", ""),
+        "description": receipt.get("merchant_name", ""),
+        "status": "REJECTED",
+        "requested_amount": float(receipt.get("total_amount", 0) or 0),
+        "approved_amount": 0.0,
+        "deduction_amount": float(receipt.get("total_amount", 0) or 0),
+        "audit_notes": [{"tag": "[PARSE_ERROR]", "message": "Could not parse compliance analysis."}],
+        "human_edit_risk": "NONE",
+    }
 
 
 # ── Graph Nodes ────────────────────────────────────────────────────────────────
@@ -88,7 +131,7 @@ def load_context(state: ComplianceWorkflowState, session: Session) -> dict:
             if settlement:
                 if not all_category:
                     all_category = settlement.all_category or []
-                receipts = settlement.receipts or []
+                receipts = [dict(r) for r in (settlement.receipts or [])]
                 currency = settlement.currency or ""
         except Exception:
             pass
@@ -106,9 +149,13 @@ def load_context(state: ComplianceWorkflowState, session: Session) -> dict:
             if doc_id and doc_id in doc_map:
                 doc = doc_map[doc_id]
                 if doc.human_edited:
-                    receipt["human_edits"] = {
-                        "editable_fields": doc.editable_fields,
-                        "change_summary": doc.change_summary,
+                    # Apply editable_fields on top of receipt dict
+                    if doc.editable_fields:
+                        receipt.update(doc.editable_fields)
+                    receipt["_human_edit"] = {
+                        "has_changes": True,
+                        "overall_risk": (doc.change_summary or {}).get("overall_risk", "NONE"),
+                        "changes_by_field": (doc.change_summary or {}).get("changes_by_field", {}),
                     }
 
     # Fallback: derive currency from first receipt's extracted_data if missing
@@ -132,22 +179,13 @@ def load_context(state: ComplianceWorkflowState, session: Session) -> dict:
                 seen.add(cond)
                 combined_conditions.append(cond)
 
-    # Keyword search for relevant policy sections
-    policy_sections_text = search_policy_sections(
-        policy_id=state["policy_id"],
-        session=session,
-        keywords=all_category + [state.get("main_category", ""), "amount", "limit", "rate", "maximum", "cap"],
-    )
-
     return {
         "user": user,
         "policy": policy,
         "receipts": receipts,
         "all_category": all_category,
         "combined_conditions": combined_conditions,
-        "policy_sections_text": policy_sections_text,
         "currency": currency,
-        "messages": [],
         "line_items": [],
         "totals": {},
         "judgment": "",
@@ -156,118 +194,116 @@ def load_context(state: ComplianceWorkflowState, session: Session) -> dict:
     }
 
 
-def call_agent(state: ComplianceWorkflowState, llm_with_tools) -> dict:
-    """Send the current messages to the LLM (with tools bound). Append the response."""
-    if not state["messages"]:
-        # First call — build the human prompt from context
-        user = state["user"]
-        policy = state["policy"]
-        receipts = state["receipts"]
+def analyze_receipts(state: ComplianceWorkflowState, tools: list) -> dict:
+    """Run per-receipt ReAct agents in parallel using ThreadPoolExecutor."""
+    receipts = state["receipts"]
+    user = state["user"]
 
-        prompt_text = AGENT_EVALUATION_PROMPT.format(
+    def analyze_one(receipt: dict) -> dict:
+        human_edit_block = _format_human_edit_block(receipt.get("_human_edit", {}))
+        conditions = state["combined_conditions"]
+
+        prompt = RECEIPT_ANALYSIS_PROMPT.format(
             employee_name=user.name if user else "Unknown",
             department=user.department if user else "Unknown",
-            rank=str(user.rank) if user else "1",
+            rank=str(user.rank if user else 1),
             currency=state.get("currency", "MYR"),
-            all_category=json.dumps(state.get("all_category", [])),
-            main_category=state.get("main_category", ""),
-            policy_overview=policy.overview_summary if policy else "",
-            effective_date=(
-                policy.effective_date.strftime("%Y-%m-%d")
-                if policy and policy.effective_date
-                else "Unknown"
-            ),
-            conditions=json.dumps(state.get("combined_conditions", []), indent=2),
-            policy_sections=state.get("policy_sections_text") or "(no policy sections available)",
-            receipts_json=json.dumps(receipts, indent=2, default=str),
-        ).replace("{today}", date.today().isoformat())
-
-        messages = [HumanMessage(content=prompt_text)]
-    else:
-        messages = state["messages"]
-
-    response = llm_with_tools.invoke(messages)
-    return {"messages": [response]}
-
-
-def should_continue(state: ComplianceWorkflowState) -> str:
-    """Route: if the last message has tool calls, go to tools; otherwise end."""
-    last_message = state["messages"][-1]
-    if hasattr(last_message, "tool_calls") and last_message.tool_calls:
-        return "tools"
-    return "parse_output"
-
-
-def parse_output(state: ComplianceWorkflowState) -> dict:
-    """Extract structured JSON from the final LLM message."""
-    last_message = state["messages"][-1]
-    final_content = (
-        last_message.content
-        if isinstance(last_message.content, str)
-        else ""
-    )
-
-    parsed: dict = {}
-    parse_error = None
-    
-    try:
-        # Try direct JSON parse
-        parsed = json.loads(final_content)
-    except Exception as e:
-        parse_error = str(e)
-        try:
-            # Try extracting JSON block from markdown or mixed content
-            match = re.search(r"\{.*\}", final_content, re.DOTALL)
-            if match:
-                parsed = json.loads(match.group())
-                parse_error = None
-        except Exception as extract_error:
-            parse_error = f"JSON extraction failed: {str(extract_error)}"
-
-    if not parsed:
-        # Fallback: mark everything as requiring manual review
-        logger.warning(
-            f"parse_output: Could not parse LLM response. "
-            f"Error: {parse_error}. Content preview: {final_content[:200]}"
+            receipt_json=json.dumps(receipt, indent=2, default=str),
+            human_edit_block=human_edit_block,
+            conditions=json.dumps(conditions, indent=2),
         )
-        receipts = state.get("receipts", [])
-        line_items = [
-            {
-                "document_id": r.get("document_id", "unknown"),
-                "date": r.get("date", ""),
-                "category": r.get("category", ""),
-                "description": r.get("description", ""),
-                "status": "REJECTED",
-                "requested_amount": float(r.get("amount", 0)),
-                "approved_amount": 0.0,
-                "deduction_amount": float(r.get("amount", 0)),
-                "audit_notes": [
-                    {
-                        "tag": "[PARSE_ERROR]",
-                        "message": f"Could not parse LLM response: {parse_error}",
-                    }
-                ],
-            }
-            for r in receipts
-        ]
-        total_requested = sum(li["requested_amount"] for li in line_items)
-        return {
-            "line_items": line_items,
-            "totals": {
-                "total_requested": total_requested,
-                "total_deduction": total_requested,
-                "net_approved": 0.0,
-            },
-            "judgment": "MANUAL REVIEW",
-            "confidence": 0.0,
-            "summary": "Evaluation parsing failed; manual review required.",
-        }
+
+        agent = create_react_agent(get_agent_llm(), tools)
+        result = agent.invoke(
+            {"messages": [HumanMessage(content=prompt)]},
+            config={"recursion_limit": 15},
+        )
+
+        last_msg = result["messages"][-1]
+        content = last_msg.content if isinstance(last_msg.content, str) else ""
+        return _parse_line_item(content, receipt)
+
+    line_items = []
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        future_to_receipt = {executor.submit(analyze_one, r): r for r in receipts}
+        for future in as_completed(future_to_receipt):
+            receipt = future_to_receipt[future]
+            try:
+                line_items.append(future.result())
+            except Exception as e:
+                logger.error(f"analyze_receipts error for {receipt.get('document_id')}: {e}")
+                line_items.append(_parse_line_item("", receipt))
+
+    return {"line_items": line_items}
+
+
+def aggregate_totals(state: ComplianceWorkflowState) -> dict:
+    """Compute aggregate totals from all line items (pure Python, no LLM)."""
+    line_items = state.get("line_items", [])
+    total_requested = sum(float(li.get("requested_amount", 0) or 0) for li in line_items)
+    total_deduction = sum(float(li.get("deduction_amount", 0) or 0) for li in line_items)
+    net_approved = sum(float(li.get("approved_amount", 0) or 0) for li in line_items)
+
+    by_category: dict = {}
+    for li in line_items:
+        cat = li.get("category", "Other")
+        if cat not in by_category:
+            by_category[cat] = {"claimed": 0.0, "approved": 0.0}
+        by_category[cat]["claimed"] += float(li.get("requested_amount", 0) or 0)
+        by_category[cat]["approved"] += float(li.get("approved_amount", 0) or 0)
 
     return {
-        "line_items": parsed.get("line_items", []),
-        "totals": parsed.get("totals", {}),
+        "totals": {
+            "total_requested": round(total_requested, 2),
+            "total_deduction": round(total_deduction, 2),
+            "net_approved": round(net_approved, 2),
+            "by_category": by_category,
+        }
+    }
+
+
+def final_judgment(state: ComplianceWorkflowState, tools: list) -> dict:
+    """Run a ReAct agent to produce the overall settlement verdict."""
+    policy = state.get("policy")
+
+    prompt = FINAL_JUDGMENT_PROMPT.format(
+        line_items_json=json.dumps(state.get("line_items", []), indent=2, default=str),
+        totals_json=json.dumps(state.get("totals", {}), indent=2),
+        policy_overview=policy.overview_summary if policy else "",
+    )
+
+    agent = create_react_agent(get_agent_llm(), tools)
+    result = agent.invoke(
+        {"messages": [HumanMessage(content=prompt)]},
+        config={"recursion_limit": 9},
+    )
+
+    last_msg = result["messages"][-1]
+    content = last_msg.content if isinstance(last_msg.content, str) else ""
+
+    parsed = None
+    try:
+        parsed = json.loads(content)
+    except Exception:
+        match = re.search(r"\{.*\}", content, re.DOTALL)
+        if match:
+            try:
+                parsed = json.loads(match.group())
+            except Exception:
+                pass
+
+    if not parsed:
+        logger.warning(f"final_judgment parse failed. Content: {content[:200]}")
+        parsed = {}
+
+    try:
+        confidence = float(parsed.get("confidence", 0.0))
+    except (ValueError, TypeError):
+        confidence = 0.0
+
+    return {
         "judgment": parsed.get("overall_judgment", "MANUAL REVIEW"),
-        "confidence": float(parsed.get("confidence", 0.0)),
+        "confidence": confidence,
         "summary": parsed.get("summary", ""),
     }
 
@@ -323,42 +359,39 @@ def run_compliance_workflow(
     user_id: str,
     all_category: Optional[List[str]],
     session: Session,
-    # document_ids kept for API compatibility but no longer primary data source
     document_ids: Optional[List[str]] = None,
 ) -> dict:
     """
-    Compile and run the ReAct compliance graph.
+    Compile and run the 5-node compliance graph.
     Returns a dict with reimbursement_id, judgment, totals, line_items,
     confidence, and summary.
     """
     tools = [get_current_date, make_search_policy_rag_tool(policy_id, session)]
-    llm_with_tools = get_agent_llm().bind_tools(tools)
-    tool_node = ToolNode(tools)
 
-    # Partial-bind the session into stateful nodes
     def _load_context(state):
         return load_context(state, session)
 
-    def _call_agent(state):
-        return call_agent(state, llm_with_tools)
+    def _analyze_receipts(state):
+        return analyze_receipts(state, tools)
+
+    def _final_judgment(state):
+        return final_judgment(state, tools)
 
     def _save_reimbursement(state):
         return save_reimbursement(state, session)
 
-    # Build graph
     graph = StateGraph(ComplianceWorkflowState)
-
     graph.add_node("load_context", _load_context)
-    graph.add_node("agent", _call_agent)
-    graph.add_node("tools", tool_node)
-    graph.add_node("parse_output", parse_output)
+    graph.add_node("analyze_receipts", _analyze_receipts)
+    graph.add_node("aggregate_totals", aggregate_totals)
+    graph.add_node("final_judgment", _final_judgment)
     graph.add_node("save_reimbursement", _save_reimbursement)
 
     graph.add_edge(START, "load_context")
-    graph.add_edge("load_context", "agent")
-    graph.add_conditional_edges("agent", should_continue, {"tools": "tools", "parse_output": "parse_output"})
-    graph.add_edge("tools", "agent")   # loop back after tool execution
-    graph.add_edge("parse_output", "save_reimbursement")
+    graph.add_edge("load_context", "analyze_receipts")
+    graph.add_edge("analyze_receipts", "aggregate_totals")
+    graph.add_edge("aggregate_totals", "final_judgment")
+    graph.add_edge("final_judgment", "save_reimbursement")
     graph.add_edge("save_reimbursement", END)
 
     app = graph.compile()
@@ -369,15 +402,11 @@ def run_compliance_workflow(
         "main_category": main_category,
         "user_id": user_id,
         "all_category": all_category or [],
-        # context fields (populated by load_context)
         "user": None,
         "policy": None,
         "receipts": [],
         "combined_conditions": [],
-        "policy_sections_text": "",
         "currency": "",
-        "messages": [],
-        # output fields
         "line_items": [],
         "totals": {},
         "judgment": "",
