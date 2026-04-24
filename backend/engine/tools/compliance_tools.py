@@ -11,17 +11,12 @@ from sqlmodel import Session
 from engine.tools.rag_tool import search_policy_sections
 
 
-class GetCurrentDateInput(BaseModel):
-    """No input parameters required."""
-    pass
-
-
 class SearchPolicyInput(BaseModel):
     """Input for policy search tool."""
     query: str
 
 
-@tool(args_schema=GetCurrentDateInput)
+@tool
 def get_current_date() -> str:
     """Returns today's date in YYYY-MM-DD format. Use this to check 90-day late submission policy."""
     return date.today().isoformat()

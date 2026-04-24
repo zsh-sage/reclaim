@@ -1,8 +1,9 @@
 "use client";
 import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
-import { ArrowLeft, AlertTriangle, Clock, ShieldCheck, ShieldX, ChevronDown, ZoomIn, Pencil, FileText, Download } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ArrowLeft, AlertTriangle, Clock, ShieldCheck, ShieldX, ChevronDown, ZoomIn, Pencil, FileText, Download, Loader2 } from "lucide-react";
 import { ClaimBundle, LineItem, MOCK_BUNDLES } from "../../hr_components/mockData";
+import { getHRClaimBundle, updateReimbursementStatus } from "@/lib/actions/hr";
 
 type Decision = "approve_full" | "approve_adjusted" | "reject" | null;
 
@@ -39,15 +40,44 @@ function Field({ label, value }: { label: string; value: string }) {
 export default function ReviewPage() {
   const { id } = useParams() as { id: string };
   const router = useRouter();
-  const bundle: ClaimBundle | undefined = MOCK_BUNDLES[id];
 
-  const [approvals, setApprovals] = useState<Record<string, number>>(
-    () => Object.fromEntries((MOCK_BUNDLES[id]?.line_items ?? []).map(li => [li.document_id, li.approved_amount]))
-  );
+  const [bundle, setBundle] = useState<ClaimBundle | undefined | null>(undefined); // undefined = loading
+  const [approvals, setApprovals] = useState<Record<string, number>>({});
   const [decision, setDecision] = useState<Decision>(null);
   const [note, setNote] = useState("");
   const [auditOpen, setAuditOpen] = useState(false);
   const [lightbox, setLightbox] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fallback = MOCK_BUNDLES[id];
+    getHRClaimBundle(id)
+      .then((b) => {
+        const resolved = b ?? fallback ?? null;
+        setBundle(resolved);
+        if (resolved) {
+          setApprovals(Object.fromEntries(
+            resolved.line_items.map(li => [li.document_id, li.approved_amount])
+          ));
+        }
+      })
+      .catch(() => {
+        setBundle(fallback ?? null);
+        if (fallback) {
+          setApprovals(Object.fromEntries(
+            fallback.line_items.map(li => [li.document_id, li.approved_amount])
+          ));
+        }
+      });
+  }, [id]);
+
+  if (bundle === undefined) return (
+    <div className="flex items-center justify-center min-h-[60vh] gap-3 text-on-surface-variant">
+      <Loader2 className="w-5 h-5 animate-spin" />
+      <span className="text-sm">Loading claim...</span>
+    </div>
+  );
 
   if (!bundle) return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
@@ -67,9 +97,17 @@ export default function ReviewPage() {
     ])));
   }
 
-  function submit() {
-    // TODO: POST /api/hr/bundles/:id/review
-    console.log("review payload", { id, decision, lineItemApprovals: approvals, note });
+  async function submit() {
+    if (!decision) return;
+    setSubmitting(true);
+    setSubmitError(null);
+    const status = decision === "reject" ? "REJECTED" : "APPROVED";
+    const res = await updateReimbursementStatus(bundle!.id, status);
+    setSubmitting(false);
+    if (!res.ok) {
+      setSubmitError(res.error ?? "Failed to update status.");
+      return;
+    }
     router.push("/hr/dashboard");
   }
 
@@ -382,10 +420,14 @@ export default function ReviewPage() {
                   className="w-full bg-surface-container-low rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-on-surface-variant/50 outline-none ring-1 ring-outline-variant/20 focus:ring-primary/40 resize-none transition-all" />
               </div>
 
-              <button id="submit-review" onClick={submit} disabled={!decision}
-                className={`w-full py-3 rounded-xl text-sm font-semibold font-headline transition-all active:scale-[0.97] ${decision ? "bg-primary text-on-primary shadow-[0_4px_16px_rgba(70,71,211,0.25)] hover:bg-primary-dim cursor-pointer" : "bg-surface-container text-on-surface-variant/50 cursor-not-allowed"}`}>
+              <button id="submit-review" onClick={submit} disabled={!decision || submitting}
+                className={`w-full py-3 rounded-xl text-sm font-semibold font-headline transition-all active:scale-[0.97] flex items-center justify-center gap-2 ${decision ? "bg-primary text-on-primary shadow-[0_4px_16px_rgba(70,71,211,0.25)] hover:bg-primary-dim cursor-pointer" : "bg-surface-container text-on-surface-variant/50 cursor-not-allowed"}`}>
+                {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
                 {decision === "approve_full" ? "Submit Full Approval" : decision === "approve_adjusted" ? "Submit Adjusted Approval" : decision === "reject" ? "Submit Rejection" : "Select a decision"}
               </button>
+              {submitError && (
+                <p className="text-xs text-error text-center font-body mt-1">{submitError}</p>
+              )}
             </div>
           </Card>
         </div>

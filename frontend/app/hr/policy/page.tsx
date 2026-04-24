@@ -3,6 +3,8 @@
 import React, { JSX, useRef, useState, useEffect } from 'react';
 import { Plus, Search, ChevronUp, ChevronDown, ChevronRight, FileText, Shield, Archive, Pencil, Trash2, ArrowLeft, X, SlidersHorizontal, Upload, Settings, CheckCircle2, ScanLine, Sparkles, History, Clock, User, PlusCircle, AlertCircle, ShieldCheck, Users, Calendar, BarChart3 } from 'lucide-react';
 import { MOCK_POLICIES, POLICY_STATUS_STYLE, Policy, PolicyStatus, MOCK_POLICY_DETAILS } from '../hr_components/mockData';
+import { uploadPolicy } from '@/lib/actions/hr';
+import { getPolicies } from '@/lib/actions/policies';
 
 const SAVE_STEPS = [
   { id: "upload", label: "Uploading documents...", subtitle: "Securely storing policy files." },
@@ -231,6 +233,32 @@ export default function PolicyStudio() {
   }
 
   const [policies, setPolicies] = useState<Policy[]>(MOCK_POLICIES);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  // Load real policies from backend on mount
+  useEffect(() => {
+    getPolicies().then((backendPolicies) => {
+      if (backendPolicies.length === 0) return;
+      // Map backend Policy type (from types.ts) → local Policy shape (mockData.ts)
+      const mapped: Policy[] = backendPolicies.map((p) => ({
+        id: p.policy_id,
+        name: p.title,
+        version: "V1.0",
+        department: "General",
+        lastModified: p.effective_date
+          ? new Date(p.effective_date).toLocaleDateString("en-MY", { month: "short", day: "numeric", year: "numeric" })
+          : "",
+        status: (p.status === "ACTIVE" ? "Active" : p.status === "EXPIRED" ? "Expired" : "Active") as PolicyStatus,
+        icon: FileText,
+        aiConditions: undefined,
+        history: [],
+      }));
+      // Merge: prepend real policies, keep mocks as fallback examples
+      setPolicies([...mapped, ...MOCK_POLICIES]);
+    }).catch(() => {
+      // Keep mock data on error
+    });
+  }, []);
 
   // Status dropdown & edit states
   const [editStatus, setEditStatus] = useState<PolicyStatus>("Active");
@@ -310,17 +338,63 @@ export default function PolicyStudio() {
   );
 
   const handleSave = async () => {
+    setSaveError(null);
     setIsSaving(true);
     setSavingStep(0);
+
+    // ── New policy: upload to backend ──────────────────────────────────────
+    if (editingPolicy === "new" && mainPolicyFile) {
+      const form = new FormData();
+      form.append("file", mainPolicyFile);
+      form.append("alias", editName || "New Policy");
+      // Append appendix files too if backend supports it
+      appendixFiles.forEach((f) => form.append("appendix", f));
+
+      setSavingStep(1);
+      const result = await uploadPolicy(form);
+      setSavingStep(2);
+      await new Promise((r) => setTimeout(r, 800)); // brief delay for UI
+
+      if (!result.ok) {
+        setSaveError(result.error ?? "Upload failed. Please try again.");
+        setIsSaving(false);
+        return;
+      }
+
+      // Refresh policy list from backend
+      try {
+        const updated = await getPolicies();
+        if (updated.length > 0) {
+          const mapped: Policy[] = updated.map((p) => ({
+            id: p.policy_id,
+            name: p.title,
+            version: "V1.0",
+            department: "General",
+            lastModified: p.effective_date
+              ? new Date(p.effective_date).toLocaleDateString("en-MY", { month: "short", day: "numeric", year: "numeric" })
+              : "",
+            status: (p.status === "ACTIVE" ? "Active" : p.status === "EXPIRED" ? "Expired" : "Active") as PolicyStatus,
+            icon: FileText,
+          }));
+          setPolicies([...mapped, ...MOCK_POLICIES]);
+        }
+      } catch { /* keep existing list */ }
+
+      setIsSaving(false);
+      setEditingPolicy(null);
+      return;
+    }
+
+    // ── Edit existing (local-only for now) ────────────────────────────────
     await new Promise(r => setTimeout(r, 1000));
     setSavingStep(1);
     await new Promise(r => setTimeout(r, 1000));
     setSavingStep(2);
-    await new Promise(r => setTimeout(r, 1000));
+    await new Promise(r => setTimeout(r, 800));
 
     // Record History
     const now = new Date();
-    const formattedDate = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + 
+    const formattedDate = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) +
                           ' ' + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
     const newHistoryEntry = {
@@ -348,8 +422,8 @@ export default function PolicyStudio() {
       };
       setPolicies([newPolicy, ...policies]);
     } else {
-      setPolicies(policies.map(p => p.id === editingPolicy ? { 
-        ...p, 
+      setPolicies(policies.map(p => p.id === editingPolicy ? {
+        ...p,
         status: editStatus,
         name: editName,
         department: editDepartment,
@@ -873,6 +947,9 @@ export default function PolicyStudio() {
               Cancel
             </button>
             <div className="flex items-center gap-6">
+              {saveError && (
+                <p className="text-xs text-error font-body max-w-xs text-right">{saveError}</p>
+              )}
               <div className="flex items-center gap-3">
                 <span className="font-body text-sm text-on-surface-variant hidden sm:block">Policy Status:</span>
                 <StatusDropdown />
