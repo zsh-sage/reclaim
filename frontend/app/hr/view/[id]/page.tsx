@@ -1,8 +1,9 @@
 "use client";
 import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
-import { ArrowLeft, Clock, ShieldCheck, ShieldX, ChevronDown, ZoomIn, CheckCircle2, FileText, Download } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ArrowLeft, Clock, ShieldCheck, ShieldX, ChevronDown, ZoomIn, CheckCircle2, FileText, Download, Loader2 } from "lucide-react";
 import { ClaimBundle, MOCK_BUNDLES } from "../../hr_components/mockData";
+import { getHRClaimBundle, updateReimbursementStatus } from "@/lib/actions/hr";
 
 const STATUS_CHIP: Record<string, string> = {
   APPROVED: "bg-emerald-50 text-emerald-700",
@@ -37,12 +38,27 @@ function Field({ label, value }: { label: string; value: string }) {
 export default function ViewPage() {
   const { id } = useParams() as { id: string };
   const router = useRouter();
-  const bundle: ClaimBundle | undefined = MOCK_BUNDLES[id];
 
+  const [bundle, setBundle] = useState<ClaimBundle | undefined | null>(undefined); // undefined = loading
   const [hrDecision, setHrDecision] = useState<"confirm" | "flag" | null>(null);
   const [note, setNote] = useState("");
   const [auditOpen, setAuditOpen] = useState(false);
   const [lightbox, setLightbox] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  useEffect(() => {
+    getHRClaimBundle(id)
+      .then((b) => setBundle(b ?? MOCK_BUNDLES[id] ?? null))
+      .catch(() => setBundle(MOCK_BUNDLES[id] ?? null));
+  }, [id]);
+
+  if (bundle === undefined) return (
+    <div className="flex items-center justify-center min-h-[60vh] gap-3 text-on-surface-variant">
+      <Loader2 className="w-5 h-5 animate-spin" />
+      <span className="text-sm">Loading claim...</span>
+    </div>
+  );
 
   if (!bundle) return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
@@ -53,9 +69,17 @@ export default function ViewPage() {
 
   const pct = Math.round(bundle.confidence * 100);
 
-  function submit() {
-    // TODO: POST /api/hr/bundles/:id/confirm  |  /api/hr/bundles/:id/flag
-    console.log("view payload", { id, action: hrDecision, note });
+  async function submit() {
+    if (!hrDecision) return;
+    setSubmitting(true);
+    setSubmitError(null);
+    const status = hrDecision === "confirm" ? "APPROVED" : "REJECTED";
+    const res = await updateReimbursementStatus(bundle!.id, status);
+    setSubmitting(false);
+    if (!res.ok) {
+      setSubmitError(res.error ?? "Failed to update status.");
+      return;
+    }
     router.push("/hr/dashboard");
   }
 
@@ -310,13 +334,17 @@ export default function ViewPage() {
                   className="w-full bg-surface-container-low rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-on-surface-variant/50 outline-none ring-1 ring-outline-variant/20 focus:ring-primary/40 resize-none transition-all" />
               </div>
 
-              <button id="submit-hr-decision" onClick={submit} disabled={!hrDecision}
-                className={`w-full py-3 rounded-xl text-sm font-semibold font-headline transition-all active:scale-[0.97] ${
+              <button id="submit-hr-decision" onClick={submit} disabled={!hrDecision || submitting}
+                className={`w-full py-3 rounded-xl text-sm font-semibold font-headline transition-all active:scale-[0.97] flex items-center justify-center gap-2 ${
                   hrDecision === "confirm" ? "bg-emerald-600 text-white shadow-[0_4px_16px_rgba(16,185,129,0.3)] hover:bg-emerald-700 cursor-pointer"
                   : hrDecision === "flag" ? "bg-amber-500 text-white shadow-[0_4px_16px_rgba(245,158,11,0.3)] hover:bg-amber-600 cursor-pointer"
                   : "bg-surface-container text-on-surface-variant/50 cursor-not-allowed"}`}>
+                {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
                 {hrDecision === "confirm" ? "Confirm & Finalise Approval" : hrDecision === "flag" ? "Flag for Re-review" : "Select a decision"}
               </button>
+              {submitError && (
+                <p className="text-xs text-error text-center font-body mt-1">{submitError}</p>
+              )}
             </div>
           </Card>
         </div>

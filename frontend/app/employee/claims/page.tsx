@@ -24,10 +24,11 @@ import type {
   OcrReceiptData,
   ClaimContext,
   ClaimSubmissionPayload,
+  DbEmployee,
 } from "../../../src/types/claim";
 
 // ─── Mock data (swap for real API calls at backend handoff) ───────────────────
-import { POLICY_DATA } from "../../../src/mocks/policyData";
+import { POLICY_DATA, type MainCategoryConfig } from "../../../src/mocks/policyData";
 import { MOCK_DB_DATA, MOCK_OCR_RECEIPTS } from "../../../src/mocks/claimMockData";
 
 // ─── Screen components ────────────────────────────────────────────────────────
@@ -38,7 +39,8 @@ import { SuccessModal, type SuccessType } from "./_components/SuccessModal";
 
 // ─── Server Actions ───────────────────────────────────────────────────────────
 import { getPolicies } from "@/lib/actions/policies";
-import type { Policy, SubCategoryConfig } from "@/lib/api/types";
+import { uploadDocuments, editDocument, analyzeCompliance } from "@/lib/actions/claims";
+import type { Policy, SubCategoryConfig, AnalyzeResponse } from "@/lib/api/types";
 
 // ─── Stage type ───────────────────────────────────────────────────────────────
 
@@ -461,14 +463,16 @@ export default function CaptureReceiptPage() {
 
   // ── Policy data (fetched via server action) ────────────────────────────────
   const [policyData, setPolicyData] = useState<MainCategoryConfig[]>([]);
+  const [rawPolicies, setRawPolicies] = useState<Policy[]>([]);
 
   useEffect(() => {
     getPolicies().then((policies) => {
+      setRawPolicies(policies);
       // Map Policy type to local MainCategoryConfig shape
       const mapped: MainCategoryConfig[] = policies.map((p) => ({
-        main_category: p.main_category,
-        reimbursable_category: p.reimbursable_categories,
-        mandatory_conditions: p.mandatory_conditions,
+        main_category: p.title,
+        reimbursable_category: p.reimbursable_category,
+        mandatory_conditions: {},
       }));
       setPolicyData(mapped);
     });
@@ -482,6 +486,8 @@ export default function CaptureReceiptPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   // Native camera input — OS handles Retake/Use Photo, no custom modal needed
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  // Track actual File objects alongside UploadedFile metadata
+  const fileMapRef = useRef<Map<string, File>>(new Map());
 
   // ── Processing state ───────────────────────────────────────────────────────
   const [processingIndex, setProcessingIndex] = useState(0);
@@ -497,6 +503,15 @@ export default function CaptureReceiptPage() {
     departureDate: "",
     arrivalDate: "",
   });
+
+  // ── Backend settlement/document state ──────────────────────────────────────
+  const [settlementId, setSettlementId] = useState<string | null>(null);
+  const [documentIds, setDocumentIds] = useState<string[]>([]);
+  const [employeeData, setEmployeeData] = useState<DbEmployee | null>(null);
+  const [analysisResult, setAnalysisResult] = useState<AnalyzeResponse | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const originalOcrRef = useRef<OcrReceiptData[]>([]);
 
   // ── Success modal ──────────────────────────────────────────────────────────
   const [showSuccess, setShowSuccess] = useState(false);
@@ -523,6 +538,8 @@ export default function CaptureReceiptPage() {
       previewUrl: URL.createObjectURL(f),
       type: f.type,
     }));
+    // Store actual File objects for later upload
+    processed.forEach((f, idx) => fileMapRef.current.set(added[idx].id, f));
     setFiles(prev => {
       const next = [...prev, ...added].slice(0, MAX_FILES);
       // auto-select the first newly uploaded file
@@ -533,6 +550,7 @@ export default function CaptureReceiptPage() {
   }
 
   function handleRemoveFile(id: string) {
+    fileMapRef.current.delete(id);
     setFiles(prev => {
       const target = prev.find(f => f.id === id);
       if (target?.previewUrl) URL.revokeObjectURL(target.previewUrl);
@@ -550,34 +568,67 @@ export default function CaptureReceiptPage() {
     setFiles(prev => prev.map(f => f.id === id ? { ...f, name: newName } : f));
   }
 
-  // ── OCR simulation ─────────────────────────────────────────────────────────
+  // ── Real OCR via backend upload ────────────────────────────────────────────
   const runOcr = useCallback(async (uploadedFiles: UploadedFile[]) => {
     setCompletedNames([]);
-    for (let i = 0; i < uploadedFiles.length; i++) {
-      setProcessingIndex(i);
-      setProcessingStep(0);
-      await new Promise(r => setTimeout(r, STEP_MS[1]));
-      setProcessingStep(1);
-      await new Promise(r => setTimeout(r, STEP_MS[2] - STEP_MS[1]));
-      setProcessingStep(2);
-      await new Promise(r => setTimeout(r, STEP_MS[3] - STEP_MS[2]));
-      setCompletedNames(prev => [...prev, uploadedFiles[i].name]);
+
+    // Get actual File objects from the map
+    const filesToUpload = uploadedFiles
+      .map(f => fileMapRef.current.get(f.id))
+      .filter((f): f is File => f !== undefined);
+
+    if (filesToUpload.length === 0) {
+      setStage("form");
+      return;
     }
-    // Map mock OCR results (backend team: swap with real API call here)
-    const results: OcrReceiptData[] = uploadedFiles.map((_, idx) =>
-      MOCK_OCR_RECEIPTS[idx] ?? {
-        receiptIndex: idx,
-        success: false,
-        expenseDate: "",
-        merchant: "",
-        transport: 0,
-        accommodation: 0,
-        meals: 0,
-        others: 0,
-        notes: "",
-      },
-    );
-    setOcrReceipts(results);
+
+    // Show the first file as "processing" while the upload runs
+    setProcessingIndex(0);
+    setProcessingStep(0);
+
+    const result = await uploadDocuments(filesToUpload);
+
+    if ("error" in result) {
+      setStage("form");
+      setSubmitError(result.error);
+      return;
+    }
+
+    setSettlementId(result.settlement_id);
+    setDocumentIds(result.receipts.map(r => r.document_id));
+    setCompletedNames(uploadedFiles.map(f => f.name));
+    setProcessingIndex(uploadedFiles.length - 1);
+    setProcessingStep(3);
+
+    // Map backend receipts → OcrReceiptData
+    const mappedReceipts: OcrReceiptData[] = result.receipts.map((r, idx) => ({
+      receiptIndex: idx,
+      success: r.warnings.length === 0,
+      expenseDate: r.date ?? "",
+      merchant: (r.extracted_data?.merchant_name as string) ?? r.description ?? "",
+      transport: r.transportation ?? 0,
+      accommodation: r.accommodation ?? 0,
+      meals: r.meals ?? 0,
+      others: r.others ?? 0,
+      notes: r.description ?? "",
+    }));
+
+    originalOcrRef.current = mappedReceipts.map(r => ({ ...r }));
+    setOcrReceipts(mappedReceipts);
+
+    // Map employee data
+    if (result.employee) {
+      const emp = result.employee;
+      setEmployeeData({
+        entityName: "Reclaim",
+        employeeName: emp.name ?? "",
+        employeeNumber: emp.user_code ?? "",
+        position: "",
+        location: emp.destination ?? emp.location ?? "",
+        department: emp.department ?? "",
+      });
+    }
+
     setStage("verification");
   }, []);
 
@@ -593,31 +644,79 @@ export default function CaptureReceiptPage() {
   }, [stage]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Submit ─────────────────────────────────────────────────────────────────
-  function handleSubmit() {
-    const subTotal = ocrReceipts.reduce(
-      (acc, r) => acc + r.transport + r.accommodation + r.meals + r.others,
-      0,
-    );
-    const payload: ClaimSubmissionPayload = {
-      dbData: MOCK_DB_DATA,
-      mainCategory,
-      claimContext,
-      receipts: ocrReceipts,
-      subTotal,
-      submittedAt: new Date().toISOString(),
-    };
-    // TODO: POST /api/claims  ← backend team replaces this console.log
-    console.log("CLAIM PAYLOAD:", JSON.stringify(payload, null, 2));
+  async function handleSubmit() {
+    if (!settlementId) {
+      setSubmitError("No settlement found. Please re-upload your receipts.");
+      return;
+    }
+
+    const policy = rawPolicies.find(p => p.title === mainCategory);
+    if (!policy) {
+      setSubmitError("Please select a valid policy category.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    // Send edits for any receipt that changed from original
+    for (let i = 0; i < ocrReceipts.length; i++) {
+      const curr = ocrReceipts[i];
+      const orig = originalOcrRef.current[i];
+      const docId = documentIds[i];
+      if (!docId || !orig) continue;
+
+      const changed =
+        curr.merchant !== orig.merchant ||
+        curr.expenseDate !== orig.expenseDate ||
+        curr.transport !== orig.transport ||
+        curr.accommodation !== orig.accommodation ||
+        curr.meals !== orig.meals ||
+        curr.others !== orig.others;
+
+      if (changed) {
+        await editDocument(docId, {
+          merchant_name: curr.merchant,
+          date: curr.expenseDate,
+          total_amount: curr.transport + curr.accommodation + curr.meals + curr.others,
+        });
+      }
+    }
+
+    // Run compliance analysis
+    const analyzeResult = await analyzeCompliance({
+      settlement_id: settlementId,
+      policy_id: policy.policy_id,
+      all_category: [mainCategory],
+      document_ids: documentIds,
+    });
+
+    setIsSubmitting(false);
+
+    if ("error" in analyzeResult) {
+      setSubmitError(analyzeResult.error);
+      return;
+    }
+
+    setAnalysisResult(analyzeResult);
     setShowSuccess(true);
   }
 
   // ── Reset ──────────────────────────────────────────────────────────────────
   function resetAll() {
     files.forEach(f => { if (f.previewUrl) URL.revokeObjectURL(f.previewUrl); });
+    fileMapRef.current.clear();
     setFiles([]);
     setMainCategory("");
     setActiveDocId(null);
     setOcrReceipts([]);
+    setSettlementId(null);
+    setDocumentIds([]);
+    setEmployeeData(null);
+    setAnalysisResult(null);
+    setSubmitError(null);
+    setIsSubmitting(false);
+    originalOcrRef.current = [];
     setClaimContext({ travelDestination: "", travelPurpose: "", overseas: false, departureDate: "", arrivalDate: "" });
     setProcessingIndex(0);
     setProcessingStep(0);
@@ -671,16 +770,24 @@ export default function CaptureReceiptPage() {
         )}
 
         {stage === "verification" && (
-          <VerificationScreen
-            dbData={MOCK_DB_DATA}
-            mainCategory={mainCategory}
-            ocrReceipts={ocrReceipts}
-            claimContext={claimContext}
-            onClaimContextChange={setClaimContext}
-            onReceiptsChange={setOcrReceipts}
-            onBack={() => setStage("form")}
-            onSubmit={handleSubmit}
-          />
+          <>
+            <VerificationScreen
+              dbData={employeeData ?? MOCK_DB_DATA}
+              mainCategory={mainCategory}
+              ocrReceipts={ocrReceipts}
+              claimContext={claimContext}
+              onClaimContextChange={setClaimContext}
+              onReceiptsChange={setOcrReceipts}
+              onBack={() => setStage("form")}
+              onSubmit={handleSubmit}
+            />
+            {submitError && (
+              <p className="text-sm text-error font-body mt-2 text-center">{submitError}</p>
+            )}
+            {isSubmitting && (
+              <p className="text-sm text-on-surface-variant font-body mt-2 text-center">Submitting claim…</p>
+            )}
+          </>
         )}
 
         {/* ── FORM STAGE ────────────────────────────────────────────────────── */}

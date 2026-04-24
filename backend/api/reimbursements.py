@@ -1,5 +1,6 @@
 import logging
-from typing import List, Optional
+from datetime import datetime, timezone
+from typing import List, Literal, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -12,6 +13,10 @@ from engine.agents.compliance_agent import run_compliance_workflow
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+
+class StatusUpdateRequest(BaseModel):
+    status: Literal["APPROVED", "REJECTED"]
 
 
 class AnalyzeReimbursementRequest(BaseModel):
@@ -64,6 +69,86 @@ def list_reimbursements(
         }
         for r in reimbursements
     ]
+
+
+@router.get("/{reim_id}")
+def get_reimbursement(
+    reim_id: str,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_user),
+) -> dict:
+    try:
+        reim_uuid = UUID(reim_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid reim_id")
+
+    r = db.get(Reimbursement, reim_uuid)
+    if not r:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Reimbursement not found")
+
+    if current_user.role != UserRole.HR and r.user_id != current_user.user_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+
+    return {
+        "reim_id": str(r.reim_id),
+        "user_id": str(r.user_id),
+        "policy_id": str(r.policy_id) if r.policy_id else None,
+        "settlement_id": str(r.settlement_id) if r.settlement_id else None,
+        "main_category": r.main_category,
+        "sub_category": r.sub_category,
+        "employee_department": r.employee_department,
+        "employee_rank": r.employee_rank,
+        "currency": r.currency,
+        "totals": r.totals,
+        "line_items": r.line_items,
+        "judgment": r.judgment,
+        "confidence": r.confidence,
+        "status": r.status,
+        "summary": r.summary,
+        "created_at": r.created_at.isoformat() if r.created_at else None,
+    }
+
+
+@router.patch("/{reim_id}/status")
+def update_reimbursement_status(
+    reim_id: str,
+    body: StatusUpdateRequest,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_hr_user),
+) -> dict:
+    try:
+        reim_uuid = UUID(reim_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid reim_id")
+
+    r = db.get(Reimbursement, reim_uuid)
+    if not r:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Reimbursement not found")
+
+    r.status = body.status
+    r.updated_at = datetime.now(timezone.utc)
+    db.add(r)
+    db.commit()
+    db.refresh(r)
+
+    return {
+        "reim_id": str(r.reim_id),
+        "user_id": str(r.user_id),
+        "policy_id": str(r.policy_id) if r.policy_id else None,
+        "settlement_id": str(r.settlement_id) if r.settlement_id else None,
+        "main_category": r.main_category,
+        "sub_category": r.sub_category,
+        "employee_department": r.employee_department,
+        "employee_rank": r.employee_rank,
+        "currency": r.currency,
+        "totals": r.totals,
+        "line_items": r.line_items,
+        "judgment": r.judgment,
+        "confidence": r.confidence,
+        "status": r.status,
+        "summary": r.summary,
+        "created_at": r.created_at.isoformat() if r.created_at else None,
+    }
 
 
 @router.post("/analyze")

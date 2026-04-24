@@ -1,6 +1,6 @@
 "use client";
 
-import { JSX, useState } from "react";
+import { JSX, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   TrendingUp,
@@ -19,6 +19,7 @@ import {
 type TabKey = "attention" | "approved";
 
 import { AiStatus, Claim, ATTENTION_CLAIMS, APPROVED_CLAIMS } from "../hr_components/mockData";
+import { getHRClaims } from "@/lib/actions/hr";
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -580,13 +581,28 @@ function ViewAllModal({
 export default function HRDashboardPage() {
   const [activeTab, setActiveTab] = useState<TabKey>("attention");
   const [modalOpen, setModalOpen] = useState(false);
+  const [attentionClaims, setAttentionClaims] = useState<Claim[]>(ATTENTION_CLAIMS);
+  const [approvedClaims, setApprovedClaims] = useState<Claim[]>(APPROVED_CLAIMS);
+
+  // Fetch real reimbursements from backend on mount
+  useEffect(() => {
+    getHRClaims().then(({ attention, approved }) => {
+      if (attention.length > 0 || approved.length > 0) {
+        setAttentionClaims(attention);
+        setApprovedClaims(approved);
+      }
+      // If both empty, keep mock data so the UI is never blank
+    }).catch(() => {
+      // Keep mock data on error
+    });
+  }, []);
 
   const previewClaims =
     activeTab === "attention"
-      ? ATTENTION_CLAIMS.slice(0, 5)
-      : APPROVED_CLAIMS.slice(0, 3);
+      ? attentionClaims.slice(0, 5)
+      : approvedClaims.slice(0, 3);
   const allClaims =
-    activeTab === "attention" ? ATTENTION_CLAIMS : APPROVED_CLAIMS;
+    activeTab === "attention" ? attentionClaims : approvedClaims;
   const actionLabel = activeTab === "attention" ? "Review" : "View";
   const modalTitle =
     activeTab === "attention"
@@ -686,7 +702,7 @@ export default function HRDashboardPage() {
             </p>
             <div className="flex items-end gap-3">
               <span className="text-4xl font-extrabold font-headline text-on-surface">
-                {ATTENTION_CLAIMS.length}
+                {attentionClaims.length}
               </span>
               <span className="text-sm text-on-surface-variant font-medium mb-1">
                 total requests
@@ -728,7 +744,7 @@ export default function HRDashboardPage() {
                   : "bg-surface-container text-on-surface-variant"
               }`}
             >
-              {ATTENTION_CLAIMS.length}
+              {attentionClaims.length}
             </span>
           </button>
           
@@ -751,7 +767,7 @@ export default function HRDashboardPage() {
                   : "bg-surface-container text-on-surface-variant"
               }`}
             >
-              {APPROVED_CLAIMS.length}
+              {approvedClaims.length}
             </span>
           </button>
         </div>

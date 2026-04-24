@@ -44,7 +44,7 @@ export async function login(
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       path: "/",
-      maxAge: 60 * 60 * 24, // 24 hours
+      maxAge: 60 * 60 * 24 * 8, // 8 days (matches backend JWT expiry)
       sameSite: "lax",
     });
 
@@ -58,7 +58,18 @@ export async function login(
       return { user: null, error: "Failed to fetch user profile" };
     }
 
-    const user: User = await userRes.json();
+    const raw = await userRes.json();
+    if (!raw.user_id) return { user: null, error: "Malformed user profile response" };
+    const user: User = {
+      id:              raw.user_id,
+      email:           raw.email,
+      name:            raw.name,
+      role:            raw.role,
+      department:      raw.department,
+      user_code:       raw.user_code   ?? null,
+      rank:            raw.rank        ?? 0,
+      privilege_level: raw.privilege_level,
+    };
     return { user, error: null };
   } catch (err) {
     const message = err instanceof Error ? err.message : "An unexpected error occurred";
@@ -92,7 +103,18 @@ export async function getCurrentUser(): Promise<User | null> {
 
     if (!res.ok) return null;
 
-    return await res.json();
+    const raw = await res.json();
+    if (!raw.user_id) return null;
+    return {
+      id:              raw.user_id,
+      email:           raw.email,
+      name:            raw.name,
+      role:            raw.role,
+      department:      raw.department,
+      user_code:       raw.user_code   ?? null,
+      rank:            raw.rank        ?? 0,
+      privilege_level: raw.privilege_level,
+    };
   } catch {
     return null;
   }

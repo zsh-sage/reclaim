@@ -62,7 +62,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
 
   const bucket = (statuses: string[]) => {
     const items = result.data!.filter((r) => statuses.includes(r.status));
-    return { amount: fmt(items.reduce((s, r) => s + r.amount, 0)), count: items.length };
+    return { amount: fmt(items.reduce((s, r) => s + (r.totals?.net_approved ?? 0), 0)), count: items.length };
   };
 
   return {

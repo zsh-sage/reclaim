@@ -1,7 +1,8 @@
 from datetime import timedelta
-from typing import Any
+from typing import Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
+from pydantic import BaseModel
 from sqlmodel import Session, select
 
 from core import security
@@ -10,6 +11,12 @@ from core.models import User
 from api import schemas, deps
 
 router = APIRouter()
+
+
+class UpdateProfileRequest(BaseModel):
+    name: str
+    email: str
+    department: Optional[str] = None
 
 @router.post("/login", response_model=schemas.Token)
 def login_access_token(
@@ -76,3 +83,41 @@ def read_users_me(
     Get current user.
     """
     return current_user
+
+
+@router.put("/me")
+def update_profile(
+    body: UpdateProfileRequest,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_user),
+) -> dict:
+    """Update current user's profile."""
+    # Check email uniqueness if it changed
+    if body.email != current_user.email:
+        existing = db.exec(select(User).where(User.email == body.email)).first()
+        if existing and existing.user_id != current_user.user_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email is already in use by another account.",
+            )
+
+    current_user.name = body.name
+    current_user.email = body.email
+    if body.department is not None:
+        current_user.department = body.department
+
+    db.add(current_user)
+    db.commit()
+    db.refresh(current_user)
+
+    u = current_user
+    return {
+        "user_id": str(u.user_id),
+        "user_code": u.user_code,
+        "email": u.email,
+        "name": u.name,
+        "role": u.role,
+        "department": u.department,
+        "rank": u.rank,
+        "privilege_level": u.privilege_level,
+    }
