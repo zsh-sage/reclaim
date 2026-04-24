@@ -1,8 +1,9 @@
 "use client";
 import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
-import { ArrowLeft, Clock, ShieldCheck, ShieldX, ChevronDown, ZoomIn, CheckCircle2, FileText, Download } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ArrowLeft, Clock, ShieldCheck, ShieldX, ChevronDown, ZoomIn, CheckCircle2, FileText, ExternalLink, Download, X } from "lucide-react";
 import { ClaimBundle, MOCK_BUNDLES } from "../../hr_components/mockData";
+import { SuccessModal } from "../../hr_components/SuccessModal";
 
 const STATUS_CHIP: Record<string, string> = {
   APPROVED: "bg-emerald-50 text-emerald-700",
@@ -34,6 +35,246 @@ function Field({ label, value }: { label: string; value: string }) {
   );
 }
 
+function ClaimFormModal({
+  bundle,
+  onClose,
+}: {
+  bundle: ClaimBundle;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const totalRequested = bundle.totals.total_requested;
+  const totalApproved = bundle.totals.net_approved;
+  const totalDeducted = bundle.totals.total_deduction;
+  const effectiveStatus = bundle.overall_judgment.replace("_", " ");
+
+  const statusChip: Record<string, string> = {
+    APPROVED:             "bg-green-100 text-green-700",
+    PARTIAL_APPROVE: "bg-amber-100 text-amber-700",
+    REJECTED:             "bg-red-100 text-red-700",
+    PENDING:              "bg-gray-100 text-gray-600",
+  };
+  const statusClass = statusChip[bundle.overall_judgment] || "bg-gray-100 text-gray-600";
+
+  return (
+    <div
+      className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm overflow-auto"
+      onClick={onClose}
+    >
+      <style>{`
+        .a4-modal-zoom { zoom: 1; }
+        @media (max-width: 850px) {
+          .a4-modal-zoom { zoom: calc((100vw - 32px) / 794); }
+        }
+      `}</style>
+
+      {/* High-visibility fixed close button */}
+      <button
+        onClick={onClose}
+        className="fixed top-4 right-4 md:top-8 md:right-8 z-[200] p-3 bg-gray-900/60 hover:bg-gray-900/90 text-white rounded-full shadow-2xl backdrop-blur transition-all active:scale-95 border border-white/10"
+        aria-label="Close preview"
+      >
+        <X className="w-5 h-5 md:w-6 md:h-6" />
+      </button>
+
+      {/* Scrollable canvas region */}
+      <div className="min-h-full w-full flex justify-center p-4 md:p-12 pb-24 touch-pan-x touch-pan-y">
+        {/* A4 Physical Paper */}
+        <div
+          className="a4-modal-zoom bg-white rounded-sm shadow-2xl shrink-0 border border-gray-200/50"
+          style={{ width: "794px", minHeight: "1123px", fontFamily: "sans-serif" }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="p-12 md:p-16 text-gray-900" style={{ fontSize: "12px" }}>
+            {/* Letterhead */}
+          <div className="flex items-start justify-between border-b-2 border-gray-800 pb-6 mb-8">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center">
+                  <span className="text-white font-bold text-xs">R</span>
+                </div>
+                <span className="font-bold text-xl text-gray-900 tracking-tight">Reclaim</span>
+              </div>
+              <p className="text-gray-500 text-xs">Automated Reimbursement Management System</p>
+            </div>
+            <div className="text-right">
+              <p className="font-bold text-base text-gray-900">EXPENSE CLAIM FORM</p>
+              <p className="text-gray-500 font-mono text-xs">{bundle.id}</p>
+              <p className="text-gray-500 text-xs mt-1">Date: {new Date(bundle.submitted_at).toLocaleDateString()}</p>
+              <span className={`inline-block mt-1 px-2 py-0.5 rounded text-xs font-bold uppercase ${statusClass}`}>
+                {effectiveStatus}
+              </span>
+            </div>
+          </div>
+
+          {/* Employee Details */}
+          <section className="mb-8">
+            <h3 className="font-bold text-xs text-gray-500 uppercase tracking-wider mb-3 border-b border-gray-200 pb-1">
+              Employee Information
+            </h3>
+            <div className="grid grid-cols-2 gap-x-8 gap-y-2">
+              {[
+                ["Full Name",   bundle.employee.name     || "—"],
+                ["Employee ID", bundle.employee.employee_no       || "—"],
+                ["Department",  bundle.employee.department || "—"],
+                ["Position",    bundle.employee.position || "—"],
+              ].map(([label, value]) => (
+                <div key={label} className="flex gap-2">
+                  <span className="text-gray-500 w-28 shrink-0">{label}:</span>
+                  <span className="font-semibold text-gray-900">{value}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Claim Context */}
+          <section className="mb-8">
+            <h3 className="font-bold text-xs text-gray-500 uppercase tracking-wider mb-3 border-b border-gray-200 pb-1">
+              Claim Context
+            </h3>
+            <div className="grid grid-cols-2 gap-x-8 gap-y-2">
+              <div className="flex gap-2">
+                <span className="text-gray-500 w-28 shrink-0">Purpose:</span>
+                <span className="font-semibold">{bundle.travel_purpose}</span>
+              </div>
+              {bundle.travel_destination && (
+                <div className="flex gap-2">
+                  <span className="text-gray-500 w-28 shrink-0">Destination:</span>
+                  <span className="font-semibold">{bundle.travel_destination}</span>
+                </div>
+              )}
+              {bundle.departure_date && (
+                <div className="flex gap-2">
+                  <span className="text-gray-500 w-28 shrink-0">Departure:</span>
+                  <span className="font-semibold">{bundle.departure_date}</span>
+                </div>
+              )}
+              {bundle.arrival_date && (
+                <div className="flex gap-2">
+                  <span className="text-gray-500 w-28 shrink-0">Arrival:</span>
+                  <span className="font-semibold">{bundle.arrival_date}</span>
+                </div>
+              )}
+              <div className="flex gap-2">
+                <span className="text-gray-500 w-28 shrink-0">Overseas:</span>
+                <span className="font-semibold">{bundle.is_overseas ? "Yes" : "No"}</span>
+              </div>
+            </div>
+          </section>
+
+          {/* Line Items Table */}
+          <section className="mb-8">
+            <h3 className="font-bold text-xs text-gray-500 uppercase tracking-wider mb-3 border-b border-gray-200 pb-1">
+              Expense Line Items ({bundle.line_items.length} Receipts)
+            </h3>
+            <table className="w-full border-collapse" style={{ fontSize: "12px" }}>
+              <thead>
+                <tr className="bg-gray-50 text-gray-500 uppercase text-[10px] tracking-wider">
+                  <th className="text-left py-2 px-3 border border-gray-200 font-semibold w-16">Ref</th>
+                  <th className="text-left py-2 px-3 border border-gray-200 font-semibold">Category / Audit Notes</th>
+                  <th className="text-right py-2 px-3 border border-gray-200 font-semibold w-28">Requested (RM)</th>
+                  <th className="text-right py-2 px-3 border border-gray-200 font-semibold w-28">Approved (RM)</th>
+                  <th className="text-center py-2 px-3 border border-gray-200 font-semibold w-24">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {bundle.line_items.map((item, i) => {
+                  return (
+                    <tr key={i} className={
+                      item.status === "REJECTED" ? "bg-red-50"
+                    : item.status === "PARTIAL_APPROVE" ? "bg-amber-50"
+                    : item.status === "PENDING"  ? "bg-gray-50"
+                    : "bg-white"
+                    }>
+                      <td className="py-2 px-3 border border-gray-200 font-mono text-[10px] text-gray-500">
+                        {item.document_id.slice(0, 8)}
+                      </td>
+                      <td className="py-2 px-3 border border-gray-200">
+                        {item.category} - {item.description}
+                        {item.audit_notes.length > 0 && (
+                          <div className="mt-1 space-y-0.5">
+                            {item.audit_notes.map((adj, j) => (
+                              <div key={j} className="text-[10px] text-gray-500 flex gap-1">
+                                <span className="text-gray-400">↳</span>
+                                <span>{adj.tag} {adj.message}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </td>
+                      <td className="py-2 px-3 border border-gray-200 text-right tabular-nums">
+                        {item.requested_amount.toFixed(2)}
+                      </td>
+                      <td className="py-2 px-3 border border-gray-200 text-right tabular-nums font-semibold">
+                        {item.approved_amount.toFixed(2)}
+                      </td>
+                      <td className="py-2 px-3 border border-gray-200 text-center">
+                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${
+                          item.status === "APPROVED" ? "bg-green-100 text-green-700"
+                        : item.status === "PARTIAL_APPROVE" ? "bg-amber-100 text-amber-700"
+                        : item.status === "PENDING"  ? "bg-gray-100 text-gray-600"
+                        : "bg-red-100 text-red-700"
+                        }`}>
+                          {item.status.replace("_", " ")}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+              <tfoot>
+                <tr className="bg-gray-50 font-bold">
+                  <td colSpan={2} className="py-2 px-3 border border-gray-200 text-right text-gray-700">Total Requested</td>
+                  <td className="py-2 px-3 border border-gray-200 text-right tabular-nums">{totalRequested.toFixed(2)}</td>
+                  <td className="py-2 px-3 border border-gray-200 text-right tabular-nums text-gray-900">{totalApproved.toFixed(2)}</td>
+                  <td className="py-2 px-3 border border-gray-200" />
+                </tr>
+                {totalDeducted > 0 && (
+                  <tr className="bg-red-50">
+                     <td colSpan={2} className="py-2 px-3 border border-gray-200 text-right text-red-700 font-semibold">Total Deduction</td>
+                     <td className="py-2 px-3 border border-gray-200" />
+                     <td className="py-2 px-3 border border-gray-200 text-right tabular-nums text-red-700 font-bold">({totalDeducted.toFixed(2)})</td>
+                     <td className="py-2 px-3 border border-gray-200" />
+                  </tr>
+                )}
+                <tr className="bg-indigo-50">
+                  <td colSpan={2} className="py-3 px-3 border border-gray-200 text-right text-indigo-700 font-bold uppercase tracking-wide">NET APPROVED</td>
+                  <td className="py-3 px-3 border border-gray-200" />
+                  <td className="py-3 px-3 border border-gray-200 text-right tabular-nums text-indigo-700 font-extrabold text-base">{totalApproved.toFixed(2)}</td>
+                  <td className="py-3 px-3 border border-gray-200" />
+                </tr>
+              </tfoot>
+            </table>
+          </section>
+
+          {/* Signature Block */}
+          <div className="mt-12 grid grid-cols-2 gap-12 border-t border-gray-200 pt-6">
+            {["Employee Signature", "HR Authorisation"].map((label) => (
+              <div key={label}>
+                <div className="h-12 border-b border-gray-400 mb-2" />
+                <p className="text-xs text-gray-500">{label}</p>
+                <p className="text-xs text-gray-400 mt-0.5">Date: ___________</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Footer */}
+          <div className="mt-8 pt-4 border-t border-gray-100 flex justify-between text-gray-400 text-[10px]">
+            <span>Generated by Reclaim v1.0 · {bundle.id}</span>
+            <span>CONFIDENTIAL — Internal Use Only</span>
+          </div>
+        </div>
+      </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ViewPage() {
   const { id } = useParams() as { id: string };
   const router = useRouter();
@@ -43,6 +284,8 @@ export default function ViewPage() {
   const [note, setNote] = useState("");
   const [auditOpen, setAuditOpen] = useState(false);
   const [lightbox, setLightbox] = useState<string | null>(null);
+  const [showFormModal, setShowFormModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   if (!bundle) return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
@@ -56,7 +299,7 @@ export default function ViewPage() {
   function submit() {
     // TODO: POST /api/hr/bundles/:id/confirm  |  /api/hr/bundles/:id/flag
     console.log("view payload", { id, action: hrDecision, note });
-    router.push("/hr/dashboard");
+    setShowSuccessModal(true);
   }
 
   return (
@@ -84,10 +327,10 @@ export default function ViewPage() {
         </p>
       </div>
 
-      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6 min-w-0">
+      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6">
 
         {/* ═══ LEFT ═══ */}
-        <div className="flex flex-col gap-6 min-w-0">
+        <div className="flex flex-col gap-6">
 
           {/* Employee Identity */}
           <Card title="Employee Identity">
@@ -108,73 +351,39 @@ export default function ViewPage() {
             </div>
           </Card>
 
-          {/* Claimant Form PDF */}
-          <Card
-            title={<span className="flex items-center gap-2"><FileText className="w-4 h-4 text-primary" strokeWidth={2} /> Claimant Submission Form</span>}
-            right={
-              <button className="inline-flex items-center gap-1.5 text-[10px] font-semibold px-2.5 py-1.5 rounded-lg bg-primary/8 text-primary hover:bg-primary/15 transition-colors">
-                <Download className="w-3 h-3" strokeWidth={2.5} /> Download PDF
-              </button>
-            }
-          >
-            <div className="p-5">
-              <div className="rounded-lg border border-outline-variant/20 bg-[#fafaf9] shadow-[inset_0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden font-[system-ui]">
-                <div className="px-6 py-4 bg-surface-container-low/60 border-b border-outline-variant/15 flex items-center justify-between">
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Reclaim Sdn. Bhd.</p>
-                    <p className="text-sm font-bold text-on-surface mt-0.5">Employee Expense Claim Form</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-[10px] text-on-surface-variant">Claim No.</p>
-                    <p className="text-xs font-mono font-bold text-primary">{bundle.id.toUpperCase()}</p>
-                  </div>
+          {/* Official Document */}
+          <Card title="Official Document">
+            <div className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2.5 bg-primary/10 rounded-xl shrink-0">
+                  <FileText className="w-5 h-5 text-primary" />
                 </div>
-                <div className="px-6 pt-4 pb-3">
-                  <p className="text-[9px] font-bold uppercase tracking-widest text-on-surface-variant/60 mb-3 border-b border-dashed border-outline-variant/30 pb-1">Section A — Claimant Information</p>
-                  <div className="grid grid-cols-2 gap-x-6 gap-y-2.5">
-                    {([  
-                      ["Full Name", bundle.employee.name],
-                      ["Employee No.", bundle.employee.employee_no],
-                      ["Position", bundle.employee.position],
-                      ["Department", bundle.employee.department],
-                      ["Location", bundle.employee.location],
-                      ["Email", bundle.employee.email],
-                    ] as [string, string][]).map(([l, v]) => (
-                      <div key={l}>
-                        <p className="text-[9px] text-on-surface-variant uppercase tracking-wider">{l}</p>
-                        <p className="text-xs font-medium text-on-surface border-b border-dotted border-outline-variant/40 pb-0.5 mt-0.5">{v}</p>
-                      </div>
-                    ))}
-                  </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-headline font-semibold text-sm text-on-surface">Official Claim Form</p>
+                  <p className="font-body text-xs text-on-surface-variant">
+                    {bundle.id}_claim_form.pdf
+                  </p>
                 </div>
-                <div className="px-6 pt-3 pb-3">
-                  <p className="text-[9px] font-bold uppercase tracking-widest text-on-surface-variant/60 mb-3 border-b border-dashed border-outline-variant/30 pb-1">Section B — Claim Details</p>
-                  <div className="grid grid-cols-2 gap-x-6 gap-y-2.5">
-                    {([
-                      ["Travel Destination", bundle.travel_destination],
-                      ["Purpose of Travel", bundle.travel_purpose],
-                      ["Departure Date", bundle.departure_date],
-                      ["Return Date", bundle.arrival_date],
-                      ["Overseas Travel", bundle.is_overseas ? "Yes ✓" : "No"],
-                      ["Total Amount Claimed", `MYR ${bundle.totals.total_requested.toLocaleString("en-MY", { minimumFractionDigits: 2 })}`],
-                    ] as [string, string][]).map(([l, v]) => (
-                      <div key={l}>
-                        <p className="text-[9px] text-on-surface-variant uppercase tracking-wider">{l}</p>
-                        <p className="text-xs font-medium text-on-surface border-b border-dotted border-outline-variant/40 pb-0.5 mt-0.5">{v}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div className="px-6 py-3 border-t border-outline-variant/15 flex items-center justify-between bg-surface-container-low/30">
-                  <div>
-                    <p className="text-[9px] text-on-surface-variant uppercase tracking-wider">Employee Signature</p>
-                    <p className="text-xs font-medium text-on-surface mt-1 italic">{bundle.employee.name}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-[9px] text-on-surface-variant uppercase tracking-wider">Date Submitted</p>
-                    <p className="text-xs font-medium text-on-surface mt-1">{new Date(bundle.submitted_at).toLocaleDateString("en-MY")}</p>
-                  </div>
-                </div>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <button
+                  id={`view-form-${bundle.id}`}
+                  onClick={() => setShowFormModal(true)}
+                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-primary text-on-primary font-body font-semibold text-sm hover:bg-primary/90 active:scale-[0.98] transition-all shadow-sm cursor-pointer"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  View Official Claim Form
+                </button>
+                <a
+                  id={`download-pdf-${bundle.id}`}
+                  href={`/api/v1/reimbursements/${bundle.id}/pdf`}
+                  download
+                  className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border border-outline-variant/20 text-on-surface-variant font-body font-semibold text-sm hover:bg-surface-container transition-colors active:scale-[0.98] cursor-pointer"
+                  aria-label="Download Official Form (PDF)"
+                >
+                  <Download className="w-4 h-4" />
+                  <span className="hidden sm:inline">Download PDF</span>
+                </a>
               </div>
             </div>
           </Card>
@@ -185,24 +394,24 @@ export default function ViewPage() {
               <table className="w-full text-left text-sm border-collapse">
                 <thead>
                   <tr className="bg-surface-container-low/60">
-                    {["#", "Date", "Cat.", "Description", "Amount", "Status"].map(h => (
-                      <th key={h} className="py-3 px-3 text-[10px] font-semibold font-headline text-on-surface-variant uppercase tracking-wider whitespace-nowrap">{h}</th>
+                    {["#", "Date", "Category", "Description", "Amount (MYR)", "Status"].map(h => (
+                      <th key={h} className="py-3 px-4 text-[10px] font-semibold font-headline text-on-surface-variant uppercase tracking-wider whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-outline-variant/10">
                   {bundle.line_items.map((li, idx) => (
                     <tr key={li.document_id} className="hover:bg-surface-container-low/30 transition-colors">
-                      <td className="py-3 px-3 text-on-surface-variant">
+                      <td className="py-3 px-4 text-on-surface-variant">
                         {li.receipt_url
                           ? <button onClick={() => setLightbox(li.receipt_url!)} className="flex items-center gap-1 text-primary hover:underline text-xs"><ZoomIn className="w-3 h-3" />{idx + 1}</button>
                           : <span className="text-xs">{idx + 1}</span>}
                       </td>
-                      <td className="py-3 px-3 text-on-surface-variant whitespace-nowrap text-xs">{li.date}</td>
-                      <td className="py-3 px-3"><span className="text-xs bg-surface-container px-1.5 py-0.5 rounded-full text-on-surface-variant">{CAT[li.category]}</span></td>
-                      <td className="py-3 px-3 text-on-surface text-xs">{li.description}</td>
-                      <td className="py-3 px-3 font-semibold tabular-nums text-emerald-700 whitespace-nowrap text-xs">{fmt(li.approved_amount)}</td>
-                      <td className="py-3 px-3">
+                      <td className="py-3 px-4 text-on-surface-variant whitespace-nowrap text-xs">{li.date}</td>
+                      <td className="py-3 px-4"><span className="text-xs bg-surface-container px-2 py-0.5 rounded-full text-on-surface-variant">{CAT[li.category]}</span></td>
+                      <td className="py-3 px-4 text-on-surface">{li.description}</td>
+                      <td className="py-3 px-4 font-semibold tabular-nums text-emerald-700 whitespace-nowrap">{fmt(li.approved_amount)}</td>
+                      <td className="py-3 px-4">
                         <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${STATUS_CHIP[li.status]}`}>{li.status.replace("_", " ")}</span>
                       </td>
                     </tr>
@@ -331,6 +540,15 @@ export default function ViewPage() {
           </div>
         </div>
       )}
+
+      {showFormModal && (
+        <ClaimFormModal
+          bundle={bundle}
+          onClose={() => setShowFormModal(false)}
+        />
+      )}
+
+      {showSuccessModal && <SuccessModal decision={hrDecision} id={bundle.id} />}
     </div>
   );
 }
