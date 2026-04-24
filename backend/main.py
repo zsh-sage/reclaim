@@ -1,4 +1,5 @@
 import os
+import logging
 from dotenv import load_dotenv
 
 # Load .env into os.environ BEFORE LangChain imports so LangSmith tracing activates
@@ -28,6 +29,16 @@ async def lifespan(app: FastAPI):
     yield
     # Clean up on shutdown
     engine.dispose()
+    
+# ─── Silencing Annoying Health Check Logs ──────────────────────────────────────
+class EndpointFilter(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        # Suppress access logs for /health
+        return record.getMessage().find("/health") == -1
+
+# Filter out uvicorn access logs for health checks
+logging.getLogger("uvicorn.access").addFilter(EndpointFilter())
+# ──────────────────────────────────────────────────────────────────────────────
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
