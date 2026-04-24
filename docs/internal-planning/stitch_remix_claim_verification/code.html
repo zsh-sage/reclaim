@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Transaction Details</title>
+<!-- Font Setup -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration -->
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          },
+          colors: {
+            primary: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              200: '#c7d2fe',
+              300: '#a5b4fc',
+              400: '#818cf8',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+              800: '#3730a3',
+              900: '#312e81',
+              950: '#1e1b4b',
+            },
+            surface: {
+              main: '#ffffff',
+              muted: '#f8fafc',
+              elevated: '#ffffff',
+            },
+            text: {
+              main: '#0f172a',
+              muted: '#64748b',
+              inverse: '#ffffff',
+            },
+            border: '#e2e8f0',
+          },
+          borderRadius: {
+            'xl': '0.75rem',
+            '2xl': '1rem',
+            '3xl': '1.5rem',
+          },
+          boxShadow: {
+            'sm': '0 1px 2px 0 rgb(0 0 0 / 0.05)',
+            'md': '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
+            'lg': '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
+            'xl': '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
+            'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.07)',
+          }
+        }
+      }
+    }
+  </script>
+<!-- Custom Styles -->
+<style data-purpose="custom-utilities">
+    body {
+      background-color: #f1f5f9;
+      color: #0f172a;
+    }
+    
+    /* Hide scrollbar for clean look */
+    ::-webkit-scrollbar {
+      width: 0px;
+      background: transparent;
+    }
+  </style>
+<!-- Lucide Icons -->
+<script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4 lg:p-8 font-sans antialiased text-text-main bg-[#f4f4f5]">
+<!-- BEGIN: MainContainer -->
+<main class="w-full max-w-7xl mx-auto h-auto lg:h-[90vh] flex flex-col lg:flex-row gap-6">
+<!-- BEGIN: LeftColumn - Document Viewer -->
+<section class="w-full lg:flex-1 bg-surface-muted rounded-3xl shadow-sm border border-border flex flex-col relative overflow-hidden min-h-[750px] lg:min-h-0">
+<!-- Top Actions -->
+<header class="p-6 flex justify-between items-center z-10 absolute top-0 left-0 right-0">
+<button class="bg-primary-600 hover:bg-primary-700 text-white px-5 py-2.5 rounded-full flex items-center gap-2 font-medium transition-colors shadow-sm">
+<i class="w-5 h-5" data-lucide="chevron-left"></i>
+          Back
+        </button>
+<div class="flex items-center gap-2">
+<button class="bg-white hover:bg-gray-50 text-gray-700 p-2.5 rounded-full shadow-sm border border-gray-100 transition-colors">
+<i class="w-5 h-5" data-lucide="zoom-in"></i>
+</button>
+<button class="bg-white hover:bg-gray-50 text-gray-700 p-2.5 rounded-full shadow-sm border border-gray-100 transition-colors">
+<i class="w-5 h-5" data-lucide="zoom-out"></i>
+</button>
+<button class="bg-white hover:bg-gray-50 text-gray-700 p-2.5 rounded-full shadow-sm border border-gray-100 transition-colors ml-2">
+<i class="w-5 h-5" data-lucide="maximize-2"></i>
+</button>
+</div>
+</header>
+<!-- Document Preview Area -->
+<div class="flex-1 flex flex-col items-center justify-center pt-24 pb-20 px-4 lg:px-8 relative overflow-y-auto">
+<div class="w-full max-w-lg bg-[#000000] p-4 lg:p-12 shadow-xl rounded-sm flex items-center justify-center min-h-[400px] lg:min-h-[500px]">
+<!-- Simulating the receipt image container -->
+<div class="bg-[#f0f0f0] w-full h-[450px] lg:h-[600px] flex items-start justify-center p-4 lg:p-8 relative overflow-hidden">
+<div class="text-center w-full transform scale-75 lg:scale-100 origin-top">
+<h2 class="font-bold text-xl mb-4 tracking-widest text-gray-800">RECEIPT</h2>
+<p class="text-xs text-gray-500 mb-8 uppercase tracking-widest">Safe for work</p>
+<div class="space-y-4 text-left w-full text-xs text-gray-600 font-mono">
+<div class="flex border-b border-gray-300 pb-1">
+<span class="w-1/2">MERCHANT:</span>
+<span class="w-1/2 text-right">Bouchon Bistro</span>
+</div>
+<div class="flex border-b border-gray-300 pb-1">
+<span class="w-1/2">DATE:</span>
+<span class="w-1/2 text-right">Oct 24, 2023</span>
+</div>
+<div class="flex border-b border-gray-300 pb-1">
+<span class="w-1/2">TIME:</span>
+<span class="w-1/2 text-right">8:45 PM</span>
+</div>
+<div class="flex border-b border-gray-300 pb-1 pt-4 font-bold">
+<span class="w-1/2">TOTAL:</span>
+<span class="w-1/2 text-right">RM 342.50</span>
+</div>
+<div class="mt-8 opacity-40">
+<p>---------------------------------</p>
+<p>THANK YOU FOR YOUR BUSINESS</p>
+<p>---------------------------------</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="mt-6 text-center w-full max-w-lg">
+<p class="text-sm font-semibold text-gray-800">Business Travel Settlement Form (Appendix 2b)</p>
+<!-- Pagination (Desktop Only) -->
+<div class="mt-4 hidden lg:inline-flex items-center bg-white rounded-full shadow-sm border border-gray-200 px-2 py-1">
+<button class="p-1 text-gray-400 hover:text-gray-700 transition-colors">
+<i class="w-4 h-4" data-lucide="chevron-left"></i>
+</button>
+<span class="px-3 text-xs font-semibold text-gray-700">Doc 1 of 2</span>
+<button class="p-1 text-gray-400 hover:text-gray-700 transition-colors">
+<i class="w-4 h-4" data-lucide="chevron-right"></i>
+</button>
+</div>
+<!-- Attached Documents (Mobile Only) -->
+<div class="mt-8 block lg:hidden text-left w-full">
+<h3 class="text-gray-600 font-medium text-sm mb-4">Attached Documents</h3>
+<div class="flex gap-4 overflow-x-auto pb-4 snap-x">
+<div class="min-w-[160px] bg-white rounded-3xl shadow-sm border border-gray-100 flex flex-col cursor-pointer overflow-hidden snap-start">
+<div class="h-28 bg-gray-50 relative flex items-center justify-center text-center px-4">
+<div class="absolute inset-0 bg-white opacity-60"></div>
+<span class="text-sm font-bold text-gray-900 relative z-10 leading-tight">Click to view<br/>document</span>
+</div>
+<div class="p-4 flex flex-col gap-1 bg-white border-t border-gray-50">
+<div class="flex items-center gap-2">
+<i class="w-4 h-4 text-primary-500 flex-shrink-0" data-lucide="file-text"></i>
+<span class="text-xs text-gray-600 font-medium truncate">dinner_receipt_sfo.pdf</span>
+</div>
+</div>
+</div>
+<div class="min-w-[160px] bg-white rounded-3xl shadow-sm border border-gray-100 flex flex-col cursor-pointer overflow-hidden snap-start">
+<div class="h-28 bg-gray-200 relative overflow-hidden">
+<div class="absolute top-0 left-0 right-0 h-1/2 bg-[#e5e7eb] flex flex-col gap-1 p-3">
+<div class="h-1 bg-gray-400 w-3/4 rounded"></div>
+<div class="h-1 bg-gray-400 w-1/2 rounded"></div>
+<div class="h-1 bg-gray-400 w-full rounded"></div>
+</div>
+<div class="absolute bottom-0 left-0 right-0 h-1/2 bg-black"></div>
+</div>
+<div class="p-4 flex flex-col gap-1 bg-white border-t border-gray-50">
+<div class="flex items-center gap-2">
+<i class="w-4 h-4 text-primary-500 flex-shrink-0" data-lucide="file-text"></i>
+<span class="text-xs text-gray-600 font-medium truncate">Business Travel<br/>Settlement.pdf</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- File Info Footer -->
+<footer class="bg-white border-t border-border p-4 flex justify-between items-center absolute bottom-0 left-0 right-0 m-4 rounded-xl shadow-sm">
+<div class="flex items-center gap-3 text-sm font-medium text-gray-700 truncate mr-2">
+<i class="w-5 h-5 text-primary-500 flex-shrink-0" data-lucide="file-text"></i>
+<span class="truncate">business_travel_form.pdf</span>
+</div>
+<span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-semibold tracking-wide flex-shrink-0">
+          Scanned
+        </span>
+</footer>
+</section>
+<!-- END: LeftColumn -->
+<!-- BEGIN: RightColumn - Data Entry -->
+<section class="w-full lg:w-[480px] bg-white rounded-3xl shadow-glass border border-white/50 flex flex-col overflow-y-auto h-auto lg:h-full">
+<div class="p-6 lg:p-8 flex-1">
+<!-- Header -->
+<div class="mb-8">
+<h1 class="text-2xl font-bold text-gray-900 mb-2">Transaction Details</h1>
+<p class="text-sm text-gray-500">Review extracted data and complete missing information.</p>
+</div>
+<!-- Extracted Data Section -->
+<div class="mb-10">
+<h3 class="text-xs font-bold text-primary-600 uppercase tracking-widest mb-4">Extracted Data</h3>
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+<!-- Merchant Field (Locked) -->
+<div class="bg-gray-50 rounded-2xl p-4 border border-gray-100 relative group">
+<label class="block text-xs font-medium text-gray-500 mb-1">Merchant</label>
+<div class="text-gray-900 font-semibold text-lg truncate">Bouchon Bistro</div>
+<i class="w-4 h-4 text-gray-300 absolute top-4 right-4 group-hover:text-gray-400 transition-colors" data-lucide="lock"></i>
+</div>
+<!-- Amount Field (Locked) -->
+<div class="bg-gray-50 rounded-2xl p-4 border border-gray-100 relative group">
+<label class="block text-xs font-medium text-gray-500 mb-1">Amount</label>
+<div class="text-gray-900 font-bold text-xl">RM 342.50</div>
+<i class="w-4 h-4 text-gray-300 absolute top-4 right-4 group-hover:text-gray-400 transition-colors" data-lucide="lock"></i>
+</div>
+</div>
+<!-- Date Field (Locked) -->
+<div class="bg-gray-50 rounded-2xl p-4 border border-gray-100 relative group">
+<label class="block text-xs font-medium text-gray-500 mb-1">Date</label>
+<div class="text-gray-900 font-semibold">October 24, 2023 at 8:45 PM</div>
+<i class="w-4 h-4 text-gray-300 absolute top-4 right-4 group-hover:text-gray-400 transition-colors" data-lucide="lock"></i>
+</div>
+</div>
+<!-- Divider -->
+<hr class="border-gray-100 mb-8"/>
+<!-- Report Information Section -->
+<div class="bg-gray-50/50 rounded-3xl p-6 border border-gray-100">
+<!-- Section Header -->
+<div class="flex items-start gap-3 mb-6">
+<div class="bg-white p-2 rounded-lg shadow-sm border border-gray-100 text-primary-600">
+<i class="w-5 h-5" data-lucide="folder"></i>
+</div>
+<div>
+<h3 class="text-sm font-bold text-gray-900">REPORT INFORMATION</h3>
+<p class="text-xs text-gray-500 mt-0.5">Applies to all documents in this claim.</p>
+</div>
+</div>
+<!-- Form Fields -->
+<div class="space-y-5">
+<div>
+<label class="block text-sm font-medium text-gray-700 mb-2" for="clientName">Client Name</label>
+<input class="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-shadow shadow-sm" id="clientName" placeholder="e.g. Acme Corp" type="text"/>
+</div>
+<div>
+<label class="block text-sm font-medium text-gray-700 mb-2" for="purpose">Purpose of Expense</label>
+<textarea class="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-shadow shadow-sm resize-none" id="purpose" placeholder="Briefly describe the business purpose..." rows="3"></textarea>
+</div>
+</div>
+</div>
+</div>
+<!-- Action Footer -->
+<div class="p-6 bg-white/80 backdrop-blur-md border-t border-gray-100 flex items-center justify-between rounded-b-3xl">
+<button class="text-primary-600 font-semibold text-sm hover:text-primary-700 px-4 py-2 transition-colors">
+          Save Draft
+        </button>
+<button class="bg-primary-300 hover:bg-primary-400 text-white font-medium text-sm px-6 py-3 rounded-xl flex items-center gap-2 transition-colors shadow-sm">
+          Submit for Approval
+          <i class="w-4 h-4" data-lucide="arrow-right"></i>
+</button>
+</div>
+</section>
+<!-- END: RightColumn -->
+</main>
+<!-- END: MainContainer -->
+<!-- Icon Initialization -->
+<script data-purpose="icon-initialization">
+    lucide.createIcons();
+  </script>
+</body></html>

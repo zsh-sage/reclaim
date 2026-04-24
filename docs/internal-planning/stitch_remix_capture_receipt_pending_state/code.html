@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Capture Receipt - Luminous Employee Portal</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "secondary": "#00628c",
+                        "on-background": "#2c2f31",
+                        "on-tertiary-fixed-variant": "#660075",
+                        "primary-fixed": "#9396ff",
+                        "on-primary-container": "#0a0081",
+                        "tertiary-fixed": "#f487ff",
+                        "inverse-surface": "#0b0f10",
+                        "on-primary-fixed-variant": "#0e009d",
+                        "on-secondary": "#e9f4ff",
+                        "on-primary-fixed": "#000000",
+                        "on-secondary-fixed": "#003853",
+                        "on-tertiary": "#ffeefb",
+                        "surface-dim": "#d0d5d8",
+                        "on-surface-variant": "#595c5e",
+                        "outline": "#747779",
+                        "primary-container": "#9396ff",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary-container": "#004c6f",
+                        "tertiary": "#9e00b4",
+                        "on-error-container": "#510017",
+                        "primary-dim": "#3939c7",
+                        "primary-fixed-dim": "#8387ff",
+                        "on-primary": "#f4f1ff",
+                        "error": "#b41340",
+                        "surface-bright": "#f5f7f9",
+                        "primary": "#4647d3",
+                        "tertiary-fixed-dim": "#ef6eff",
+                        "surface-tint": "#4647d3",
+                        "on-tertiary-container": "#580065",
+                        "on-error": "#ffefef",
+                        "tertiary-dim": "#8a009e",
+                        "on-tertiary-fixed": "#300038",
+                        "error-dim": "#a70138",
+                        "surface-container-high": "#dfe3e6",
+                        "inverse-primary": "#8083ff",
+                        "background": "#f5f7f9",
+                        "outline-variant": "#abadaf",
+                        "surface-container": "#e5e9eb",
+                        "secondary-fixed": "#a4d8ff",
+                        "surface-container-highest": "#d9dde0",
+                        "secondary-container": "#a4d8ff",
+                        "surface-container-low": "#eef1f3",
+                        "surface": "#f5f7f9",
+                        "on-surface": "#2c2f31",
+                        "error-container": "#f74b6d",
+                        "secondary-dim": "#00557b",
+                        "tertiary-container": "#f487ff",
+                        "surface-variant": "#d9dde0",
+                        "secondary-fixed-dim": "#81ccff",
+                        "on-secondary-fixed-variant": "#00567c",
+                        "inverse-on-surface": "#9a9d9f"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {},
+                    "fontFamily": {
+                        "headline": [
+                            "Plus Jakarta Sans"
+                        ],
+                        "body": [
+                            "Inter"
+                        ],
+                        "label": [
+                            "Inter"
+                        ]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f5f7f9;
+        }
+        h1, h2, h3, h4, h5, h6, .font-headline {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        .bg-gradient-split {
+            background: linear-gradient(135deg, rgba(70,71,211,0.05) 0%, rgba(147,150,255,0.05) 50%, rgba(158,0,180,0.05) 100%);
+        }
+        .glass-panel {
+            background-color: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface min-h-screen flex items-center justify-center bg-gradient-split">
+<!-- Main Content Area Only -->
+<main class="w-full max-w-4xl px-6 md:px-12 py-12">
+<div class="flex flex-col gap-8">
+<!-- Header Section -->
+<div class="flex flex-col gap-2">
+<h1 class="text-4xl md:text-5xl font-extrabold font-headline text-on-surface tracking-tight" style="letter-spacing: -0.02em;">Capture Receipt</h1>
+<p class="text-lg text-on-surface-variant font-body">Upload your expense document for AI processing. We support PDF, JPG and PNG formats.</p>
+</div>
+<!-- Form Section (Single Column) -->
+<div class="flex flex-col gap-6 mt-4">
+<!-- Main Category -->
+<div class="flex flex-col gap-2">
+<label class="text-sm font-semibold text-on-surface font-headline ml-1" for="main-category">Main Category</label>
+<div class="relative">
+<select class="w-full appearance-none bg-white border border-outline-variant/30 text-on-surface text-base rounded-xl px-4 py-4 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 shadow-sm transition-all duration-200 cursor-pointer font-body" id="main-category">
+<option disabled="" selected="" value="">Select a category...</option>
+<option value="travel">Travel</option>
+<option value="meals">Meals &amp; Entertainment</option>
+<option value="office">Office Supplies</option>
+<option value="software">Software &amp; Subscriptions</option>
+</select>
+<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-outline">
+<span class="material-symbols-outlined">expand_more</span>
+</div>
+</div>
+</div>
+<!-- Sub-category (Disabled initially) -->
+<div class="flex flex-col gap-2 opacity-60">
+<label class="text-sm font-semibold text-on-surface font-headline ml-1" for="sub-category">Sub-category</label>
+<div class="relative">
+<select class="w-full appearance-none bg-surface-container-low border border-outline-variant/20 text-on-surface-variant text-base rounded-xl px-4 py-4 cursor-not-allowed font-body" disabled="" id="sub-category">
+<option disabled="" selected="" value="">Select a main category first...</option>
+</select>
+<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-outline-variant">
+<span class="material-symbols-outlined">expand_more</span>
+</div>
+</div>
+</div>
+<!-- Upload Area (Pending state initially) -->
+<div class="mt-4 flex flex-col gap-2 opacity-60 pointer-events-none">
+<label class="text-sm font-semibold text-on-surface font-headline ml-1">Required Documents</label>
+<div class="border-2 border-dashed border-outline-variant/30 rounded-xl bg-surface-container-lowest flex flex-col items-center justify-center py-12 px-6 text-center transition-all duration-200">
+<div class="w-16 h-16 bg-surface-container-low rounded-full flex items-center justify-center mb-4 text-outline-variant">
+<span class="material-symbols-outlined text-3xl">pending</span>
+</div>
+<h3 class="text-lg font-semibold text-on-surface font-headline mb-1">Waiting for selection</h3>
+<p class="text-sm text-on-surface-variant font-body max-w-xs">Please select a category and sub-category to view required documents.</p>
+</div>
+</div>
+<!-- Bottom Action Bar -->
+<div class="mt-8 flex items-center justify-end gap-4 border-t border-outline-variant/20 pt-6">
+<button class="px-6 py-2.5 rounded-xl font-semibold text-on-surface-variant bg-surface-container hover:bg-surface-container-highest transition-colors font-body">Save Draft</button>
+<button class="px-6 py-2.5 rounded-xl font-semibold text-white bg-primary/50 cursor-not-allowed font-body" disabled="">Process Receipt</button>
+</div>
+</div>
+</div>
+</main>
+</body></html>
