@@ -1,7 +1,7 @@
 "use client";
 import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
-import { ArrowLeft, Clock, ShieldCheck, ShieldX, ChevronDown, ZoomIn, CheckCircle2, FileText, Download } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ArrowLeft, Clock, ShieldCheck, ShieldX, ChevronDown, ZoomIn, CheckCircle2, FileText, ExternalLink, Download, X, Loader2 } from "lucide-react";
 import { ClaimBundle, MOCK_BUNDLES } from "../../hr_components/mockData";
 
 const STATUS_CHIP: Record<string, string> = {
