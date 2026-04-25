@@ -109,9 +109,12 @@ def _extract_json(content: str) -> dict | None:
     return None
 
 
-def _format_human_edit_block(human_edit: dict) -> str:
+def _format_human_edit_block(human_edit) -> str:
     """Format _human_edit dict into a readable prompt block. Returns empty string if no changes."""
-    if not human_edit or not human_edit.get("has_changes"):
+    if not isinstance(human_edit, dict):
+        logger.warning("[HUMAN_EDIT] Expected dict but got %s: %r", type(human_edit).__name__, human_edit)
+        return ""
+    if not human_edit.get("has_changes"):
         return ""
 
     lines = [
@@ -120,9 +123,15 @@ def _format_human_edit_block(human_edit: dict) -> str:
         "Changed Fields:",
     ]
     for field, info in (human_edit.get("changes_by_field") or {}).items():
-        orig = info.get("original", "N/A")
-        edited = info.get("edited", "N/A")
-        severity = info.get("severity", "UNKNOWN")
+        if isinstance(info, dict):
+            orig = info.get("original", "N/A")
+            edited = info.get("edited", "N/A")
+            severity = info.get("severity", "UNKNOWN")
+        else:
+            # editable_fields stores flat values, not nested change records
+            orig = "N/A"
+            edited = str(info) if info is not None else "N/A"
+            severity = "UNKNOWN"
         lines.append(f"  - {field}: {orig!r} -> {edited!r}  [Severity: {severity}]")
     return "\n".join(lines)
 
@@ -236,15 +245,20 @@ def load_context(state: ComplianceWorkflowState, session: Session) -> dict:
             if doc_id and doc_id in doc_map:
                 doc = doc_map[doc_id]
                 if doc.human_edited:
-                    # Apply editable_fields on top of receipt dict
-                    if doc.editable_fields:
-                        receipt.update(doc.editable_fields)
+                    # Apply editable_fields on top of receipt dict (defensive)
+                    fields = doc.editable_fields
+                    if isinstance(fields, dict):
+                        # Never let editable_fields overwrite our internal _human_edit key
+                        safe_fields = {k: v for k, v in fields.items() if k != "_human_edit"}
+                        receipt.update(safe_fields)
+                    elif fields:
+                        logger.warning("[LOAD_CONTEXT] doc.editable_fields is not a dict for doc=%s (type=%s)", doc_id, type(fields).__name__)
                     # Human edit info is now in document_change_logs table.
                     # For the agent prompt, we just flag that edits exist.
                     receipt["_human_edit"] = {
                         "has_changes": True,
                         "overall_risk": "MEDIUM",
-                        "changes_by_field": doc.editable_fields or {},
+                        "changes_by_field": fields if isinstance(fields, dict) else {},
                     }
 
     # Fallback: derive currency from first receipt's extracted_data if missing
@@ -336,8 +350,8 @@ def analyze_receipts(state: ComplianceWorkflowState, tools: list, progress_callb
                         "current": len(line_items),
                         "total": len(receipts),
                     })
-            except Exception as e:
-                logger.error("[ANALYZE_RECEIPTS] Error for receipt %s: %s", receipt.get("document_id"), e)
+            except Exception:
+                logger.exception("[ANALYZE_RECEIPTS] Error for receipt %s", receipt.get("document_id"))
                 line_items.append(_parse_line_item("", receipt))
 
     logger.info("[ANALYZE_RECEIPTS] Finished with %d line_items", len(line_items))

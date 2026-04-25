@@ -42,14 +42,14 @@ def get_chat_llm() -> ChatOpenAI:
         return ChatOpenAI(
             base_url=settings.OPENROUTER_BASE_URL,
             api_key=settings.OPENROUTER_API_KEY,
-            max_tokens=4096,
+            max_tokens=40000,
             model=FALLBACK_MODEL,
             model_kwargs={"response_format": {"type": "json_object"}},
         )
     return ChatOpenAI(
         base_url=settings.LLM_BASE_URL,
         api_key=settings.LLM_API_KEY,
-        max_tokens=4096,
+        max_tokens=40000,
         model=settings.CHAT_MODEL,
         model_kwargs={"response_format": {"type": "json_object"}},
     )
@@ -61,7 +61,7 @@ def get_vision_llm() -> ChatOpenAI:
     return ChatOpenAI(
         base_url=settings.OPENROUTER_BASE_URL,
         api_key=settings.OPENROUTER_API_KEY,
-        max_tokens=40960,
+        max_tokens=40000,
         model=settings.VISION_MODEL,
         model_kwargs={"response_format": {"type": "json_object"}},
     )
@@ -73,13 +73,13 @@ def get_agent_llm() -> ChatOpenAI:
     if _use_fallback:
         return ChatOpenAI(
             base_url=settings.OPENROUTER_BASE_URL,
-            max_tokens=4096,
+            max_tokens=40000,
             api_key=settings.OPENROUTER_API_KEY,
             model=FALLBACK_MODEL,
         )
     return ChatOpenAI(
         base_url=settings.LLM_BASE_URL,
-        max_tokens=4096,
+        max_tokens=40000,
         api_key=settings.LLM_API_KEY,
         model=settings.CHAT_MODEL,
     )
@@ -92,14 +92,14 @@ def get_text_llm() -> ChatOpenAI:
         return ChatOpenAI(
             base_url=settings.OPENROUTER_BASE_URL,
             api_key=settings.OPENROUTER_API_KEY,
-            max_tokens=4096,
+            max_tokens=40000,
             model=FALLBACK_MODEL,
             model_kwargs={"response_format": {"type": "json_object"}},
         )
     return ChatOpenAI(
         base_url=settings.LLM_BASE_URL,
         api_key=settings.LLM_API_KEY,
-        max_tokens=4096,
+        max_tokens=40000,
         model=settings.CHAT_MODEL,
         model_kwargs={"response_format": {"type": "json_object"}},
     )
@@ -111,6 +111,6 @@ def get_embeddings() -> OpenAIEmbeddings:
     return OpenAIEmbeddings(
         base_url=settings.OPENROUTER_BASE_URL,
         api_key=settings.OPENROUTER_API_KEY,
-        max_tokens=4096,
+        max_tokens=40000,
         model=settings.EMBEDDING_MODEL,
     )
