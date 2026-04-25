@@ -1,9 +1,9 @@
 "use client";
 
-import React, { JSX, useRef, useState, useEffect } from 'react';
-import { Plus, Search, ChevronUp, ChevronDown, ChevronRight, FileText, Shield, Archive, Pencil, Trash2, ArrowLeft, X, SlidersHorizontal, Upload, Settings, CheckCircle2, ScanLine, Sparkles, History, Clock, User, PlusCircle, AlertCircle, ShieldCheck, Users, Calendar, BarChart3 } from 'lucide-react';
+import React, { useRef, useState, useEffect } from 'react';
+import { Plus, Search, ChevronUp, ChevronDown, ChevronRight, FileText, Shield, Archive, Trash2, ArrowLeft, X, Upload, Settings, CheckCircle2, ScanLine, Sparkles, PlusCircle, AlertTriangle } from 'lucide-react';
 import { MOCK_POLICIES, POLICY_STATUS_STYLE, Policy, PolicyStatus, MOCK_POLICY_DETAILS } from '../hr_components/mockData';
-import { uploadPolicy } from '@/lib/actions/hr';
+import { uploadPolicy, deletePolicy } from '@/lib/actions/hr';
 import { getPolicies } from '@/lib/actions/policies';
 
 const SAVE_STEPS = [
@@ -127,11 +127,61 @@ export function HrProcessingScreen({ currentStep, onBack }: { currentStep: numbe
   );
 }
 
+// ─── Status Dropdown (outside PolicyStudio to prevent recreation on every render) ───
+function StatusDropdown({
+  editStatus,
+  statusDropdownOpen,
+  setEditStatus,
+  setStatusDropdownOpen,
+}: {
+  editStatus: PolicyStatus;
+  statusDropdownOpen: boolean;
+  setEditStatus: (s: PolicyStatus) => void;
+  setStatusDropdownOpen: (v: boolean) => void;
+}) {
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
+        className={`flex items-center justify-between gap-2 rounded-full px-4 py-2 text-sm font-body font-medium transition-all w-[140px] cursor-pointer ${
+          statusDropdownOpen ? 'bg-surface-container-low ring-2 ring-primary/20' : 'bg-surface-container-lowest border border-outline-variant hover:bg-surface-container-low'
+        }`}
+      >
+        <div className="flex items-center gap-2">
+          <span className={`w-2 h-2 rounded-full ${editStatus === 'Active' ? 'bg-[#137333]' : editStatus === 'Impending' ? 'bg-[#b06000]' : 'bg-outline-variant'}`} />
+          <span className="text-on-surface">{editStatus}</span>
+        </div>
+        <ChevronDown className={`text-on-surface-variant transition-transform ${statusDropdownOpen ? 'rotate-180' : ''}`} size={16} />
+      </button>
+      {statusDropdownOpen && (
+        <div className="absolute bottom-full mb-2 left-0 w-full bg-surface-container-lowest border border-outline-variant/50 rounded-xl shadow-[0_8px_30px_rgba(44,47,49,0.1)] py-1 z-50 animate-in fade-in slide-in-from-bottom-2 duration-150">
+          {(["Active", "Impending", "Expired"] as PolicyStatus[]).map((s) => (
+            <button
+              key={s}
+              onClick={() => { setEditStatus(s); setStatusDropdownOpen(false); }}
+              className="w-full text-left px-4 py-2.5 text-sm font-body text-on-surface hover:bg-surface-container-low transition-colors flex items-center gap-2 cursor-pointer"
+            >
+              <span className={`w-2 h-2 rounded-full ${s === 'Active' ? 'bg-[#137333]' : s === 'Impending' ? 'bg-[#b06000]' : 'bg-outline-variant'}`} />
+              {s}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function PolicyStudio() {
   const [editingPolicy, setEditingPolicy] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<PolicyStatus>("Active");
   const [searchQuery, setSearchQuery] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
+
+  // Delete policy state
+  const [showDeleteZone, setShowDeleteZone] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // File upload state
   const [mainPolicyFile, setMainPolicyFile] = useState<File | null>(null);
@@ -308,44 +358,19 @@ export default function PolicyStudio() {
       setEditDate("");
       setMainPolicyFile(null);
       setAppendixFiles([]);
+      setExistingAppendix([]);
+      setEditConditions(null);
+      setEditHistory([]);
+      setExistingMainPolicyDeleted(false);
     }
     setStatusDropdownOpen(false);
+    // Reset delete zone when switching policies
+    setShowDeleteZone(false);
+    setDeleteConfirmText("");
+    setDeleteError(null);
   }, [editingPolicy, policies]);
 
-  const StatusDropdown = () => (
-    <div className="relative">
-      <button 
-        onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
-        className={`flex items-center justify-between gap-2 rounded-full px-4 py-2 text-sm font-body font-medium transition-all w-[140px] cursor-pointer ${
-          statusDropdownOpen ? 'bg-surface-container-low ring-2 ring-primary/20' : 'bg-surface-container-lowest border border-outline-variant hover:bg-surface-container-low'
-        }`}
-      >
-        <div className="flex items-center gap-2">
-          <span className={`w-2 h-2 rounded-full ${editStatus === 'Active' ? 'bg-[#137333]' : editStatus === 'Impending' ? 'bg-[#b06000]' : 'bg-outline-variant'}`} />
-          <span className="text-on-surface">{editStatus}</span>
-        </div>
-        <ChevronDown className={`text-on-surface-variant transition-transform ${statusDropdownOpen ? 'rotate-180' : ''}`} size={16} />
-      </button>
-      
-      {statusDropdownOpen && (
-        <div className="absolute bottom-full mb-2 left-0 w-full bg-surface-container-lowest border border-outline-variant/50 rounded-xl shadow-[0_8px_30px_rgba(44,47,49,0.1)] py-1 z-50 animate-in fade-in slide-in-from-bottom-2 duration-150">
-          {(["Active", "Impending", "Expired"] as PolicyStatus[]).map((s) => (
-            <button
-              key={s}
-              onClick={() => {
-                setEditStatus(s);
-                setStatusDropdownOpen(false);
-              }}
-              className="w-full text-left px-4 py-2.5 text-sm font-body text-on-surface hover:bg-surface-container-low transition-colors flex items-center gap-2 cursor-pointer"
-            >
-              <span className={`w-2 h-2 rounded-full ${s === 'Active' ? 'bg-[#137333]' : s === 'Impending' ? 'bg-[#b06000]' : 'bg-outline-variant'}`} />
-              {s}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+  // StatusDropdown is now a proper component defined above PolicyStudio
 
   const handleSave = async () => {
     setSaveError(null);
@@ -447,6 +472,29 @@ export default function PolicyStudio() {
     }
 
     setIsSaving(false);
+    setEditingPolicy(null);
+  };
+
+  // ── Delete policy handler ─────────────────────────────────────────
+  const handleDeletePolicy = async () => {
+    if (!editingPolicy || editingPolicy === "new") return;
+    const currentPolicy = policies.find(p => p.id === editingPolicy);
+    if (!currentPolicy || deleteConfirmText !== currentPolicy.name) return;
+
+    setIsDeleting(true);
+    setDeleteError(null);
+    try {
+      const result = await deletePolicy(editingPolicy);
+      if (!result.ok) {
+        setDeleteError(result.error ?? "Failed to delete. Please try again.");
+        setIsDeleting(false);
+        return;
+      }
+    } catch {
+      // Backend unavailable — still remove from local list
+    }
+    setPolicies(prev => prev.filter(p => p.id !== editingPolicy));
+    setIsDeleting(false);
     setEditingPolicy(null);
   };
 
@@ -863,6 +911,69 @@ export default function PolicyStudio() {
           />
         )}
         
+        {/* ── Danger Zone: Delete Policy (edit-only) ──────────────────── */}
+        {!isNew && (
+          <div className="shrink-0 mx-6 mb-2">
+            {!showDeleteZone ? (
+              <button
+                onClick={() => setShowDeleteZone(true)}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-error/20 text-error/70 text-sm font-body font-medium hover:bg-error/5 hover:border-error/40 hover:text-error transition-all cursor-pointer"
+              >
+                <Trash2 size={15} />
+                Delete this policy
+              </button>
+            ) : (
+              <div className="rounded-2xl border-2 border-error/40 bg-error/[0.03] p-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <div className="flex items-start gap-4 mb-5">
+                  <div className="w-10 h-10 rounded-xl bg-error/10 flex items-center justify-center shrink-0 mt-0.5">
+                    <AlertTriangle className="text-error" size={20} />
+                  </div>
+                  <div>
+                    <h4 className="font-headline font-bold text-error text-base">Danger Zone — Permanent Deletion</h4>
+                    <p className="text-sm text-on-surface-variant font-body mt-1 leading-relaxed">
+                      This action <strong className="text-on-surface">cannot be undone</strong>. The policy, all its documents, and AI analysis will be permanently erased.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2 mb-4">
+                  <label className="text-xs font-bold text-error/80 uppercase tracking-wider font-body">
+                    Type the policy name to confirm:
+                    <span className="ml-2 font-mono bg-error/10 text-error px-2 py-0.5 rounded-md normal-case tracking-normal">
+                      {policies.find(p => p.id === editingPolicy)?.name ?? ""}
+                    </span>
+                  </label>
+                  <input
+                    type="text"
+                    value={deleteConfirmText}
+                    onChange={(e) => { setDeleteConfirmText(e.target.value); setDeleteError(null); }}
+                    placeholder="Type the exact policy name here..."
+                    className="bg-surface-container-lowest border-2 border-error/20 rounded-xl px-4 py-3 text-sm font-body text-on-surface placeholder:text-outline-variant focus:ring-2 focus:ring-error/20 focus:border-error/50 outline-none transition-all"
+                  />
+                  {deleteError && <p className="text-xs text-error font-body">{deleteError}</p>}
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => { setShowDeleteZone(false); setDeleteConfirmText(""); setDeleteError(null); }}
+                    className="flex-1 py-2.5 rounded-xl border border-outline-variant text-on-surface-variant text-sm font-body font-medium hover:bg-surface-container-low transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleDeletePolicy}
+                    disabled={deleteConfirmText !== (policies.find(p => p.id === editingPolicy)?.name ?? "") || isDeleting}
+                    className="flex-1 py-2.5 rounded-xl bg-error text-white text-sm font-body font-bold transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:enabled:bg-error/90 active:enabled:scale-95 shadow-[0_4px_16px_rgba(176,0,32,0.25)] hover:enabled:shadow-[0_6px_24px_rgba(176,0,32,0.35)] flex items-center justify-center gap-2"
+                  >
+                    {isDeleting
+                      ? <><span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />Deleting...</>
+                      : <><Trash2 size={15} />Delete Permanently</>
+                    }
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Bottom Action Bar */}
         <div className="shrink-0 bg-surface-bright/80 backdrop-blur-xl border-t border-surface-container-low p-4 z-40">
           <div className="max-w-7xl mx-auto flex justify-between items-center gap-6 px-8">
@@ -875,7 +986,12 @@ export default function PolicyStudio() {
               )}
               <div className="flex items-center gap-3">
                 <span className="font-body text-sm text-on-surface-variant hidden sm:block">Policy Status:</span>
-                <StatusDropdown />
+                <StatusDropdown
+                  editStatus={editStatus}
+                  statusDropdownOpen={statusDropdownOpen}
+                  setEditStatus={setEditStatus}
+                  setStatusDropdownOpen={setStatusDropdownOpen}
+                />
               </div>
               <button onClick={handleSave} className="bg-gradient-to-r from-primary to-primary-dim text-white rounded-xl px-8 py-3 font-body font-medium shadow-[0_0_20px_rgba(70,71,211,0.25)] hover:shadow-[0_0_30px_rgba(147,150,255,0.4)] active:scale-95 transition-all cursor-pointer">
                 {isNew ? "Create Policy" : "Save Changes"}
@@ -983,7 +1099,7 @@ export default function PolicyStudio() {
                     </thead>
                     <tbody className="font-body text-on-surface">
                       {filteredPolicies.length > 0 ? (
-                        filteredPolicies.slice(0, 3).map((policy) => (
+                        filteredPolicies.slice(0, 5).map((policy) => (
                           <tr 
                             key={policy.id} 
                             onClick={() => setEditingPolicy(policy.id)}

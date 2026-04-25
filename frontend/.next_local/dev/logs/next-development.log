@@ -1,0 +1,8 @@
+{"timestamp":"00:00:11.579","source":"Server","level":"LOG","message":"○ Compiling proxy ..."}
+{"timestamp":"00:00:12.536","source":"Server","level":"LOG","message":""}
+{"timestamp":"00:00:12.537","source":"Server","level":"LOG","message":"  We detected TypeScript in your project and reconfigured your tsconfig.json file for you."}
+{"timestamp":"00:00:12.539","source":"Server","level":"LOG","message":"  The following suggested values were added to your tsconfig.json. These values can be changed to fit your project's needs:\n"}
+{"timestamp":"00:00:12.541","source":"Server","level":"LOG","message":"  \t- include was updated to add '.next_local/types/**/*.ts'"}
+{"timestamp":"00:00:12.542","source":"Server","level":"LOG","message":"  \t- include was updated to add '.next_local/dev/types/**/*.ts'"}
+{"timestamp":"00:00:12.544","source":"Server","level":"LOG","message":""}
+{"timestamp":"00:00:14.734","source":"Server","level":"LOG","message":""}

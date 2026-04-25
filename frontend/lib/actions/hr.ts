@@ -7,7 +7,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { cookies } from "next/headers";
-import { apiGet, apiPatch, apiPostMultipart, API_PREFIX } from "@/lib/api/client";
+import { apiGet, apiPatch, apiPostMultipart, apiDelete, API_PREFIX } from "@/lib/api/client";
 import type { ReimbursementRaw } from "@/lib/api/types";
 import type { Claim, ClaimBundle, AiStatus, LineItem } from "@/app/hr/hr_components/mockData";
 
@@ -183,6 +183,15 @@ export async function updateReimbursementStatus(
 /** Upload a policy PDF to the backend. */
 export async function uploadPolicy(formData: FormData): Promise<{ ok: boolean; error?: string }> {
   const result = await apiPostMultipart<void>(`${API_PREFIX}/policies/upload`, formData);
+  if (result.error) {
+    return { ok: false, error: result.error };
+  }
+  return { ok: true };
+}
+
+/** Delete a policy by its ID from the backend. */
+export async function deletePolicy(policyId: string): Promise<{ ok: boolean; error?: string }> {
+  const result = await apiDelete<void>(`${API_PREFIX}/policies/${policyId}`);
   if (result.error) {
     return { ok: false, error: result.error };
   }
