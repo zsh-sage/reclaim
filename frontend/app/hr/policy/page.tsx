@@ -2,7 +2,7 @@
 
 import React, { JSX, useRef, useState, useEffect } from 'react';
 import { Plus, Search, ChevronUp, ChevronDown, ChevronRight, FileText, Shield, Archive, Pencil, Trash2, ArrowLeft, X, SlidersHorizontal, Upload, Settings, CheckCircle2, ScanLine, Sparkles, History, Clock, User, PlusCircle, AlertCircle, ShieldCheck, Users, Calendar, BarChart3 } from 'lucide-react';
-import { MOCK_POLICIES, POLICY_STATUS_STYLE, Policy, PolicyStatus, MOCK_POLICY_DETAILS } from '../hr_components/mockData';
+import { MOCK_POLICIES, POLICY_STATUS_STYLE, Policy, PolicyStatus } from '../hr_components/mockData';
 import { uploadPolicy } from '@/lib/actions/hr';
 import { getPolicies, deletePolicy } from '@/lib/actions/policies';
 
@@ -65,16 +65,16 @@ export function HrProcessingScreen({ currentStep, onBack }: { currentStep: numbe
               style={{
                 height:
                   currentStep === 0 ? "0%" :
-                  currentStep === 1 ? "40%" :
-                  "80%",
+                    currentStep === 1 ? "40%" :
+                      "80%",
               }}
             />
 
             <div className="flex flex-col gap-8">
               {SAVE_STEPS.map((step, idx) => {
                 const isCompleted = idx < currentStep;
-                const isActive    = idx === currentStep;
-                const isPending   = idx > currentStep;
+                const isActive = idx === currentStep;
+                const isPending = idx > currentStep;
 
                 return (
                   <div key={step.id} className="flex items-start gap-5 relative">
@@ -94,11 +94,10 @@ export function HrProcessingScreen({ currentStep, onBack }: { currentStep: numbe
                     )}
 
                     <div>
-                      <p className={`font-semibold text-sm leading-tight font-headline ${
-                        isActive    ? "text-primary" :
+                      <p className={`font-semibold text-sm leading-tight font-headline ${isActive ? "text-primary" :
                         isCompleted ? "text-on-surface" :
-                                      "text-on-surface-variant/40"
-                      }`}>
+                          "text-on-surface-variant/40"
+                        }`}>
                         {step.label}
                       </p>
                       {(isCompleted || isActive) && (
@@ -114,7 +113,7 @@ export function HrProcessingScreen({ currentStep, onBack }: { currentStep: numbe
           </div>
 
           <div className="mt-12 flex justify-center">
-            <button 
+            <button
               onClick={onBack}
               className="px-6 py-2 border border-outline-variant/30 text-on-surface-variant text-xs font-semibold uppercase tracking-widest rounded-xl hover:bg-surface-container-low transition-colors cursor-pointer"
             >
@@ -160,6 +159,7 @@ export default function PolicyStudio() {
   const [savingStep, setSavingStep] = useState(0);
   const [conditionsModalOpen, setConditionsModalOpen] = useState(false);
   const [editConditions, setEditConditions] = useState<Record<string, any> | null>(null);
+  const [editOverviewSummary, setEditOverviewSummary] = useState<string>("");
   const [editHistory, setEditHistory] = useState<{ user: string, action: string, date: string, details?: string }[]>([]);
 
   // Delete confirmation state
@@ -171,7 +171,7 @@ export default function PolicyStudio() {
 
   // Existing files state (for edit view)
   const [existingMainPolicyDeleted, setExistingMainPolicyDeleted] = useState(false);
-  const [existingAppendix, setExistingAppendix] = useState<{name: string, size: string}[]>([
+  const [existingAppendix, setExistingAppendix] = useState<{ name: string, size: string }[]>([
     { name: "W10_Requirements_Review.pdf", size: "1.2 MB" },
     { name: "Ergonomic_Guidelines_2023.pdf", size: "845 KB" }
   ]);
@@ -228,7 +228,7 @@ export default function PolicyStudio() {
 
     // Initial calculation
     setTimeout(handleScroll, 100);
-    
+
     return () => {
       container.removeEventListener('scroll', handleScroll);
       window.removeEventListener('resize', handleScroll);
@@ -250,6 +250,18 @@ export default function PolicyStudio() {
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   }
 
+  function parseMandatoryConditions(raw: string | Record<string, any> | undefined | null): Record<string, any> | null {
+    if (!raw) return null;
+    if (typeof raw === 'object') return raw as Record<string, any>;
+    try {
+      const parsed = JSON.parse(raw);
+      if (typeof parsed === 'object' && parsed !== null) return parsed;
+    } catch {
+      // Not valid JSON — ignore
+    }
+    return null;
+  }
+
   const [policies, setPolicies] = useState<Policy[]>(MOCK_POLICIES);
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -257,7 +269,7 @@ export default function PolicyStudio() {
   useEffect(() => {
     const deletedIds = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('deleted_policy_ids') || '[]') : [];
     const localEdits = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('local_policy_edits') || '{}') : {};
-    
+
     const applyEdits = (list: Policy[]) => {
       return list
         .filter(p => !deletedIds.includes(p.id))
@@ -288,7 +300,8 @@ export default function PolicyStudio() {
           : "",
         status: (p.status === "ACTIVE" ? "Active" : p.status === "DEPRECATED" ? "Expired" : "Impending") as PolicyStatus,
         icon: FileText,
-        aiConditions: undefined,
+        overview_summary: p.overview_summary,
+        aiConditions: parseMandatoryConditions(p.mandatory_conditions) ?? undefined,
         history: [],
       }));
       // Merge: prepend real policies, keep mocks as fallback examples
@@ -312,7 +325,8 @@ export default function PolicyStudio() {
         setEditVersion(p.version);
         setEditDate("2023-10-12");
         setExistingMainPolicyDeleted(false);
-        setEditConditions(p.aiConditions || MOCK_POLICY_DETAILS[0]?.mandatory_conditions || null);
+        setEditOverviewSummary(p.overview_summary || "");
+        setEditConditions(p.aiConditions || null);
         setEditHistory(p.history || [
           { user: "Sarah Miller", action: "Policy Created", date: "Oct 12, 2023", details: "Initial draft uploaded" },
           { user: "James Wilson", action: "Updated Appendix", date: "Jan 15, 2024", details: "Added W10 Requirements Review" }
@@ -334,6 +348,8 @@ export default function PolicyStudio() {
       setEditDepartment("");
       setEditVersion("");
       setEditDate("");
+      setEditOverviewSummary("");
+      setEditConditions(null);
       setMainPolicyFile(null);
       setAppendixFiles([]);
     }
@@ -342,11 +358,10 @@ export default function PolicyStudio() {
 
   const StatusDropdown = () => (
     <div className="relative">
-      <button 
+      <button
         onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
-        className={`flex items-center justify-between gap-2 rounded-full px-4 py-2 text-sm font-body font-medium transition-all w-[140px] cursor-pointer ${
-          statusDropdownOpen ? 'bg-surface-container-low ring-2 ring-primary/20' : 'bg-surface-container-lowest border border-outline-variant hover:bg-surface-container-low'
-        }`}
+        className={`flex items-center justify-between gap-2 rounded-full px-4 py-2 text-sm font-body font-medium transition-all w-[140px] cursor-pointer ${statusDropdownOpen ? 'bg-surface-container-low ring-2 ring-primary/20' : 'bg-surface-container-lowest border border-outline-variant hover:bg-surface-container-low'
+          }`}
       >
         <div className="flex items-center gap-2">
           <span className={`w-2 h-2 rounded-full ${editStatus === 'Active' ? 'bg-[#137333]' : editStatus === 'Impending' ? 'bg-[#b06000]' : 'bg-outline-variant'}`} />
@@ -354,7 +369,7 @@ export default function PolicyStudio() {
         </div>
         <ChevronDown className={`text-on-surface-variant transition-transform ${statusDropdownOpen ? 'rotate-180' : ''}`} size={16} />
       </button>
-      
+
       {statusDropdownOpen && (
         <div className="absolute bottom-full mb-2 left-0 w-full bg-surface-container-lowest border border-outline-variant/50 rounded-xl shadow-[0_8px_30px_rgba(44,47,49,0.1)] py-1 z-50 animate-in fade-in slide-in-from-bottom-2 duration-150">
           {(["Active", "Impending", "Expired"] as PolicyStatus[]).map((s) => (
@@ -414,6 +429,8 @@ export default function PolicyStudio() {
               : "",
             status: (p.status === "ACTIVE" ? "Active" : p.status === "DEPRECATED" ? "Expired" : "Impending") as PolicyStatus,
             icon: FileText,
+            overview_summary: p.overview_summary,
+            aiConditions: parseMandatoryConditions(p.mandatory_conditions) ?? undefined,
           }));
           setPolicies([...mapped, ...MOCK_POLICIES]);
         }
@@ -434,7 +451,7 @@ export default function PolicyStudio() {
     // Record History
     const now = new Date();
     const formattedDate = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) +
-                          ' ' + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+      ' ' + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
     const newHistoryEntry = {
       user: "HR Admin",
@@ -526,7 +543,7 @@ export default function PolicyStudio() {
     if (isSaving) {
       return (
         <div className="flex-1 flex flex-col relative w-full h-full bg-surface text-on-surface overflow-hidden p-6 animate-in fade-in duration-500">
-           <style>{`
+          <style>{`
              @keyframes pulse-scan {
                0% { transform: translateY(-100%); opacity: 0; }
                50% { opacity: 1; }
@@ -536,7 +553,7 @@ export default function PolicyStudio() {
                animation: pulse-scan 3s linear infinite;
              }
            `}</style>
-           <HrProcessingScreen currentStep={savingStep} onBack={() => setIsSaving(false)} />
+          <HrProcessingScreen currentStep={savingStep} onBack={() => setIsSaving(false)} />
         </div>
       );
     }
@@ -563,7 +580,7 @@ export default function PolicyStudio() {
 
     return (
       <div className="flex-1 flex flex-col relative overflow-hidden w-full h-full bg-surface text-on-surface">
-        <div 
+        <div
           ref={editContainerRef}
           className="flex-1 flex flex-col p-6 max-w-7xl mx-auto w-full min-h-0 overflow-y-auto scroll-smooth"
         >
@@ -573,21 +590,21 @@ export default function PolicyStudio() {
               <span className="font-semibold font-body text-sm">Back to Policy Studio</span>
             </button>
           </div>
-          
+
           <div className="flex items-center gap-4 mb-6">
             <h2 className="font-headline text-[2rem] leading-tight font-bold text-on-surface tracking-[-0.02em]">
               {isNew ? "Create New Policy" : `${editName || "Edit Policy"}`}
             </h2>
           </div>
-          
+
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 flex-1 min-h-0 items-start">
             {/* Left Column: Policy Details (if edit), Main Policy & Appendix */}
-            <div 
+            <div
               ref={leftColRef}
               className="lg:col-span-7 flex flex-col gap-8 pr-2 pb-4 h-fit transition-transform duration-75 ease-out will-change-transform"
               style={{ transform: `translateY(${leftOffset}px)` }}
             >
-              
+
               {/* Form Details (Only shown here in Edit View) */}
               {!isNew && (
                 <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-[0_8px_40px_rgba(44,47,49,0.06)] border border-outline-variant/10 shrink-0">
@@ -635,7 +652,7 @@ export default function PolicyStudio() {
                   </div>
                 </div>
               )}
-              
+
               {/* Main Policy */}
               <div className="flex flex-col gap-4">
                 <h3 className="font-headline text-xl font-semibold text-on-surface shrink-0">Main Policy</h3>
@@ -650,19 +667,19 @@ export default function PolicyStudio() {
                     e.target.value = '';
                   }}
                 />
-                
+
                 {mainPolicyFile ? (
                   <div className="flex flex-col gap-4 border border-outline-variant/30 rounded-2xl overflow-hidden bg-surface-container-lowest">
-                    {mainPolicyFile.type === "application/pdf" ? (
+                    {mainPolicyFile.type === "application/pdf" && previewUrl ? (
                       <iframe
-                        src={previewUrl || ""}
+                        src={previewUrl}
                         className="w-full h-[400px] border-b border-outline-variant/20"
                       />
                     ) : (
                       <div className="w-full h-[400px] border-b border-outline-variant/20 bg-surface-container-low flex flex-col items-center justify-center">
-                         <FileText className="text-primary mb-3" size={48} />
-                         <p className="font-body text-base font-medium text-on-surface">{mainPolicyFile.name}</p>
-                         <p className="font-body text-xs text-on-surface-variant">Preview not available</p>
+                        <FileText className="text-primary mb-3" size={48} />
+                        <p className="font-body text-base font-medium text-on-surface">{mainPolicyFile.name}</p>
+                        <p className="font-body text-xs text-on-surface-variant">Preview not available</p>
                       </div>
                     )}
                     <div className="p-4 flex items-center justify-between">
@@ -684,10 +701,10 @@ export default function PolicyStudio() {
                   <div className="flex flex-col gap-4 border border-outline-variant/30 rounded-2xl overflow-hidden bg-surface-container-lowest">
                     {/* Mock PDF Viewer for existing file */}
                     <div className="w-full h-[400px] border-b border-outline-variant/20 bg-surface-container-lowest flex flex-col items-center justify-center p-8 text-center relative overflow-hidden group">
-                       <div className="absolute inset-0 bg-primary/5 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity" />
-                       <FileText className="text-primary/60 mb-4" size={56} strokeWidth={1} />
-                       <p className="font-headline text-lg font-medium text-on-surface mb-2">Remote_Work_Policy_v2.4_FINAL.pdf</p>
-                       <p className="font-body text-sm text-on-surface-variant mb-6">Existing Document • 2.4 MB</p>
+                      <div className="absolute inset-0 bg-primary/5 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <FileText className="text-primary/60 mb-4" size={56} strokeWidth={1} />
+                      <p className="font-headline text-lg font-medium text-on-surface mb-2">Remote_Work_Policy_v2.4_FINAL.pdf</p>
+                      <p className="font-body text-sm text-on-surface-variant mb-6">Existing Document • 2.4 MB</p>
                     </div>
                     <div className="p-4 flex items-center justify-between">
                       <div className="flex flex-col">
@@ -746,7 +763,7 @@ export default function PolicyStudio() {
                     <p className="font-body font-medium text-on-surface text-sm">Add Source</p>
                     <p className="font-body text-xs text-on-surface-variant mt-1">Drag and drop or click to upload</p>
                   </button>
-                  
+
                   {/* Existing Appendix Items */}
                   {!isNew && existingAppendix.map((item, idx) => (
                     <div key={`existing-${idx}`} className="bg-surface-container-lowest rounded-xl p-3 border border-outline-variant/20 shadow-sm flex items-center justify-between group hover:bg-surface-container-highest transition-colors">
@@ -757,7 +774,7 @@ export default function PolicyStudio() {
                           <span className="font-body text-[11px] text-on-surface-variant">{item.size}</span>
                         </div>
                       </div>
-                      <button 
+                      <button
                         onClick={() => setExistingAppendix(prev => prev.filter((_, i) => i !== idx))}
                         className="text-on-surface-variant hover:text-error opacity-0 group-hover:opacity-100 transition-opacity p-1 cursor-pointer"
                       >
@@ -765,7 +782,7 @@ export default function PolicyStudio() {
                       </button>
                     </div>
                   ))}
-                  
+
                   {/* Newly uploaded appendix files */}
                   {appendixFiles.map((file, idx) => (
                     <div key={`edit-${file.name}-${idx}`} className="bg-surface-container-lowest rounded-xl p-3 border border-outline-variant/20 shadow-sm flex items-center justify-between group hover:bg-surface-container-highest transition-colors">
@@ -815,14 +832,14 @@ export default function PolicyStudio() {
               )}
 
             </div>
-            
+
             {/* Right Column: Policy Details (if new) & AI Overview (if edit) */}
-            <div 
+            <div
               ref={rightColRef}
               className="lg:col-span-5 flex flex-col gap-6 pr-2 pb-4 h-fit transition-transform duration-75 ease-out will-change-transform"
               style={{ transform: `translateY(${rightOffset}px)` }}
             >
-              
+
               {/* Form Details (Only shown here in New/Upload View) */}
               {isNew && (
                 <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-[0_8px_40px_rgba(44,47,49,0.06)] border border-outline-variant/10 shrink-0">
@@ -872,7 +889,7 @@ export default function PolicyStudio() {
               )}
 
               {/* AI Overview Summary (Beautified) */}
-              {!isNew && MOCK_POLICY_DETAILS && MOCK_POLICY_DETAILS[0] && (
+              {!isNew && (
                 <div className="bg-surface-container-lowest rounded-3xl shadow-[0_20px_50px_rgba(44,47,49,0.08)] border border-primary/20 overflow-hidden flex flex-col shrink-0 animate-in fade-in slide-in-from-right-4 duration-700">
                   <div className="p-5 bg-gradient-to-r from-primary/15 via-primary/5 to-transparent border-b border-primary/10 flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -885,15 +902,17 @@ export default function PolicyStudio() {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="p-8 flex flex-col gap-8">
-                    {(() => {
-                      const { intro, bullets } = parseBulletPoints(MOCK_POLICY_DETAILS[0].overview_summary);
+                    {editOverviewSummary && (() => {
+                      const { intro, bullets } = parseBulletPoints(editOverviewSummary);
                       return (
                         <div className="flex flex-col gap-6">
-                          <p className="font-body text-[15px] text-on-surface leading-relaxed text-pretty">
-                            {intro}
-                          </p>
+                          {intro && (
+                            <p className="font-body text-[15px] text-on-surface leading-relaxed text-pretty">
+                              {intro}
+                            </p>
+                          )}
                           {bullets.length > 0 && (
                             <div className="bg-primary/[0.03] rounded-2xl p-5 border border-primary/5">
                               <h4 className="text-[11px] font-bold text-primary uppercase tracking-[0.1em] mb-4">Key Takeaways</h4>
@@ -903,39 +922,48 @@ export default function PolicyStudio() {
                         </div>
                       );
                     })()}
-                    
-                    <div className="h-px bg-gradient-to-r from-transparent via-outline-variant/20 to-transparent w-full" />
 
-                    <div>
-                      <div className="flex items-center justify-between mb-5">
-                        <h4 className="font-headline text-sm font-bold text-on-surface uppercase tracking-wider">Mandatory Conditions</h4>
-                        <div className="px-2 py-0.5 bg-surface-container-high rounded-full text-[10px] font-bold text-on-surface-variant uppercase">
-                          Review Required
+                    <>
+                      <div className="h-px bg-gradient-to-r from-transparent via-outline-variant/20 to-transparent w-full" />
+
+                      <div>
+                        <div className="flex items-center justify-between mb-5">
+                          <h4 className="font-headline text-sm font-bold text-on-surface uppercase tracking-wider">Mandatory Conditions</h4>
+                          <div className="px-2 py-0.5 bg-surface-container-high rounded-full text-[10px] font-bold text-on-surface-variant uppercase">
+                            Review Required
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col gap-4">
+                          {editConditions && Object.entries(editConditions).length > 0 ? (
+                            <>
+                              {Object.entries(editConditions).slice(0, 3).map(([category, details]: [string, any]) => (
+                                <div key={category} className="bg-surface-container-low/40 rounded-2xl p-5 border border-outline-variant/10 hover:bg-surface-container-low transition-colors group">
+                                  <h1 className="font-headline font-bold text-sm text-on-surface mb-3 flex items-center gap-2">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-primary/40 group-hover:bg-primary transition-colors" />
+                                    {category}
+                                  </h1>
+                                  <PremiumBulletList items={details.condition ?? []} />
+                                </div>
+                              ))}
+                              {Object.entries(editConditions).length > 3 && (
+                                <button
+                                  onClick={() => setConditionsModalOpen(true)}
+                                  className="w-full mt-2 py-4 rounded-2xl text-sm text-primary font-bold bg-primary/[0.04] hover:bg-primary/[0.08] border border-primary/10 transition-all flex items-center justify-center gap-3 cursor-pointer group"
+                                >
+                                  <span>View & Edit All {Object.entries(editConditions).length} Categories</span>
+                                  <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                                </button>
+                              )}
+                            </>
+                          ) : (
+                            <p className="text-sm text-on-surface-variant/60 italic font-body">
+                              No mandatory conditions have been extracted for this policy.
+                            </p>
+                          )}
                         </div>
                       </div>
-                      
-                      <div className="flex flex-col gap-4">
-                        {editConditions && Object.entries(editConditions).slice(0, 3).map(([category, details]: [string, any]) => (
-                          <div key={category} className="bg-surface-container-low/40 rounded-2xl p-5 border border-outline-variant/10 hover:bg-surface-container-low transition-colors group">
-                            <p className="font-headline font-bold text-sm text-on-surface mb-3 flex items-center gap-2">
-                              <div className="w-1.5 h-1.5 rounded-full bg-primary/40 group-hover:bg-primary transition-colors" />
-                              {category}
-                            </p>
-                            <PremiumBulletList items={details.condition} />
-                          </div>
-                        ))}
-                        
-                        {editConditions && Object.entries(editConditions).length > 3 && (
-                          <button 
-                            onClick={() => setConditionsModalOpen(true)}
-                            className="w-full mt-2 py-4 rounded-2xl text-sm text-primary font-bold bg-primary/[0.04] hover:bg-primary/[0.08] border border-primary/10 transition-all flex items-center justify-center gap-3 cursor-pointer group"
-                          >
-                            <span>View & Edit All {Object.entries(editConditions).length} Categories</span>
-                            <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
+                    </>
                   </div>
                 </div>
               )}
@@ -944,12 +972,12 @@ export default function PolicyStudio() {
             </div>
           </div>
         </div>
-        
+
         {/* Mandatory Conditions Modal */}
         {editConditions && (
-          <ConditionsModal 
-            isOpen={conditionsModalOpen} 
-            onClose={() => setConditionsModalOpen(false)} 
+          <ConditionsModal
+            isOpen={conditionsModalOpen}
+            onClose={() => setConditionsModalOpen(false)}
             conditions={editConditions}
             onSave={(newConditions) => {
               setEditConditions(newConditions);
@@ -1000,8 +1028,8 @@ export default function PolicyStudio() {
 
   const filteredPolicies = policies.filter(p => {
     const matchesStatus = p.status === activeFilter;
-    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          p.department.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.department.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesStatus && matchesSearch;
   });
 
@@ -1031,7 +1059,7 @@ export default function PolicyStudio() {
                     Manage, review, and distribute company guidelines.
                   </p>
                 </div>
-                <button 
+                <button
                   onClick={() => setEditingPolicy("new")}
                   className="flex items-center justify-center gap-2 rounded-xl h-12 px-6 bg-gradient-to-r from-primary to-primary-dim text-on-primary font-body text-base font-semibold transition-all hover:shadow-[0_8px_30px_rgba(70,71,211,0.4)] hover:scale-[0.98] active:scale-95 cursor-pointer"
                 >
@@ -1039,7 +1067,7 @@ export default function PolicyStudio() {
                   <span>Create New Policy</span>
                 </button>
               </div>
-              
+
               {/* Main Content Canvas (Glassmorphic Container) */}
               <div className="bg-surface-container-lowest/60 backdrop-blur-xl rounded-[2rem] p-8 flex flex-col gap-8 shadow-[0_12px_60px_rgba(44,47,49,0.06)] overflow-hidden">
                 {/* Toolbar Section */}
@@ -1047,10 +1075,10 @@ export default function PolicyStudio() {
                   {/* Search */}
                   <div className="flex items-center w-full lg:w-96 group bg-surface-container-low rounded-xl px-4 transition-colors focus-within:shadow-[0_0_0_4px_rgba(70,71,211,0.1)] focus-within:bg-surface-container-lowest">
                     <Search size={20} className="text-outline group-focus-within:text-primary transition-colors" />
-                    <input 
-                      className="block w-full px-3 py-3 bg-transparent border-none focus:ring-0 focus:outline-none text-on-surface placeholder:text-outline-variant font-body transition-all" 
-                      placeholder="Search policies..." 
-                      type="text" 
+                    <input
+                      className="block w-full px-3 py-3 bg-transparent border-none focus:ring-0 focus:outline-none text-on-surface placeholder:text-outline-variant font-body transition-all"
+                      placeholder="Search policies..."
+                      type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                     />
@@ -1058,14 +1086,13 @@ export default function PolicyStudio() {
 
                   <div className="flex items-center bg-surface-container-low rounded-xl p-1 gap-1">
                     {(["Active", "Impending", "Expired"] as PolicyStatus[]).map((status) => (
-                      <button 
+                      <button
                         key={status}
                         onClick={() => setActiveFilter(status)}
-                        className={`px-6 py-2 rounded-lg transition-all font-medium text-sm cursor-pointer ${
-                          activeFilter === status 
-                            ? "bg-surface-container-lowest shadow-[0_4px_20px_rgba(44,47,49,0.04)] text-primary" 
-                            : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest/50"
-                        }`}
+                        className={`px-6 py-2 rounded-lg transition-all font-medium text-sm cursor-pointer ${activeFilter === status
+                          ? "bg-surface-container-lowest shadow-[0_4px_20px_rgba(44,47,49,0.04)] text-primary"
+                          : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest/50"
+                          }`}
                       >
                         {status}
                       </button>
@@ -1095,8 +1122,8 @@ export default function PolicyStudio() {
                     <tbody className="font-body text-on-surface">
                       {filteredPolicies.length > 0 ? (
                         filteredPolicies.slice(0, 3).map((policy) => (
-                          <tr 
-                            key={policy.id} 
+                          <tr
+                            key={policy.id}
                             onClick={() => setEditingPolicy(policy.id)}
                             className="group transition-all duration-200 hover:bg-primary/[0.04] hover:shadow-[inset_4px_0_0_0_#4647d3] cursor-pointer border-b border-surface-container-highest/50 last:border-0"
                           >
@@ -1118,8 +1145,8 @@ export default function PolicyStudio() {
                               </span>
                             </td>
                             <td className="py-5 px-6 text-right">
-                              <button 
-                                onClick={(e) => { e.stopPropagation(); setEditingPolicy(policy.id); }} 
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setEditingPolicy(policy.id); }}
                                 className="text-primary font-semibold text-sm group-hover:underline group-hover:translate-x-0.5 transition-all duration-150 active:scale-95 cursor-pointer"
                               >
                                 Edit
@@ -1140,7 +1167,7 @@ export default function PolicyStudio() {
 
                 {/* View All Button */}
                 <div className="p-5 text-center border-t border-outline-variant/15">
-                  <button 
+                  <button
                     onClick={() => setModalOpen(true)}
                     className="inline-flex items-center gap-2 text-sm font-semibold font-headline
                                text-primary hover:text-primary-dim transition-all duration-200
@@ -1161,10 +1188,10 @@ export default function PolicyStudio() {
       </div>
 
       {/* View All Modal */}
-      <ViewAllModal 
-        isOpen={modalOpen} 
-        onClose={() => setModalOpen(false)} 
-        policies={filteredPolicies} 
+      <ViewAllModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        policies={filteredPolicies}
         title={`All ${activeFilter} Policies`}
         onEdit={(id) => {
           setModalOpen(false);
@@ -1242,13 +1269,12 @@ function DeleteConfirmModal({
               onKeyDown={(e) => { if (e.key === 'Enter' && confirmed && !isDeleting) onConfirm(); }}
               placeholder={policyName}
               disabled={isDeleting}
-              className={`bg-surface-container-low border rounded-xl px-4 py-3 text-sm font-body text-on-surface placeholder:text-outline-variant outline-none transition-all disabled:opacity-50 ${
-                typedName.length > 0
-                  ? confirmed
-                    ? "border-[#dc2626]/50 ring-2 ring-[#dc2626]/10"
-                    : "border-outline-variant/40 ring-2 ring-[#dc2626]/5"
-                  : "border-outline-variant/30 focus:border-outline-variant"
-              }`}
+              className={`bg-surface-container-low border rounded-xl px-4 py-3 text-sm font-body text-on-surface placeholder:text-outline-variant outline-none transition-all disabled:opacity-50 ${typedName.length > 0
+                ? confirmed
+                  ? "border-[#dc2626]/50 ring-2 ring-[#dc2626]/10"
+                  : "border-outline-variant/40 ring-2 ring-[#dc2626]/5"
+                : "border-outline-variant/30 focus:border-outline-variant"
+                }`}
             />
             {typedName.length > 0 && !confirmed && (
               <p className="text-[11px] text-[#dc2626]/70 font-body">Name doesn&apos;t match — check spelling and case.</p>
@@ -1297,15 +1323,15 @@ function DeleteConfirmModal({
 
 // ─── Mandatory Conditions Modal ──────────────────────────────────────────────────
 
-function ConditionsModal({ 
-  isOpen, 
-  onClose, 
+function ConditionsModal({
+  isOpen,
+  onClose,
   conditions,
   onSave
-}: { 
-  isOpen: boolean; 
-  onClose: () => void; 
-  conditions: Record<string, any>; 
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  conditions: Record<string, any>;
   onSave: (newConditions: Record<string, any>) => void;
 }) {
   const [localConditions, setLocalConditions] = useState(conditions);
@@ -1364,7 +1390,7 @@ function ConditionsModal({
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
       <div className="absolute inset-0 bg-inverse-surface/40 backdrop-blur-sm cursor-pointer" onClick={onClose} />
-      
+
       <div className="relative w-full max-w-2xl max-h-[85vh] bg-surface-container-lowest rounded-[2rem] shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
         <div className="p-8 border-b border-outline-variant/10 flex items-center justify-between bg-gradient-to-r from-primary/10 via-primary/5 to-transparent shrink-0">
           <div className="flex items-center gap-4">
@@ -1376,14 +1402,14 @@ function ConditionsModal({
               <p className="text-sm text-on-surface-variant font-body">Review and edit AI extracted rules</p>
             </div>
           </div>
-          <button 
-            onClick={onClose} 
+          <button
+            onClick={onClose}
             className="w-10 h-10 rounded-full bg-surface-container-low flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors cursor-pointer"
           >
             <X size={20} />
           </button>
         </div>
-        
+
         <div className="flex-1 overflow-y-auto p-8 flex flex-col gap-6">
           {Object.entries(localConditions).map(([category, details]) => (
             <div key={category} className="bg-surface-container-low/50 rounded-2xl p-6 border border-outline-variant/10 hover:bg-surface-container-low transition-colors group">
@@ -1393,14 +1419,14 @@ function ConditionsModal({
                   {category}
                 </h4>
                 <div className="flex items-center gap-2">
-                  <button 
+                  <button
                     onClick={() => handleAddCondition(category)}
                     className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors cursor-pointer"
                     title="Add condition"
                   >
                     <Plus size={18} />
                   </button>
-                  <button 
+                  <button
                     onClick={() => {
                       if (confirm(`Are you sure you want to remove the entire "${category}" category?`)) {
                         setLocalConditions(prev => {
@@ -1429,7 +1455,7 @@ function ConditionsModal({
                         placeholder="Enter condition..."
                       />
                     </div>
-                    <button 
+                    <button
                       onClick={() => handleRemoveCondition(category, i)}
                       className="p-2.5 text-on-surface-variant hover:text-error hover:bg-error/5 rounded-xl transition-all cursor-pointer shrink-0"
                     >
@@ -1455,13 +1481,13 @@ function ConditionsModal({
                   placeholder="e.g. Travel Limits, Eligibility..."
                   className="flex-1 bg-surface-container-lowest border border-primary/30 rounded-xl px-4 py-3 text-sm text-on-surface font-body focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
                 />
-                <button 
+                <button
                   onClick={handleAddNewCategory}
                   className="px-6 bg-primary text-white text-sm font-bold rounded-xl hover:opacity-90 transition-all active:scale-95 cursor-pointer"
                 >
                   Add
                 </button>
-                <button 
+                <button
                   onClick={() => { setIsAddingCategory(false); setNewCategoryName(""); }}
                   className="p-3 text-on-surface-variant hover:bg-surface-container-low rounded-xl transition-all cursor-pointer"
                 >
@@ -1470,7 +1496,7 @@ function ConditionsModal({
               </div>
             </div>
           ) : (
-            <button 
+            <button
               onClick={() => setIsAddingCategory(true)}
               className="w-full py-6 border-2 border-dashed border-outline-variant/20 rounded-2xl flex flex-col items-center justify-center gap-2 text-on-surface-variant hover:border-primary/30 hover:bg-primary/5 hover:text-primary transition-all group cursor-pointer"
             >
@@ -1483,13 +1509,13 @@ function ConditionsModal({
         </div>
 
         <div className="p-6 border-t border-outline-variant/10 bg-surface-container-low/30 flex justify-between items-center shrink-0">
-          <button 
+          <button
             onClick={onClose}
             className="px-6 py-3 text-on-surface-variant font-body font-bold hover:bg-surface-container-high rounded-xl transition-all cursor-pointer"
           >
             Cancel
           </button>
-          <button 
+          <button
             onClick={() => onSave(localConditions)}
             className="px-8 py-3 bg-primary text-white rounded-xl font-body font-bold hover:shadow-lg hover:shadow-primary/20 transition-all active:scale-95 cursor-pointer"
           >
@@ -1520,8 +1546,8 @@ function ViewAllModal({
 
   if (!isOpen) return null;
 
-  const filtered = policies.filter(p => 
-    p.name.toLowerCase().includes(modalQuery.toLowerCase()) || 
+  const filtered = policies.filter(p =>
+    p.name.toLowerCase().includes(modalQuery.toLowerCase()) ||
     p.department.toLowerCase().includes(modalQuery.toLowerCase())
   );
 
@@ -1584,7 +1610,7 @@ function ViewAllModal({
                     </span>
                   </td>
                   <td className="py-4 px-6 text-right">
-                    <button 
+                    <button
                       onClick={() => onEdit(policy.id)}
                       className="text-primary font-bold text-xs hover:underline transition-all cursor-pointer"
                     >
@@ -1613,7 +1639,7 @@ function parseBulletPoints(text: string) {
   const lines = text.split('\n');
   const introLines: string[] = [];
   const bullets: string[] = [];
-  
+
   lines.forEach(line => {
     const trimmed = line.trim();
     if (trimmed.startsWith('-') || trimmed.startsWith('•') || trimmed.startsWith('*')) {
@@ -1624,10 +1650,10 @@ function parseBulletPoints(text: string) {
       introLines.push(trimmed);
     }
   });
-  
-  return { 
-    intro: introLines.join(' '), 
-    bullets 
+
+  return {
+    intro: introLines.join(' '),
+    bullets
   };
 }
 

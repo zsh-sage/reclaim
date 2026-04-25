@@ -43,6 +43,7 @@ def list_policies(
             "title": p.title,
             "reimbursable_categories": [c.category for c in cats],
             "overview_summary": p.overview_summary,
+            "mandatory_conditions": p.mandatory_conditions,
             "status": ((p.status.value if p.status and hasattr(p.status, "value") else p.status) if p.status and hasattr(p.status, "value") else p.status),
             "effective_date": p.effective_date.isoformat() if p.effective_date else None,
             "expiry_date": p.expiry_date.isoformat() if p.expiry_date else None,

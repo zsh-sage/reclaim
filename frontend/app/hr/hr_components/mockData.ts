@@ -13,6 +13,7 @@ export interface Policy {
   lastModified: string;
   status: PolicyStatus;
   icon: LucideIcon;
+  overview_summary?: string;
   mainFile?: File | null;
   appendixFiles?: File[];
   existingAppendix?: { name: string, size: string }[];

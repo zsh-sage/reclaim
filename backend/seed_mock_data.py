@@ -34,9 +34,9 @@ MOCK_BUNDLES = [
         "summary": "Bundle partially approved. Accommodation exceeded rank limit; one transportation receipt rejected for late submission.",
         "status": "REVIEW",
         "line_items": [
-            {"description": "Client dinner at Sushi Zanmai, Orchard Road", "category": "meals", "claimed_amount": 150.00, "approved_amount": 150.00, "judgment": "APPROVED"},
-            {"description": "Taxi to KLIA", "category": "transportation", "claimed_amount": 80.00, "approved_amount": 0.00, "judgment": "REJECTED", "rejection_reason": "Receipt date is over 6 months old. Policy requires submission within 90 days."},
-            {"description": "Hilton Hotel Singapore (2 nights)", "category": "accommodation", "claimed_amount": 1200.00, "approved_amount": 1000.00, "judgment": "PARTIAL", "rejection_reason": "Policy caps accommodation for Rank 2 employees at MYR 500/night. Capped at MYR 1,000 for 2 nights."},
+            {"description": "Client dinner at Sushi Zanmai, Orchard Road", "category": "Daily Trip Allowance (Diem Allowance)", "claimed_amount": 150.00, "approved_amount": 150.00, "judgment": "APPROVED"},
+            {"description": "Taxi to KLIA", "category": "Toll Expenses", "claimed_amount": 80.00, "approved_amount": 0.00, "judgment": "REJECTED", "rejection_reason": "Receipt date is over 6 months old. Policy requires submission within 90 days."},
+            {"description": "Hilton Hotel Singapore (2 nights)", "category": "Accommodations", "claimed_amount": 1200.00, "approved_amount": 1000.00, "judgment": "PARTIAL", "rejection_reason": "Policy caps accommodation for Rank 2 employees at MYR 500/night. Capped at MYR 1,000 for 2 nights."},
         ],
     },
     {
@@ -56,9 +56,9 @@ MOCK_BUNDLES = [
         "summary": "High fraud risk: one receipt amount is 10× higher than AI extraction. Alcohol detected on the same receipt. Two line items rejected.",
         "status": "REVIEW",
         "line_items": [
-            {"description": "Client dinner at Ferringhi Garden Restaurant", "category": "meals", "claimed_amount": 2200.00, "approved_amount": 0.00, "judgment": "REJECTED", "rejection_reason": "Receipt contains alcohol charges (MYR 480). Policy prohibits alcohol reimbursement. Amount edited by employee: AI extracted MYR 220.00, employee submitted MYR 2,200.00 (10× discrepancy)."},
-            {"description": "Hard Rock Hotel Penang (1 night)", "category": "accommodation", "claimed_amount": 380.00, "approved_amount": 380.00, "judgment": "APPROVED"},
-            {"description": "Grab car KL to Penang (inter-city)", "category": "transportation", "claimed_amount": 60.00, "approved_amount": 0.00, "judgment": "REJECTED", "rejection_reason": "Inter-city travel must use approved vendor or company vehicle. Grab not approved for this route."},
+            {"description": "Client dinner at Ferringhi Garden Restaurant", "category": "Daily Trip Allowance (Diem Allowance)", "claimed_amount": 2200.00, "approved_amount": 0.00, "judgment": "REJECTED", "rejection_reason": "Receipt contains alcohol charges (MYR 480). Policy prohibits alcohol reimbursement. Amount edited by employee: AI extracted MYR 220.00, employee submitted MYR 2,200.00 (10× discrepancy)."},
+            {"description": "Hard Rock Hotel Penang (1 night)", "category": "Accommodations", "claimed_amount": 380.00, "approved_amount": 380.00, "judgment": "APPROVED"},
+            {"description": "Grab car KL to Penang (inter-city)", "category": "Toll Expenses", "claimed_amount": 60.00, "approved_amount": 0.00, "judgment": "REJECTED", "rejection_reason": "Inter-city travel must use approved vendor or company vehicle. Grab not approved for this route."},
         ],
     },
     {
@@ -78,9 +78,9 @@ MOCK_BUNDLES = [
         "summary": "All 3 receipts verified and within policy limits. No edits detected. AI recommends full approval.",
         "status": "APPROVED",
         "line_items": [
-            {"description": "Team lunch at R&R Seremban", "category": "meals", "claimed_amount": 89.00, "approved_amount": 89.00, "judgment": "APPROVED"},
-            {"description": "Petronas petrol — company vehicle", "category": "transportation", "claimed_amount": 120.00, "approved_amount": 120.00, "judgment": "APPROVED"},
-            {"description": "Hotel Seri Malaysia JB (1 night)", "category": "accommodation", "claimed_amount": 941.00, "approved_amount": 941.00, "judgment": "APPROVED"},
+            {"description": "Team lunch at R&R Seremban", "category": "Daily Trip Allowance (Diem Allowance)", "claimed_amount": 89.00, "approved_amount": 89.00, "judgment": "APPROVED"},
+            {"description": "Petronas petrol — company vehicle", "category": "Toll Expenses", "claimed_amount": 120.00, "approved_amount": 120.00, "judgment": "APPROVED"},
+            {"description": "Hotel Seri Malaysia JB (1 night)", "category": "Accommodations", "claimed_amount": 941.00, "approved_amount": 941.00, "judgment": "APPROVED"},
         ],
     },
     {
@@ -100,8 +100,8 @@ MOCK_BUNDLES = [
         "summary": "Both receipts verified. Amounts within daily meal and transport limits. Passed all policy checks.",
         "status": "APPROVED",
         "line_items": [
-            {"description": "Business lunch at Nobu KLCC", "category": "meals", "claimed_amount": 168.00, "approved_amount": 168.00, "judgment": "APPROVED"},
-            {"description": "Grab — KLCC to office", "category": "transportation", "claimed_amount": 42.50, "approved_amount": 42.50, "judgment": "APPROVED"},
+            {"description": "Business lunch at Nobu KLCC", "category": "Daily Trip Allowance (Diem Allowance)", "claimed_amount": 168.00, "approved_amount": 168.00, "judgment": "APPROVED"},
+            {"description": "Grab — KLCC to office", "category": "Toll Expenses", "claimed_amount": 42.50, "approved_amount": 42.50, "judgment": "APPROVED"},
         ],
     },
 ]
