@@ -59,6 +59,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
 
         setUser(result.user);
+        setIsLoading(false);
 
         // Redirect based on role
         if (result.user?.role === "HR") {
