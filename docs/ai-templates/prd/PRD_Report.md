@@ -14,8 +14,6 @@ Reclaim is an AI-native expense reimbursement platform that delivers measurable 
 
 **Proof of Originality and Innovation**: Reclaim introduces a structural **Fraud Trap** mechanism absent from any current HR workflow tool. When an employee submits a receipt and edits the AI-extracted amount — even by a single digit — the system silently records the deviation, assigns a risk severity (HIGH/MEDIUM/LOW), and surfaces the original AI-extracted value alongside the employee-submitted value in the HR audit trail. This is not a validation warning. It is a permanent, immutable fraud signal embedded in the claim record before HR ever opens it.
 
-**Proof of Execution and Completeness**: Every feature described in this document is fully implemented in the live production backend, verified against the source code, and confirmed by the System Analysis Document (SAD v1.0). No aspirational features are listed as active. Features that are intended but not yet implemented are explicitly documented in the Scope Appendix at the end of this document.
-
 ---
 
 ## 1. Project Overview
@@ -25,7 +23,7 @@ Reclaim is an AI-native expense reimbursement platform that delivers measurable 
 Enterprise HR departments are drowning in paper. Every employee expense claim — whether a RM 15 lunch receipt or a RM 8,000 international travel package — must be individually reviewed by a human HR officer who opens the attachment, reads the amounts, cross-references a policy PDF stored somewhere on a shared drive, calculates any deductions or ineligible items, and writes a response. This process is:
 
 - **High-volume and scaling**: As organizations grow, the number of reimbursement claims increases with headcount, but the review process remains unchanged — still one human, one claim, one policy reference at a time.
-- **Manual review burden on HR teams**: An HR officer reviewing 50 claims per week is not doing strategic HR work — they are performing data entry verification and policy look-ups that could be automated.
+- **Manual review burden on HR teams**: An HR officer reviewing many claims per week is not doing strategic HR work — they are performing data entry verification and policy look-ups that could be automated.
 - **Consequence — human error and inconsistency**: Two HR reviewers reading the same policy may approve or reject the same claim differently. There is no audit trail linking the original receipt to the final approved amount. Policy interpretations drift across staff.
 - **Consequence — delays and employee frustration**: A five-to-ten-day turnaround on a reimbursement claim is common. Employees chase HR for updates. HR chases employees for missing receipts. The feedback loop is slow, manual, and adversarial.
 - **Impact on both HR and employees**: HR teams are overworked on low-value verification tasks. Employees experience slow, opaque, and inconsistent reimbursement decisions that erode organizational trust.
@@ -131,7 +129,7 @@ The system is **advisory only**. The final approval authority always remains wit
 
 Reclaim operates as a two-portal, AI-orchestrated reimbursement platform. The system flow is:
 
-1. **HR sets up policy first**: HR uploads the company's reimbursement policy PDF via the Policy Studio. The AI Policy Agent parses the document, extracts reimbursable categories and mandatory conditions, and stores them as structured, queryable criteria in the database. This policy becomes the enforcement baseline for all subsequent claims.
+1. **HR sets up policy first**: HR uploads the company's reimbursement policy PDF via the Policy Studio. The AI Policy Agent parses the document and extracts reimbursable categories and mandatory conditions. HR can then review, edit, add, or delete these extracted rules in case anything is missing or inaccurate. Once verified, the system stores them as structured, queryable criteria in the database, and this policy becomes the enforcement baseline for all subsequent claims.
 
 2. **Employee submits a claim**: The employee selects a claim category, uploads up to 10 receipt files (JPEG, PNG, or PDF), and reviews the AI-extracted data in a side-by-side verification screen. If the employee corrects any AI-extracted field, the system silently records the edit as an audit trail entry. Upon confirmation, the employee submits the verified basket for compliance analysis.
 
@@ -145,7 +143,7 @@ The system consists of **two main interfaces**: the Employee Portal (submission,
 
 #### Unstructured Data Ingestion & Pre-Processing
 
-The system accepts raw receipt files uploaded by employees in JPEG, PNG, or PDF format — up to 10 files per submission. Files are routed based on type: image files are passed to the GLM 4.6 V vision model for multimodal OCR; PDF files are converted to markdown text via PyMuPDF4LLM and passed to GLM-5.1 in JSON mode. Both routes produce the same structured JSON output per receipt: merchant name, date, amount, currency, category, items summary, confidence score, and anomaly flags. Pre-processing includes image validation and anomaly flag generation (`visual_anomalies_detected`) before the data enters the compliance pipeline.
+The system accepts raw receipt files uploaded by employees in JPEG, PNG, or PDF format — up to 10 files per submission. Files are routed based on type: image files are passed to the GLM 4.6 V vision model for multimodal OCR; PDF files are converted to markdown text via PyMuPDF4LLM and passed to GLM-5.1 in JSON mode. Both routes produce the same structured JSON output per receipt: merchant name, date, amount, currency, category, items summary, confidence score, and anomaly flags. Pre-processing includes image validation and anomaly flag generation before the data enters the compliance pipeline.
 
 #### Categorized Data Extraction
 
@@ -155,8 +153,8 @@ The system extracts key receipt fields based on **categories dynamically defined
 
 HR uploads company reimbursement policy via the **Policy Studio** — a dedicated HR portal interface for policy management. The Policy Agent runs a 4-node LangGraph pipeline:
 
-1. **process_pdfs**: Converts uploaded PDF to structured markdown text via PyMuPDF4LLM.
-2. **extract_categories_and_summary**: GLM-5.1 extracts the list of reimbursable expense categories and generates a 150-word policy overview summary.
+1. **process_pdfs**: Converts uploaded PDF to structured markdown text.
+2. **extract_categories_and_summary**: GLM-5.1 extracts the list of reimbursable expense categories and generates a policy overview summary.
 3. **extract_conditions**: A second GLM-5.1 call extracts per-category mandatory conditions — the specific rules, caps, restrictions, and requirements the AI must enforce per claim.
 4. **save_to_db**: Persists the complete `Policy` record (categories, conditions, summary, source file URL) with `status: ACTIVE`. Previous active policies are archived.
 
@@ -179,9 +177,9 @@ If the compliance agent encounters an unrecoverable error during evaluation, it 
 The Fraud Trap is Reclaim's structural fraud signal mechanism. It operates silently during the employee verification step:
 
 - After OCR extraction, the employee reviews a side-by-side form: left column shows the AI-pre-filled editable form; right column shows the original receipt document.
-- If the employee modifies **any** AI-extracted field — particularly the total amount — the system calls the change detection engine, sets `human_edited = True` on the receipt record, records the original AI-extracted value alongside the employee-submitted value in the `change_summary` JSONB field, and assigns an `overall_risk` severity: **HIGH** (amount multiplied), **MEDIUM** (amount increased), **LOW** (minor field edits), or **NONE**.
+- If the employee modifies **any** AI-extracted field — particularly the total amount — the system detects the change, marks the receipt as edited, saves both the original AI value and the employee's new value for comparison, and assigns a risk level: **HIGH** (amount multiplied), **MEDIUM** (amount increased), **LOW** (minor field edits), or **NONE**.
 - This audit record is permanent and immutable. HR sees exactly what the AI extracted versus what the employee submitted — field by field — before making their decision.
-- HR is visually alerted when `human_edited = True` and `overall_risk = HIGH`, with the specific deviation surfaced in the fraud analysis panel (e.g., *"HIGH RISK: Amount edited by employee is 10x higher than OCR extraction"*).
+- HR receives a clear visual warning if an edited receipt is flagged as **HIGH** risk, with the exact difference highlighted in their review dashboard (e.g., "HIGH RISK: The amount entered by the employee is 10x higher than what the system originally read").
 - Receipts with no human edits and no policy violations pass through with a clean audit record. Receipts with significant deviations are flagged for mandatory HR attention.
 
 #### Efficiency by Exception — Triage Dashboard
@@ -190,7 +188,7 @@ The HR Portal's triage dashboard implements the **Efficiency by Exception** mode
 
 **Bucket A — Passed AI Review**: Claims where the Compliance Agent produced an `APPROVE` judgment with high confidence and no `HIGH`-risk human edits. These claims are compliant, have no policy violations, and the employee's submitted data matches AI extraction. HR can review and approve with minimal effort.
 
-**Bucket B — Requires Attention**: Claims where the Compliance Agent produced a `PARTIAL_APPROVE`, `REJECT`, or `MANUAL REVIEW` judgment — OR claims where `human_edited = True` with `overall_risk = HIGH`. These claims have specific flags, policy violations, or fraud signals that require HR judgment. Every Bucket B claim comes with a structured reason for the flag and the specific policy clause that was violated.
+**Bucket B — Requires Attention**: Claims that the system marked for partial approval, rejection, or manual review — OR claims that the employee edited and are flagged as `HIGH` risk. These claims contain specific warnings, rule violations, or potential fraud signals that require HR to step in and make a judgment. Every one of these flagged claims provides a clear explanation of the issue and points directly to the exact company rule that was broken.
 
 HR effort is mathematically bounded to Bucket B. In a high-compliance organization, this can mean HR spends detailed review time on 20–30% of claims and fast-tracks the remaining 70–80%.
 
@@ -237,7 +235,7 @@ This strategy ensures the AI reasons through each policy condition explicitly ra
 #### 4.3.4 Fallback & Failure Behavior
 
 - **Iteration hard cap**: Per-receipt ReAct agents are hard-capped at **5 tool calls** per receipt evaluation. The final judgment ReAct agent is capped at **3 tool calls**. If an agent has not reached a definitive verdict by its cap, it is forced to output its best current judgment — preventing infinite loops from LLM tool hallucinations or ambiguous policy text.
-- **Compliance agent exception escalation**: If any node in the 5-node LangGraph compliance pipeline throws an unhandled exception, the graph-level exception handler catches it and writes a `Reimbursement` record with `judgment = MANUAL REVIEW` — ensuring HR always receives a record to act on, even if the AI evaluation failed partway through.
+- **Compliance agent exception escalation**: If any node in the 5-node LangGraph compliance pipeline throws an unhandled exception, the graph-level exception handler catches it and writes a `Reimbursement` record and flagging it for `MANUAL REVIEW` status — ensuring HR always receives a record to act on, even if the AI evaluation failed partway through.
 - **OCR failure handling**: The Document Agent sets a `visual_anomalies_detected` flag on any receipt where image quality, layout anomalies, or extraction confidence falls below threshold. Employees are alerted at the verification step and must confirm or correct the extracted data before submission. Mandatory human review before submission is the structural mitigation for OCR accuracy limitations.
 - **GLM-5.1 startup fallback**: As described in Section 4.3.1, the automatic Gemini fallback ensures that a GLM-5.1 outage at startup does not take down the system — all three agent workflows continue operating via OpenRouter.
 
@@ -249,7 +247,7 @@ This strategy ensures the AI reasons through each policy condition explicitly ra
 
 #### Employee Perspective
 
-> *"As an employee returning from a business trip, I used to spend an hour filling out a reimbursement form, manually typing in every merchant name, amount, and date from my stack of receipts — knowing the form would sit in HR's inbox for a week before I heard anything. With Reclaim, I upload my 8 receipts at once. Within seconds, every field is pre-filled. I verify the data, correct one merchant name the AI misread, and hit submit. Ten minutes later I can see my claim status — the AI already pre-screened it and it's in the HR review queue. The whole submission took me less time than it used to take me to find the form."*
+> *Employees returning from business trips previously spent significant time manually entering merchant names, amounts, and dates from receipts, often waiting weeks for HR processing. With Reclaim, employees can upload multiple receipts simultaneously, and the system pre-fills every field within seconds. Users simply verify the data, make minor corrections if needed, and submit. The submission process takes a fraction of the original time, and claim status is visible almost immediately after the AI pre-screens it and routes it to the HR queue.*
 
 **Core value to employee**:
 - AI OCR eliminates manual data entry — the employee corrects, not transcribes.
@@ -259,7 +257,7 @@ This strategy ensures the AI reasons through each policy condition explicitly ra
 
 #### HR Manager Perspective
 
-> *"Before Reclaim, I opened every claim blind. I had no idea if the fifty emails in my queue were fifty clean, straightforward reimbursements or fifty potential fraud cases. I had to open each one, pull up the policy PDF, check every line item, and make a judgment call — for every single claim, every single time. Now I open the triage dashboard and I can see immediately: twelve claims passed AI review with high confidence, three claims need my attention. I spend my morning on the three. The twelve get a quick review and approval. I have context I've never had before — the AI tells me exactly which policy clause a claim violated and why, and it flags the ones where the employee manually changed amounts from what the receipt actually says. That second thing alone has already caught two suspicious submissions this month."*
+> *Prior to Reclaim, HR managers reviewed claims without upfront visibility, unable to distinguish between straightforward reimbursements and potential policy violations without manually checking each line item against company guidelines. Now, the triage dashboard immediately categorizes claims, separating those that passed AI review from those requiring manual attention. HR managers can focus their efforts on flagged claims while quickly approving clean ones. The system provides clear context by identifying the specific policy clause a claim violated and actively flagging instances where employees manually altered auto-extracted amounts.*
 
 **Core value to HR**:
 - The Policy Studio gives HR direct control over the AI's enforcement baseline — upload a policy PDF, review the extracted categories and mandatory conditions, and the AI applies them from the next claim forward.
@@ -269,7 +267,7 @@ This strategy ensures the AI reasons through each policy condition explicitly ra
 
 #### Finance / Audit Perspective
 
-> *"From a compliance standpoint, Reclaim solves a problem we didn't even know we could solve: the audit trail. Previously, if a finance audit asked us to prove that a specific expense claim was policy-compliant, we would spend hours digging through email threads and PDF attachments. Now every decision — the AI's reasoning, the employee's edits, the HR officer's final call — is in the database, permanently linked to the original receipt image. The `human_edited` flag and risk scores give us a structured signal to query: show me every HIGH-risk human edit from the last quarter. That used to be impossible. Now it's a database query."*
+> *From a compliance standpoint, Reclaim establishes a highly organized audit trail. Previously, proving a claim's compliance required manually searching through emails and attachments. Now, every action—including the AI's reasoning, employee edits, and final HR decisions—is stored in the database and permanently linked to the original receipt image. Features like the `human_edited` flag and risk scores provide structured, searchable signals, allowing finance teams to instantly query high-risk modifications and streamline the auditing process.*
 
 **Core value to finance/audit**:
 - Every claim generates a permanent, immutable audit record from raw receipt to final HR decision.
@@ -463,62 +461,6 @@ The following features are explicitly outside the current MVP scope and are not 
 
 - **Risk**: API latency, timeouts, or connection failures from live LLM API calls to ILMU API or OpenRouter during the pitch day demonstration, causing visible failures in front of judges.
 - **Mitigation**: The startup health check with automatic Gemini fallback (`google/gemini-3.1-flash-lite-preview` via OpenRouter) is the primary network resilience mechanism — if ILMU API is unreachable at startup, the system seamlessly falls back without any code changes or manual intervention. OpenRouter's multi-provider infrastructure provides additional redundancy for vision and fallback text calls. The demo environment should be tested with the fallback path to verify identical behavior under both model providers.
-
----
-
-## Appendix: Features in Product Intent Not Implemented in MVP
-
-The following features are described in the product workflow specification (`core_workflow.md`) but are **not implemented** in the current live architecture (verified against `SAD_Report.md` Appendix: Implementation Conflict Report). These are documented here as a reference for future development scope and are explicitly **excluded from all active feature claims** in this PRD.
-
----
-
-### A1 — Automatic PDF Generation Triggered by HR Approval
-
-**Intended (core_workflow.md)**: Upon HR final decision, the system automatically generates and delivers an Official Claim Form PDF containing the final approved amounts and HR/AI audit notes.
-
-**Actual (SAD Conflict 1)**: The PDF generation endpoint (`POST /api/v1/documents/generate-template`) exists and is functional as an on-demand call. However, it is **not automatically triggered** by the `PATCH /reimbursements/{id}/status` action. PDF generation is available as a manual export, not an event-driven artifact at the moment of HR approval.
-
-**Future scope**: Wire the PDF generation call to the HR approval event in the `PATCH /reimbursements/{id}/status` handler. Deliver the generated PDF as a downloadable link in the HR confirmation response and as a notification to the employee.
-
----
-
-### A2 — Policy Mandatory Condition Editing After Upload
-
-**Intended (core_workflow.md)**: HR can edit, add, and delete mandatory constraints (SOP Checklist) in the Policy Studio after a policy has been uploaded and activated.
-
-**Actual (SAD Conflict 2)**: No API endpoint exists to modify `mandatory_conditions` on an existing `Policy` record post-upload. If HR needs to modify conditions, they must re-upload the policy PDF, which creates a new `Policy` record.
-
-**Future scope**: Implement `PATCH /api/v1/policies/{policy_id}/conditions` to allow HR to add, edit, and delete individual mandatory condition entries without full policy re-upload. Versioning the condition history (who changed what, when) would be a companion feature.
-
----
-
-### A3 — Formal Policy Versioning with Version Chain
-
-**Intended (core_workflow.md)**: HR can perform versioning of the policy — tracking the history of policy changes over time with rollback capability.
-
-**Actual (SAD Conflict 3)**: The `policies` table has a `status` field (ACTIVE/DRAFT/ARCHIVED) enabling a lightweight versioning workflow via sequential policy uploads. However, there is no formal version chain, version number field, parent-child policy relationship, or changelog. Policy history is approximated by `created_at` timestamps and status management.
-
-**Future scope**: Introduce a `policy_versions` table with parent-child FK relationships, version numbers, change author, and effective dates. Expose a version history view in the Policy Studio.
-
----
-
-### A4 — Explicit Duplicate Receipt Detection Pipeline
-
-**Intended (core_workflow.md)**: The system runs a dedicated duplication check before AI processing — detecting receipts that have already been submitted in a previous claim to prevent double-reimbursement fraud.
-
-**Actual (SAD)**: No explicit duplicate detection pipeline is implemented in the current Document Agent or Compliance Agent. Duplicate submission prevention is not a current feature. The `visual_anomalies_detected` flag covers image tampering but not duplicate submissions.
-
-**Future scope**: Implement a pre-submission deduplication check using perceptual image hashing (pHash) or merchant+date+amount fingerprinting against existing `supporting_documents` records to flag likely duplicate receipts before they enter the compliance pipeline.
-
----
-
-### A5 — Stateful Workflow Pause and Resume on Missing Information
-
-**Intended (core_workflow.md)**: The system pauses when information is missing or unclear and resumes seamlessly once the employee or HR provides the missing context.
-
-**Actual (SAD)**: The compliance agent does not implement a pause-and-resume workflow. When information is insufficient or evaluation fails, the agent defaults to `MANUAL REVIEW` status — routing the claim to HR for human resolution. There is no automated re-evaluation trigger once additional information is provided.
-
-**Future scope**: Implement a `PENDING_EMPLOYEE_ACTION` status that allows HR to request additional information from the employee. Upon employee response (e.g., uploading a clarification document), the compliance agent re-evaluates the updated claim automatically.
 
 ---
 
