@@ -1,1023 +1,2959 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Reclaim — UM Hackathon 2026</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<style>
-/* ─── BRAND TOKENS (dark-mode adaptation of globals.css) ─── */
-:root {
-  --p:    #9396ff;   /* primary-fixed   — bright on dark */
-  --pdim: #8387ff;   /* primary-fixed-dim */
-  --pdeep:#4647d3;   /* primary          */
-  --s:    #81ccff;   /* secondary-fixed-dim */
-  --t:    #ef6eff;   /* tertiary-fixed-dim */
-  --tdeep:#9e00b4;   /* tertiary         */
-  --ok:   #4ade80;
-  --warn: #fb923c;
-  --err:  #f74b6d;   /* error-container  */
-  --grad: linear-gradient(135deg,#4647d3 0%,#9396ff 50%,#9e00b4 100%);
-  --bg:   #0a0818;
-  --cbg:  rgba(147,150,255,.06);
-  --cb:   rgba(147,150,255,.18);
-}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reclaim — UM Hackathon 2026</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet">
+  <style>
+    /* ─── BRAND TOKENS (dark-mode adaptation of globals.css) ─── */
+    :root {
+      --p: #9396ff;
+      /* primary-fixed   — bright on dark */
+      --pdim: #8387ff;
+      /* primary-fixed-dim */
+      --pdeep: #4647d3;
+      /* primary          */
+      --s: #81ccff;
+      /* secondary-fixed-dim */
+      --t: #ef6eff;
+      /* tertiary-fixed-dim */
+      --tdeep: #9e00b4;
+      /* tertiary         */
+      --ok: #4ade80;
+      --warn: #fb923c;
+      --err: #f74b6d;
+      /* error-container  */
+      --grad: linear-gradient(135deg, #4647d3 0%, #9396ff 50%, #9e00b4 100%);
+      --bg: #0a0818;
+      --cbg: rgba(147, 150, 255, .06);
+      --cb: rgba(147, 150, 255, .18);
+    }
 
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body{width:100vw;height:100vh;overflow:hidden;background:var(--bg);
-  font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased}
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
+    }
 
-/* ─── KEYFRAMES ─── */
-@keyframes fadeIn    {from{opacity:0}to{opacity:1}}
-@keyframes fadeInUp  {from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:translateY(0)}}
-@keyframes fadeInDown{from{opacity:0;transform:translateY(-26px)}to{opacity:1;transform:translateY(0)}}
-@keyframes fadeInL   {from{opacity:0;transform:translateX(26px)}to{opacity:1;transform:translateX(0)}}
-@keyframes fadeInR   {from{opacity:0;transform:translateX(-26px)}to{opacity:1;transform:translateX(0)}}
-@keyframes scaleIn   {from{opacity:0;transform:scale(.9)}to{opacity:1;transform:scale(1)}}
-@keyframes pulseGlow {0%,100%{box-shadow:0 0 18px rgba(74,222,128,.5),0 0 50px rgba(74,222,128,.15)}
-                      50%{box-shadow:0 0 36px rgba(74,222,128,.9),0 0 90px rgba(74,222,128,.35)}}
-@keyframes blink     {0%,100%{opacity:1}50%{opacity:0}}
-@keyframes typeOut   {from{width:0}to{width:22ch}}
-@keyframes drawBar   {from{width:0}to{width:var(--w,100%)}}
-@keyframes progFill  {from{width:0}to{width:72%}}
-@keyframes checkLine {from{stroke-dashoffset:var(--dl,30)}to{stroke-dashoffset:0}}
-@keyframes gradFlow  {0%{background-position:0 50%}50%{background-position:100% 50%}100%{background-position:0 50%}}
-@keyframes shimmer1  {0%{background-position:-300% center}100%{background-position:300% center}}
-@keyframes nameIn    {from{opacity:0;transform:translateY(10px) scale(.95)}to{opacity:1;transform:translateY(0) scale(1)}}
-@keyframes expandX   {from{width:0;opacity:0}to{width:100%;opacity:1}}
-@keyframes bigPulse  {0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.08);opacity:.7}}
+    html,
+    body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: var(--bg);
+      font-family: 'Inter', sans-serif;
+      -webkit-font-smoothing: antialiased
+    }
 
-/* ─── SLIDE SYSTEM ─── */
-.slide{width:100vw;height:100vh;position:absolute;top:0;left:0;
-  display:none;overflow:hidden;background:var(--bg)}
-.slide.active{display:flex;animation:fadeIn .32s ease}
+    /* ─── KEYFRAMES ─── */
+    @keyframes fadeIn {
+      from {
+        opacity: 0
+      }
 
-/* Animation helpers — elements start invisible */
-[data-a]{opacity:0}
-/* Numeric = staggered fadeInUp */
-.is-v [data-a="1"]{animation:fadeInUp .55s .05s ease forwards}
-.is-v [data-a="2"]{animation:fadeInUp .55s .18s ease forwards}
-.is-v [data-a="3"]{animation:fadeInUp .55s .31s ease forwards}
-.is-v [data-a="4"]{animation:fadeInUp .55s .44s ease forwards}
-.is-v [data-a="5"]{animation:fadeInUp .55s .57s ease forwards}
-.is-v [data-a="6"]{animation:fadeInUp .55s .70s ease forwards}
-.is-v [data-a="7"]{animation:fadeInUp .55s .83s ease forwards}
-.is-v [data-a="8"]{animation:fadeInUp .55s .96s ease forwards}
-/* r = from right */
-.is-v [data-a="r1"]{animation:fadeInL .55s .05s ease forwards}
-.is-v [data-a="r2"]{animation:fadeInL .55s .22s ease forwards}
-.is-v [data-a="r3"]{animation:fadeInL .55s .39s ease forwards}
-.is-v [data-a="r4"]{animation:fadeInL .55s .56s ease forwards}
-/* l = from left */
-.is-v [data-a="l1"]{animation:fadeInR .55s .05s ease forwards}
-.is-v [data-a="l2"]{animation:fadeInR .55s .22s ease forwards}
-.is-v [data-a="l3"]{animation:fadeInR .55s .39s ease forwards}
-.is-v [data-a="l4"]{animation:fadeInR .55s .56s ease forwards}
-/* s = scale */
-.is-v [data-a="s1"]{animation:scaleIn .5s .05s ease forwards}
-.is-v [data-a="s2"]{animation:scaleIn .5s .22s ease forwards}
-.is-v [data-a="s3"]{animation:scaleIn .5s .39s ease forwards}
-/* f = flow nodes (longer stagger) */
-.is-v [data-a="f1"]{animation:scaleIn .45s .15s ease forwards}
-.is-v [data-a="f2"]{animation:scaleIn .45s .60s ease forwards}
-.is-v [data-a="f3"]{animation:scaleIn .45s 1.05s ease forwards}
-.is-v [data-a="f4"]{animation:scaleIn .45s 1.50s ease forwards}
-.is-v [data-a="f5"]{animation:scaleIn .45s 1.95s ease forwards}
-/* arrows in between */
-.is-v [data-a="a1"]{animation:fadeIn .3s .42s ease forwards}
-.is-v [data-a="a2"]{animation:fadeIn .3s .87s ease forwards}
-.is-v [data-a="a3"]{animation:fadeIn .3s 1.32s ease forwards}
-.is-v [data-a="a4"]{animation:fadeIn .3s 1.77s ease forwards}
-/* verdict card */
-.is-v .verdict-reveal{animation:fadeInUp .5s 1.7s ease forwards}
-/* progress bar */
-.is-v .pb-fill{animation:progFill 1.2s 1.1s ease forwards;width:0!important}
-/* SVG check */
-.is-v .chk-circle{animation:checkLine .5s .45s ease forwards}
-.is-v .chk-mark  {animation:checkLine .4s .75s ease forwards}
-/* risk bars */
-.is-v .rbar{animation:drawBar .8s ease forwards}
-/* name badges slide 10 */
-.is-v .nm:nth-child(1){animation:nameIn .5s .40s ease forwards}
-.is-v .nm:nth-child(2){animation:nameIn .5s .58s ease forwards}
-.is-v .nm:nth-child(3){animation:nameIn .5s .76s ease forwards}
-.is-v .nm:nth-child(4){animation:nameIn .5s .94s ease forwards}
-.is-v .nm:nth-child(5){animation:nameIn .5s 1.12s ease forwards}
-.is-v .nm-divider    {animation:expandX .6s 1.35s ease forwards}
-.is-v .nm-thanks     {animation:fadeIn   .6s 1.6s ease forwards}
-.is-v .nm-logo       {animation:scaleIn  .6s 1.9s ease forwards}
-/* shimmer on logo text (sign-off only) */
-.is-v .logo-shimmer{animation:shimmer1 2.8s 2.1s linear forwards}
-/* Bucket A checkmark reveal */
-.is-v .bucket-a{animation:scaleIn .5s .15s ease forwards}
-.is-v .bucket-b{animation:scaleIn .5s .40s ease forwards}
-.is-v .bucket-c{animation:scaleIn .5s .65s ease forwards}
-.is-v .bucket-d{animation:scaleIn .5s .90s ease forwards}
+      to {
+        opacity: 1
+      }
+    }
 
-/* ─── GRID BG ─── */
-.gbg{background-image:
-  linear-gradient(rgba(147,150,255,.04) 1px,transparent 1px),
-  linear-gradient(90deg,rgba(147,150,255,.04) 1px,transparent 1px);
-  background-size:56px 56px}
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(26px)
+      }
 
-/* ─── CARD ─── */
-.card{background:var(--cbg);border:1px solid var(--cb);border-radius:14px}
-.card-p{border-color:rgba(147,150,255,.3);background:rgba(147,150,255,.07)}
-.card-s{border-color:rgba(129,204,255,.3);background:rgba(129,204,255,.07)}
-.card-t{border-color:rgba(239,110,255,.3);background:rgba(239,110,255,.07)}
-.card-ok{border-color:rgba(74,222,128,.3);background:rgba(74,222,128,.06)}
-.card-w{border-color:rgba(251,146,60,.3);background:rgba(251,146,60,.06)}
-.card-e{border-color:rgba(247,75,109,.3);background:rgba(247,75,109,.06)}
+      to {
+        opacity: 1;
+        transform: translateY(0)
+      }
+    }
 
-/* ─── TYPOGRAPHY ─── */
-.mono{font-family:'JetBrains Mono',monospace}
-.sec-lbl{font-family:'JetBrains Mono',monospace;font-size:.95rem;letter-spacing:.24em;margin-bottom:1.25rem}
-.grad-text{background:var(--grad);background-size:200% 200%;
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-  animation:gradFlow 6s ease infinite}
-.tag{font-family:'JetBrains Mono',monospace;font-size:.7rem;letter-spacing:.06em;
-  padding:4px 11px;border-radius:5px;background:rgba(147,150,255,.14);
-  color:var(--p);border:1px solid rgba(147,150,255,.3)}
+    @keyframes fadeInDown {
+      from {
+        opacity: 0;
+        transform: translateY(-26px)
+      }
 
-/* ─── NAVIGATION ─── */
-#zp,#zn{position:fixed;top:0;height:100vh;z-index:9000;cursor:pointer}
-#zp{left:0;width:50vw}
-#zn{right:0;width:50vw}
-#ctr{position:fixed;bottom:1.25rem;right:1.75rem;z-index:9500;
-  font-family:'JetBrains Mono',monospace;font-size:.7rem;color:rgba(255,255,255,.22)}
+      to {
+        opacity: 1;
+        transform: translateY(0)
+      }
+    }
 
-/* ─── TRANSITION OVERLAY ─── */
-#to{position:fixed;inset:0;z-index:8000;background:var(--bg);
-  opacity:0;pointer-events:none;transition:opacity .22s ease}
-#to.on{opacity:1;pointer-events:all}
+    @keyframes fadeInL {
+      from {
+        opacity: 0;
+        transform: translateX(26px)
+      }
 
-/* ─── DEMO TRANSITION ─── */
-#dt{position:fixed;inset:0;z-index:8500;background:#000;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  opacity:0;pointer-events:none;transition:opacity .35s ease}
-#dt.on{opacity:1;pointer-events:all}
-#dt .dd{width:18px;height:18px;border-radius:50%;background:var(--ok);
-  box-shadow:0 0 28px rgba(74,222,128,.8);margin-bottom:1.5rem;
-  animation:pulseGlow 1s ease infinite}
-#dt .dtext{font-family:'JetBrains Mono',monospace;font-size:1.05rem;color:var(--ok);
-  letter-spacing:.14em;white-space:nowrap;overflow:hidden;width:0;
-  border-right:2px solid var(--ok);
-  animation:typeOut .9s .35s steps(22) forwards,blink .6s .35s step-end infinite}
+      to {
+        opacity: 1;
+        transform: translateX(0)
+      }
+    }
 
-/* ─── PRODUCT MOCKUP (Slide 1) ─── */
-.browser{background:rgba(255,255,255,.05);border:1px solid rgba(147,150,255,.22);
-  border-radius:16px;overflow:hidden;width:330px}
-.bbar{background:rgba(147,150,255,.08);padding:.55rem .9rem;
-  display:flex;align-items:center;gap:.5rem;
-  border-bottom:1px solid rgba(147,150,255,.14)}
-.bd{width:10px;height:10px;border-radius:50%;flex-shrink:0}
-.bd-r{background:var(--err)}.bd-y{background:#fbbf24}.bd-g{background:var(--ok)}
-.burl{font-family:'JetBrains Mono',monospace;font-size:.65rem;
-  color:rgba(255,255,255,.3);margin-left:.6rem}
-.fitem{display:flex;align-items:center;gap:.5rem;padding:.45rem .6rem;
-  background:rgba(255,255,255,.04);border:1px solid rgba(147,150,255,.14);
-  border-radius:8px;font-size:.78rem;color:rgba(255,255,255,.72);margin-bottom:.4rem}
-.ficon{width:24px;height:24px;border-radius:5px;background:rgba(147,150,255,.18);
-  display:flex;align-items:center;justify-content:center;font-size:.7rem;
-  color:var(--p);flex-shrink:0}
-.fck{margin-left:auto;color:var(--ok);font-size:.8rem}
-.ptrack{height:6px;border-radius:3px;background:rgba(147,150,255,.12);overflow:hidden}
-.pb-fill{height:100%;border-radius:3px;
-  background:linear-gradient(90deg,var(--pdeep),var(--p))}
-.verdict-reveal{opacity:0;margin-top:.75rem;padding:.75rem .9rem;border-radius:10px;
-  background:rgba(74,222,128,.09);border:1px solid rgba(74,222,128,.28);
-  display:flex;align-items:center;gap:.75rem}
-.vi{width:28px;height:28px;border-radius:50%;background:rgba(74,222,128,.2);
-  display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:.9rem}
-.vl{font-size:.72rem;font-weight:700;color:var(--ok);letter-spacing:.07em}
-.va{font-size:.75rem;color:rgba(255,255,255,.55);margin-top:.1rem}
+    @keyframes fadeInR {
+      from {
+        opacity: 0;
+        transform: translateX(-26px)
+      }
 
-/* triage mini */
-.triage-mini{width:330px;margin-top:.75rem;background:rgba(255,255,255,.04);
-  border:1px solid rgba(147,150,255,.18);border-radius:12px;padding:.9rem}
-.tr-row{display:flex;align-items:center;justify-content:space-between;
-  padding:.42rem .6rem;border-radius:7px;font-size:.78rem;margin-bottom:.35rem}
-.tr-row.a{background:rgba(74,222,128,.07);border:1px solid rgba(74,222,128,.18)}
-.tr-row.b{background:rgba(251,146,60,.07);border:1px solid rgba(251,146,60,.18)}
-.tr-badge{font-family:'JetBrains Mono',monospace;font-size:.62rem;
-  padding:2px 8px;border-radius:4px}
-.tr-badge.a{background:rgba(74,222,128,.2);color:var(--ok)}
-.tr-badge.b{background:rgba(251,146,60,.2);color:var(--warn)}
+      to {
+        opacity: 1;
+        transform: translateX(0)
+      }
+    }
 
-/* ─── FLOW NODES (Slide 4) ─── */
-.fnode{display:flex;flex-direction:column;align-items:center;gap:.5rem;
-  text-align:center;min-width:120px}
-.fnode-icon{width:64px;height:64px;border-radius:18px;
-  display:flex;align-items:center;justify-content:center;font-size:1.8rem;
-  background:var(--cbg);border:2px solid var(--cb)}
-.farrow{font-size:1.5rem;color:rgba(147,150,255,.5);flex-shrink:0;
-  align-self:center;padding:0 .25rem}
+    @keyframes scaleIn {
+      from {
+        opacity: 0;
+        transform: scale(.9)
+      }
 
-/* ─── RISK BARS (Slide 8) ─── */
-.ritem{display:flex;align-items:center;gap:1.1rem;margin-bottom:1rem}
-.rlbl{font-family:'JetBrains Mono',monospace;font-size:.88rem;font-weight:600;min-width:52px}
-.rtrack{flex:1;height:9px;border-radius:5px;background:rgba(255,255,255,.07);overflow:hidden}
-.rbar{height:100%;border-radius:5px;opacity:0}
-.rdesc{font-size:.88rem;color:rgba(255,255,255,.5);min-width:220px}
+      to {
+        opacity: 1;
+        transform: scale(1)
+      }
+    }
 
-/* ─── TIMELINE (Slide 9) ─── */
-.tl-item{display:flex;gap:1rem;align-items:flex-start;position:relative;padding-bottom:.9rem}
-.tl-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:5px}
-.tl-line{position:absolute;left:4px;top:15px;width:2px;height:calc(100% - 5px);
-  background:rgba(147,150,255,.15)}
+    @keyframes pulseGlow {
 
-/* ─── SIGN-OFF (Slide 10) ─── */
-.nm{opacity:0;padding:.55rem 1.4rem;background:rgba(255,255,255,.06);
-  border:1px solid rgba(147,150,255,.22);border-radius:100px;
-  font-size:.95rem;font-weight:500;color:rgba(255,255,255,.88)}
-.nm-divider{opacity:0;width:0;height:1px;
-  background:linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent)}
-.nm-thanks,.nm-logo{opacity:0}
-.logo-shimmer{background:linear-gradient(90deg,var(--p) 0%,#fff 30%,var(--t) 50%,var(--p) 100%);
-  background-size:300% auto;
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+      0%,
+      100% {
+        box-shadow: 0 0 18px rgba(74, 222, 128, .5), 0 0 50px rgba(74, 222, 128, .15)
+      }
 
-/* ─── PRINT ─── */
-@media print{
-  @page{size:16in 9in landscape;margin:0}
-  html,body{width:16in;height:auto;overflow:visible}
-  .slide{display:flex!important;page-break-after:always;page-break-inside:avoid;
-    -webkit-print-color-adjust:exact;print-color-adjust:exact;
-    width:16in;height:9in;position:relative;top:auto;left:auto}
-  #zp,#zn,#ctr,#to,#dt{display:none!important}
-  [data-a]{opacity:1!important;animation:none!important}
-  .pb-fill{width:72%!important;animation:none!important}
-  .verdict-reveal{opacity:1!important;animation:none!important}
-  .nm,.nm-divider,.nm-thanks,.nm-logo{opacity:1!important;animation:none!important}
-  .nm-divider{width:100%!important}
-  .rbar{opacity:1!important;animation:none!important}
-  .chk-circle,.chk-mark{stroke-dashoffset:0!important;animation:none!important}
-  .bucket-a,.bucket-b,.bucket-c,.bucket-d{opacity:1!important;animation:none!important}
-}
-</style>
+      50% {
+        box-shadow: 0 0 36px rgba(74, 222, 128, .9), 0 0 90px rgba(74, 222, 128, .35)
+      }
+    }
+
+    @keyframes blink {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: 0
+      }
+    }
+
+    @keyframes typeOut {
+      from {
+        width: 0
+      }
+
+      to {
+        width: 22ch
+      }
+    }
+
+    @keyframes drawBar {
+      from {
+        width: 0
+      }
+
+      to {
+        width: var(--w, 100%)
+      }
+    }
+
+    @keyframes progFill {
+      from {
+        width: 0
+      }
+
+      to {
+        width: 72%
+      }
+    }
+
+    @keyframes checkLine {
+      from {
+        stroke-dashoffset: var(--dl, 30)
+      }
+
+      to {
+        stroke-dashoffset: 0
+      }
+    }
+
+    @keyframes gradFlow {
+      0% {
+        background-position: 0 50%
+      }
+
+      50% {
+        background-position: 100% 50%
+      }
+
+      100% {
+        background-position: 0 50%
+      }
+    }
+
+    @keyframes shimmer1 {
+      0% {
+        background-position: -300% center
+      }
+
+      100% {
+        background-position: 300% center
+      }
+    }
+
+    @keyframes nameIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px) scale(.95)
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1)
+      }
+    }
+
+    @keyframes expandX {
+      from {
+        width: 0;
+        opacity: 0
+      }
+
+      to {
+        width: 100%;
+        opacity: 1
+      }
+    }
+
+    @keyframes bigPulse {
+
+      0%,
+      100% {
+        transform: scale(1);
+        opacity: 1
+      }
+
+      50% {
+        transform: scale(1.08);
+        opacity: .7
+      }
+    }
+
+    /* ─── SLIDE SYSTEM ─── */
+    .slide {
+      width: 100vw;
+      height: 100vh;
+      position: absolute;
+      top: 0;
+      left: 0;
+      display: none;
+      overflow: hidden;
+      background: var(--bg)
+    }
+
+    .slide.active {
+      display: flex;
+      animation: fadeIn .32s ease
+    }
+
+    /* Animation helpers — elements start invisible */
+    [data-a] {
+      opacity: 0
+    }
+
+    /* Numeric = staggered fadeInUp */
+    .is-v [data-a="1"] {
+      animation: fadeInUp .55s .05s ease forwards
+    }
+
+    .is-v [data-a="2"] {
+      animation: fadeInUp .55s .18s ease forwards
+    }
+
+    .is-v [data-a="3"] {
+      animation: fadeInUp .55s .31s ease forwards
+    }
+
+    .is-v [data-a="4"] {
+      animation: fadeInUp .55s .44s ease forwards
+    }
+
+    .is-v [data-a="5"] {
+      animation: fadeInUp .55s .57s ease forwards
+    }
+
+    .is-v [data-a="6"] {
+      animation: fadeInUp .55s .70s ease forwards
+    }
+
+    .is-v [data-a="7"] {
+      animation: fadeInUp .55s .83s ease forwards
+    }
+
+    .is-v [data-a="8"] {
+      animation: fadeInUp .55s .96s ease forwards
+    }
+
+    /* r = from right */
+    .is-v [data-a="r1"] {
+      animation: fadeInL .55s .05s ease forwards
+    }
+
+    .is-v [data-a="r2"] {
+      animation: fadeInL .55s .22s ease forwards
+    }
+
+    .is-v [data-a="r3"] {
+      animation: fadeInL .55s .39s ease forwards
+    }
+
+    .is-v [data-a="r4"] {
+      animation: fadeInL .55s .56s ease forwards
+    }
+
+    /* l = from left */
+    .is-v [data-a="l1"] {
+      animation: fadeInR .55s .05s ease forwards
+    }
+
+    .is-v [data-a="l2"] {
+      animation: fadeInR .55s .22s ease forwards
+    }
+
+    .is-v [data-a="l3"] {
+      animation: fadeInR .55s .39s ease forwards
+    }
+
+    .is-v [data-a="l4"] {
+      animation: fadeInR .55s .56s ease forwards
+    }
+
+    /* s = scale */
+    .is-v [data-a="s1"] {
+      animation: scaleIn .5s .05s ease forwards
+    }
+
+    .is-v [data-a="s2"] {
+      animation: scaleIn .5s .22s ease forwards
+    }
+
+    .is-v [data-a="s3"] {
+      animation: scaleIn .5s .39s ease forwards
+    }
+
+    /* f = flow nodes (longer stagger) */
+    .is-v [data-a="f1"] {
+      animation: scaleIn .45s .15s ease forwards
+    }
+
+    .is-v [data-a="f2"] {
+      animation: scaleIn .45s .60s ease forwards
+    }
+
+    .is-v [data-a="f3"] {
+      animation: scaleIn .45s 1.05s ease forwards
+    }
+
+    .is-v [data-a="f4"] {
+      animation: scaleIn .45s 1.50s ease forwards
+    }
+
+    .is-v [data-a="f5"] {
+      animation: scaleIn .45s 1.95s ease forwards
+    }
+
+    /* arrows in between */
+    .is-v [data-a="a1"] {
+      animation: fadeIn .3s .42s ease forwards
+    }
+
+    .is-v [data-a="a2"] {
+      animation: fadeIn .3s .87s ease forwards
+    }
+
+    .is-v [data-a="a3"] {
+      animation: fadeIn .3s 1.32s ease forwards
+    }
+
+    .is-v [data-a="a4"] {
+      animation: fadeIn .3s 1.77s ease forwards
+    }
+
+    /* verdict card */
+    .is-v .verdict-reveal {
+      animation: fadeInUp .5s 1.7s ease forwards
+    }
+
+    /* progress bar */
+    .is-v .pb-fill {
+      animation: progFill 1.2s 1.1s ease forwards;
+      width: 0 !important
+    }
+
+    /* SVG check */
+    .is-v .chk-circle {
+      animation: checkLine .5s .45s ease forwards
+    }
+
+    .is-v .chk-mark {
+      animation: checkLine .4s .75s ease forwards
+    }
+
+    /* risk bars */
+    .is-v .rbar {
+      animation: drawBar .8s ease forwards
+    }
+
+    /* name badges slide 10 */
+    .is-v .nm:nth-child(1) {
+      animation: nameIn .5s .40s ease forwards
+    }
+
+    .is-v .nm:nth-child(2) {
+      animation: nameIn .5s .58s ease forwards
+    }
+
+    .is-v .nm:nth-child(3) {
+      animation: nameIn .5s .76s ease forwards
+    }
+
+    .is-v .nm:nth-child(4) {
+      animation: nameIn .5s .94s ease forwards
+    }
+
+    .is-v .nm:nth-child(5) {
+      animation: nameIn .5s 1.12s ease forwards
+    }
+
+    .is-v .nm-divider {
+      animation: expandX .6s 1.35s ease forwards
+    }
+
+    .is-v .nm-thanks {
+      animation: fadeIn .6s 1.6s ease forwards
+    }
+
+    .is-v .nm-logo {
+      animation: scaleIn .6s 1.9s ease forwards
+    }
+
+    /* shimmer on logo text (sign-off only) */
+    .is-v .logo-shimmer {
+      animation: shimmer1 2.8s 2.1s linear forwards
+    }
+
+    /* Bucket A checkmark reveal */
+    .is-v .bucket-a {
+      animation: scaleIn .5s .15s ease forwards
+    }
+
+    .is-v .bucket-b {
+      animation: scaleIn .5s .40s ease forwards
+    }
+
+    .is-v .bucket-c {
+      animation: scaleIn .5s .65s ease forwards
+    }
+
+    .is-v .bucket-d {
+      animation: scaleIn .5s .90s ease forwards
+    }
+
+    /* ─── GRID BG ─── */
+    .gbg {
+      background-image:
+        linear-gradient(rgba(147, 150, 255, .04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(147, 150, 255, .04) 1px, transparent 1px);
+      background-size: 56px 56px
+    }
+
+    /* ─── CARD ─── */
+    .card {
+      background: var(--cbg);
+      border: 1px solid var(--cb);
+      border-radius: 14px
+    }
+
+    .card-p {
+      border-color: rgba(147, 150, 255, .3);
+      background: rgba(147, 150, 255, .07)
+    }
+
+    .card-s {
+      border-color: rgba(129, 204, 255, .3);
+      background: rgba(129, 204, 255, .07)
+    }
+
+    .card-t {
+      border-color: rgba(239, 110, 255, .3);
+      background: rgba(239, 110, 255, .07)
+    }
+
+    .card-ok {
+      border-color: rgba(74, 222, 128, .3);
+      background: rgba(74, 222, 128, .06)
+    }
+
+    .card-w {
+      border-color: rgba(251, 146, 60, .3);
+      background: rgba(251, 146, 60, .06)
+    }
+
+    .card-e {
+      border-color: rgba(247, 75, 109, .3);
+      background: rgba(247, 75, 109, .06)
+    }
+
+    /* ─── TYPOGRAPHY ─── */
+    .mono {
+      font-family: 'JetBrains Mono', monospace
+    }
+
+    .sec-lbl {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .95rem;
+      letter-spacing: .24em;
+      margin-bottom: 1.25rem
+    }
+
+    .grad-text {
+      background: var(--grad);
+      background-size: 200% 200%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: gradFlow 6s ease infinite
+    }
+
+    .tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .7rem;
+      letter-spacing: .06em;
+      padding: 4px 11px;
+      border-radius: 5px;
+      background: rgba(147, 150, 255, .14);
+      color: var(--p);
+      border: 1px solid rgba(147, 150, 255, .3)
+    }
+
+    /* ─── NAVIGATION ─── */
+    #zp,
+    #zn {
+      position: fixed;
+      top: 0;
+      height: 100vh;
+      z-index: 9000;
+      cursor: pointer
+    }
+
+    #zp {
+      left: 0;
+      width: 50vw
+    }
+
+    #zn {
+      right: 0;
+      width: 50vw
+    }
+
+    #ctr {
+      position: fixed;
+      bottom: 1.25rem;
+      right: 1.75rem;
+      z-index: 9500;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .7rem;
+      color: rgba(255, 255, 255, .22)
+    }
+
+    /* ─── TRANSITION OVERLAY ─── */
+    #to {
+      position: fixed;
+      inset: 0;
+      z-index: 8000;
+      background: var(--bg);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .22s ease
+    }
+
+    #to.on {
+      opacity: 1;
+      pointer-events: all
+    }
+
+    /* ─── DEMO TRANSITION ─── */
+    #dt {
+      position: fixed;
+      inset: 0;
+      z-index: 8500;
+      background: #000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .35s ease
+    }
+
+    #dt.on {
+      opacity: 1;
+      pointer-events: all
+    }
+
+    #dt .dd {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--ok);
+      box-shadow: 0 0 28px rgba(74, 222, 128, .8);
+      margin-bottom: 1.5rem;
+      animation: pulseGlow 1s ease infinite
+    }
+
+    #dt .dtext {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.05rem;
+      color: var(--ok);
+      letter-spacing: .14em;
+      white-space: nowrap;
+      overflow: hidden;
+      width: 0;
+      border-right: 2px solid var(--ok);
+      animation: typeOut .9s .35s steps(22) forwards, blink .6s .35s step-end infinite
+    }
+
+    /* ─── PRODUCT MOCKUP (Slide 1) ─── */
+    .browser {
+      background: rgba(255, 255, 255, .05);
+      border: 1px solid rgba(147, 150, 255, .22);
+      border-radius: 16px;
+      overflow: hidden;
+      width: 330px
+    }
+
+    .bbar {
+      background: rgba(147, 150, 255, .08);
+      padding: .55rem .9rem;
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      border-bottom: 1px solid rgba(147, 150, 255, .14)
+    }
+
+    .bd {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0
+    }
+
+    .bd-r {
+      background: var(--err)
+    }
+
+    .bd-y {
+      background: #fbbf24
+    }
+
+    .bd-g {
+      background: var(--ok)
+    }
+
+    .burl {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .65rem;
+      color: rgba(255, 255, 255, .3);
+      margin-left: .6rem
+    }
+
+    .fitem {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      padding: .45rem .6rem;
+      background: rgba(255, 255, 255, .04);
+      border: 1px solid rgba(147, 150, 255, .14);
+      border-radius: 8px;
+      font-size: .78rem;
+      color: rgba(255, 255, 255, .72);
+      margin-bottom: .4rem
+    }
+
+    .ficon {
+      width: 24px;
+      height: 24px;
+      border-radius: 5px;
+      background: rgba(147, 150, 255, .18);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .7rem;
+      color: var(--p);
+      flex-shrink: 0
+    }
+
+    .fck {
+      margin-left: auto;
+      color: var(--ok);
+      font-size: .8rem
+    }
+
+    .ptrack {
+      height: 6px;
+      border-radius: 3px;
+      background: rgba(147, 150, 255, .12);
+      overflow: hidden
+    }
+
+    .pb-fill {
+      height: 100%;
+      border-radius: 3px;
+      background: linear-gradient(90deg, var(--pdeep), var(--p))
+    }
+
+    .verdict-reveal {
+      opacity: 0;
+      margin-top: .75rem;
+      padding: .75rem .9rem;
+      border-radius: 10px;
+      background: rgba(74, 222, 128, .09);
+      border: 1px solid rgba(74, 222, 128, .28);
+      display: flex;
+      align-items: center;
+      gap: .75rem
+    }
+
+    .vi {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(74, 222, 128, .2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: .9rem
+    }
+
+    .vl {
+      font-size: .72rem;
+      font-weight: 700;
+      color: var(--ok);
+      letter-spacing: .07em
+    }
+
+    .va {
+      font-size: .75rem;
+      color: rgba(255, 255, 255, .55);
+      margin-top: .1rem
+    }
+
+    /* triage mini */
+    .triage-mini {
+      width: 330px;
+      margin-top: .75rem;
+      background: rgba(255, 255, 255, .04);
+      border: 1px solid rgba(147, 150, 255, .18);
+      border-radius: 12px;
+      padding: .9rem
+    }
+
+    .tr-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: .42rem .6rem;
+      border-radius: 7px;
+      font-size: .78rem;
+      margin-bottom: .35rem
+    }
+
+    .tr-row.a {
+      background: rgba(74, 222, 128, .07);
+      border: 1px solid rgba(74, 222, 128, .18)
+    }
+
+    .tr-row.b {
+      background: rgba(251, 146, 60, .07);
+      border: 1px solid rgba(251, 146, 60, .18)
+    }
+
+    .tr-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .62rem;
+      padding: 2px 8px;
+      border-radius: 4px
+    }
+
+    .tr-badge.a {
+      background: rgba(74, 222, 128, .2);
+      color: var(--ok)
+    }
+
+    .tr-badge.b {
+      background: rgba(251, 146, 60, .2);
+      color: var(--warn)
+    }
+
+    /* ─── FLOW NODES (Slide 4) ─── */
+    .fnode {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: .5rem;
+      text-align: center;
+      min-width: 120px
+    }
+
+    .fnode-icon {
+      width: 64px;
+      height: 64px;
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+      background: var(--cbg);
+      border: 2px solid var(--cb)
+    }
+
+    .farrow {
+      font-size: 1.5rem;
+      color: rgba(147, 150, 255, .5);
+      flex-shrink: 0;
+      align-self: center;
+      padding: 0 .25rem
+    }
+
+    /* ─── RISK BARS (Slide 8) ─── */
+    .ritem {
+      display: flex;
+      align-items: center;
+      gap: 1.1rem;
+      margin-bottom: 1rem
+    }
+
+    .rlbl {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .88rem;
+      font-weight: 600;
+      min-width: 52px
+    }
+
+    .rtrack {
+      flex: 1;
+      height: 9px;
+      border-radius: 5px;
+      background: rgba(255, 255, 255, .07);
+      overflow: hidden
+    }
+
+    .rbar {
+      height: 100%;
+      border-radius: 5px;
+      opacity: 0
+    }
+
+    .rdesc {
+      font-size: .88rem;
+      color: rgba(255, 255, 255, .5);
+      min-width: 220px
+    }
+
+    /* ─── TIMELINE (Slide 9) ─── */
+    .tl-item {
+      display: flex;
+      gap: 1rem;
+      align-items: flex-start;
+      position: relative;
+      padding-bottom: .9rem
+    }
+
+    .tl-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-top: 5px
+    }
+
+    .tl-line {
+      position: absolute;
+      left: 4px;
+      top: 15px;
+      width: 2px;
+      height: calc(100% - 5px);
+      background: rgba(147, 150, 255, .15)
+    }
+
+    /* ─── SIGN-OFF (Slide 10) ─── */
+    .nm {
+      opacity: 0;
+      padding: .55rem 1.4rem;
+      background: rgba(255, 255, 255, .06);
+      border: 1px solid rgba(147, 150, 255, .22);
+      border-radius: 100px;
+      font-size: .95rem;
+      font-weight: 500;
+      color: rgba(255, 255, 255, .88)
+    }
+
+    .nm-divider {
+      opacity: 0;
+      width: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .18), transparent)
+    }
+
+    .nm-thanks,
+    .nm-logo {
+      opacity: 0
+    }
+
+    .logo-shimmer {
+      background: linear-gradient(90deg, var(--p) 0%, #fff 30%, var(--t) 50%, var(--p) 100%);
+      background-size: 300% auto;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text
+    }
+
+    /* ─── PRINT ─── */
+    @media print {
+      @page {
+        size: 16in 9in landscape;
+        margin: 0
+      }
+
+      html,
+      body {
+        width: 16in;
+        height: auto;
+        overflow: visible
+      }
+
+      .slide {
+        display: flex !important;
+        page-break-after: always;
+        page-break-inside: avoid;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        width: 16in;
+        height: 9in;
+        position: relative;
+        top: auto;
+        left: auto
+      }
+
+      #zp,
+      #zn,
+      #ctr,
+      #to,
+      #dt {
+        display: none !important
+      }
+
+      [data-a] {
+        opacity: 1 !important;
+        animation: none !important
+      }
+
+      .pb-fill {
+        width: 72% !important;
+        animation: none !important
+      }
+
+      .verdict-reveal {
+        opacity: 1 !important;
+        animation: none !important
+      }
+
+      .nm,
+      .nm-divider,
+      .nm-thanks,
+      .nm-logo {
+        opacity: 1 !important;
+        animation: none !important
+      }
+
+      .nm-divider {
+        width: 100% !important
+      }
+
+      .rbar {
+        opacity: 1 !important;
+        animation: none !important
+      }
+
+      .chk-circle,
+      .chk-mark {
+        stroke-dashoffset: 0 !important;
+        animation: none !important
+      }
+
+      .bucket-a,
+      .bucket-b,
+      .bucket-c,
+      .bucket-d {
+        opacity: 1 !important;
+        animation: none !important
+      }
+    }
+  </style>
 </head>
+
 <body>
 
-<div id="zp"></div>
-<div id="zn"></div>
-<div id="ctr">1 / 10</div>
-<div id="to"></div>
-<div id="dt"><div class="dd"></div><div class="dtext">[ INITIATING LIVE SESSION ]</div></div>
+  <div id="zp"></div>
+  <div id="zn"></div>
+  <div id="ctr">1 / 10</div>
+  <div id="to"></div>
+  <div id="dt">
+    <div class="dd"></div>
+    <div class="dtext">[ INITIATING LIVE SESSION ]</div>
+  </div>
 
-<!-- ══════════════════════════════════════════════
+  <!-- ══════════════════════════════════════════════
      SLIDE 1 — TITLE  (two-column)
 ══════════════════════════════════════════════ -->
-<div class="slide active gbg" id="s0" style="flex-direction:row;align-items:stretch;">
-  <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 30% 50%,rgba(70,71,211,.15) 0%,transparent 65%);pointer-events:none"></div>
+  <div class="slide active gbg" id="s0" style="flex-direction:row;align-items:stretch;">
+    <div
+      style="position:absolute;inset:0;background:radial-gradient(ellipse at 30% 50%,rgba(70,71,211,.15) 0%,transparent 65%);pointer-events:none">
+    </div>
 
-  <!-- LEFT -->
-  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding:4rem 4rem 4rem 5rem;position:relative;z-index:10">
-    <div data-a="1" class="mono" style="color:var(--p);font-size:.95rem;letter-spacing:.3em;margin-bottom:1.5rem;opacity:0">UM HACKATHON 2026 &nbsp;·&nbsp; TEAM BOGOSORT</div>
+    <!-- LEFT -->
+    <div
+      style="flex:1;display:flex;flex-direction:column;justify-content:center;padding:4rem 4rem 4rem 5rem;position:relative;z-index:10">
+      <div data-a="1" class="mono"
+        style="color:var(--p);font-size:.95rem;letter-spacing:.3em;margin-bottom:1.5rem;opacity:0">UM HACKATHON 2026
+        &nbsp;·&nbsp; TEAM BOGOSORT</div>
 
-    <h1 data-a="2" style="opacity:0;font-size:7.5rem;font-weight:900;line-height:.9;letter-spacing:-.05em;color:#fff;margin-bottom:.75rem">
-      re<span class="grad-text">claim</span>
-    </h1>
+      <h1 data-a="2"
+        style="opacity:0;font-size:7.5rem;font-weight:900;line-height:.9;letter-spacing:-.05em;color:#fff;margin-bottom:.75rem">
+        re<span class="grad-text">claim</span>
+      </h1>
 
-    <div data-a="3" style="opacity:0;width:64px;height:2px;margin:1.25rem 0;background:var(--grad)"></div>
+      <div data-a="3" style="opacity:0;width:64px;height:2px;margin:1.25rem 0;background:var(--grad)"></div>
 
-    <p data-a="4" style="opacity:0;font-size:1.15rem;color:rgba(255,255,255,.6);line-height:1.65;max-width:440px;margin-bottom:2rem">
-      AI-native expense reimbursement. HR effort mathematically bounded to
-      <span style="color:var(--p);font-weight:600">exceptions only.</span>
-    </p>
+      <p data-a="4"
+        style="opacity:0;font-size:1.15rem;color:rgba(255,255,255,.6);line-height:1.65;max-width:440px;margin-bottom:2rem">
+        AI-native expense reimbursement. HR effort mathematically bounded to
+        <span style="color:var(--p);font-weight:600">exceptions only.</span>
+      </p>
 
-    <div data-a="5" style="opacity:0;display:flex;gap:.65rem;flex-wrap:wrap">
-      <span class="tag">LangGraph</span>
-      <span class="tag">GLM-5.1</span>
-      <span class="tag">Llama 3.2 Vision</span>
-      <span class="tag">FastAPI</span>
-      <span class="tag">Next.js 16</span>
-      <span class="tag">PostgreSQL</span>
+      <div data-a="5" style="opacity:0;display:flex;gap:.65rem;flex-wrap:wrap">
+        <span class="tag">LangGraph</span>
+        <span class="tag">GLM-5.1</span>
+        <span class="tag">GLM-4.6-Vision</span>
+        <span class="tag">FastAPI</span>
+        <span class="tag">Next.js 16</span>
+        <span class="tag">PostgreSQL</span>
+      </div>
+    </div>
+
+    <!-- RIGHT — product illustration -->
+    <div
+      style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;z-index:10;padding:2rem">
+      <div
+        style="position:absolute;inset:0;background:radial-gradient(ellipse at 60% 50%,rgba(158,0,180,.1) 0%,transparent 65%);pointer-events:none">
+      </div>
+
+      <!-- Upload card -->
+      <div data-a="r1" style="opacity:0;position:relative;z-index:10">
+        <div class="browser">
+          <div class="bbar">
+            <span class="bd bd-r"></span><span class="bd bd-y"></span><span class="bd bd-g"></span>
+            <span class="burl">reclaim.app / upload</span>
+          </div>
+          <div style="padding:1rem">
+            <div
+              style="font-size:.78rem;color:rgba(255,255,255,.4);margin-bottom:.6rem;font-family:'JetBrains Mono',monospace">
+              MY RECEIPTS</div>
+            <div class="fitem">
+              <div class="ficon">📄</div><span>hotel_kl.pdf</span><span class="fck">✓</span>
+            </div>
+            <div class="fitem">
+              <div class="ficon">🖼</div><span>dinner_receipt.jpg</span><span class="fck">✓</span>
+            </div>
+            <div class="fitem">
+              <div class="ficon">🖼</div><span>taxi_klcc.jpg</span><span class="fck">✓</span>
+            </div>
+            <!-- progress bar -->
+            <div
+              style="margin-top:.75rem;padding:.65rem .75rem;background:rgba(147,150,255,.06);border:1px solid rgba(147,150,255,.15);border-radius:9px">
+              <div
+                style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--p);margin-bottom:.4rem">
+                <span>AI Analyzing…</span><span style="color:rgba(255,255,255,.35)">3 / 3 ✓</span>
+              </div>
+              <div class="ptrack">
+                <div class="pb-fill" style="width:72%"></div>
+              </div>
+            </div>
+            <!-- verdict -->
+            <div class="verdict-reveal">
+              <div class="vi">✓</div>
+              <div>
+                <div class="vl">PASSED AI REVIEW</div>
+                <div class="va">RM 2,450 approved · 94% confidence</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- HR triage mini -->
+        <div class="triage-mini" data-a="r2" style="opacity:0">
+          <div
+            style="font-family:'JetBrains Mono',monospace;font-size:.7rem;color:rgba(255,255,255,.3);margin-bottom:.6rem">
+            HR TRIAGE DASHBOARD</div>
+          <div class="tr-row a"><span style="color:rgba(255,255,255,.78)">Q1 Travel — Ahmad</span><span
+              class="tr-badge a">PASSED</span></div>
+          <div class="tr-row b"><span style="color:rgba(255,255,255,.78)">Entertainment — Raj</span><span
+              class="tr-badge b">FLAGGED</span></div>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- RIGHT — product illustration -->
-  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;z-index:10;padding:2rem">
-    <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 60% 50%,rgba(158,0,180,.1) 0%,transparent 65%);pointer-events:none"></div>
-
-    <!-- Upload card -->
-    <div data-a="r1" style="opacity:0;position:relative;z-index:10">
-      <div class="browser">
-        <div class="bbar">
-          <span class="bd bd-r"></span><span class="bd bd-y"></span><span class="bd bd-g"></span>
-          <span class="burl">reclaim.app / upload</span>
-        </div>
-        <div style="padding:1rem">
-          <div style="font-size:.78rem;color:rgba(255,255,255,.4);margin-bottom:.6rem;font-family:'JetBrains Mono',monospace">MY RECEIPTS</div>
-          <div class="fitem"><div class="ficon">📄</div><span>hotel_kl.pdf</span><span class="fck">✓</span></div>
-          <div class="fitem"><div class="ficon">🖼</div><span>dinner_receipt.jpg</span><span class="fck">✓</span></div>
-          <div class="fitem"><div class="ficon">🖼</div><span>taxi_klcc.jpg</span><span class="fck">✓</span></div>
-          <!-- progress bar -->
-          <div style="margin-top:.75rem;padding:.65rem .75rem;background:rgba(147,150,255,.06);border:1px solid rgba(147,150,255,.15);border-radius:9px">
-            <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--p);margin-bottom:.4rem">
-              <span>AI Analyzing…</span><span style="color:rgba(255,255,255,.35)">3 / 3 ✓</span>
-            </div>
-            <div class="ptrack"><div class="pb-fill" style="width:72%"></div></div>
-          </div>
-          <!-- verdict -->
-          <div class="verdict-reveal">
-            <div class="vi">✓</div>
-            <div>
-              <div class="vl">PASSED AI REVIEW</div>
-              <div class="va">RM 2,450 approved · 94% confidence</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- HR triage mini -->
-      <div class="triage-mini" data-a="r2" style="opacity:0">
-        <div style="font-family:'JetBrains Mono',monospace;font-size:.7rem;color:rgba(255,255,255,.3);margin-bottom:.6rem">HR TRIAGE DASHBOARD</div>
-        <div class="tr-row a"><span style="color:rgba(255,255,255,.78)">Q1 Travel — Ahmad</span><span class="tr-badge a">PASSED</span></div>
-        <div class="tr-row b"><span style="color:rgba(255,255,255,.78)">Entertainment — Raj</span><span class="tr-badge b">FLAGGED</span></div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ══════════════════════════════════════════════
+  <!-- ══════════════════════════════════════════════
      SLIDE 2 — THE PROBLEM
 ══════════════════════════════════════════════ -->
-<div class="slide" id="s1" style="flex-direction:column;justify-content:center;padding:3.5rem 5.5rem">
-  <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 15% 55%,rgba(247,75,109,.09) 0%,transparent 60%);pointer-events:none"></div>
-  <div style="position:relative;z-index:10;max-width:1160px;margin:0 auto;width:100%">
+  <div class="slide" id="s1" style="flex-direction:column;justify-content:center;padding:3.5rem 5.5rem">
+    <div
+      style="position:absolute;inset:0;background:radial-gradient(ellipse at 15% 55%,rgba(247,75,109,.09) 0%,transparent 60%);pointer-events:none">
+    </div>
+    <div style="position:relative;z-index:10;max-width:1160px;margin:0 auto;width:100%">
 
-    <div data-a="1" class="sec-lbl" style="opacity:0;color:var(--err)">01 / THE PROBLEM</div>
+      <div data-a="1" class="sec-lbl" style="opacity:0;color:var(--err)">01 / THE PROBLEM</div>
 
-    <div style="display:grid;grid-template-columns:1.1fr 1fr;gap:3rem;align-items:center">
-      <!-- LEFT: text + stats -->
-      <div>
-        <h2 data-a="2" style="opacity:0;font-size:3rem;font-weight:800;color:#fff;line-height:1.1;margin-bottom:2rem">
-          HR reviews <span style="color:var(--err)">100%</span> of claims.<br>
-          <span style="font-size:2rem;font-weight:500;color:rgba(255,255,255,.42)">Most don't need a human.</span>
-        </h2>
-
-        <div style="display:flex;flex-direction:column;gap:1rem">
-          <div data-a="3" class="card card-e" style="opacity:0;padding:1.1rem 1.4rem;display:flex;align-items:center;gap:1.25rem">
-            <div class="mono" style="font-size:2.8rem;font-weight:900;color:var(--err);line-height:1">5–10</div>
-            <div style="font-size:.95rem;color:rgba(255,255,255,.55);line-height:1.5">business-day turnaround<br>per claim — entirely manual</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4rem;align-items:center">
+        <!-- LEFT: text + stats -->
+        <div style="display:flex;flex-direction:column;gap:2rem">
+          <div data-a="2" style="opacity:0">
+            <h1 style="font-size:5.5rem;font-weight:900;line-height:1;color:var(--err);margin-bottom:0.25rem">100%</h1>
+            <div style="font-size:1.1rem;color:rgba(255,255,255,.6);font-weight:500;letter-spacing:0.05em">CLAIMS
+              REVIEWED MANUALLY</div>
           </div>
-          <div data-a="4" class="card card-e" style="opacity:0;padding:1.1rem 1.4rem;display:flex;align-items:center;gap:1.25rem">
-            <div class="mono" style="font-size:2.8rem;font-weight:900;color:var(--err);line-height:1">100%</div>
-            <div style="font-size:.95rem;color:rgba(255,255,255,.55);line-height:1.5">of claims bottleneck<br>through one HR queue</div>
+          <div data-a="3" style="opacity:0">
+            <h1 style="font-size:5.5rem;font-weight:900;line-height:1;color:#fff;margin-bottom:0.25rem">5-10 Days</h1>
+            <div style="font-size:1.1rem;color:rgba(255,255,255,.6);font-weight:500;letter-spacing:0.05em">TURNAROUND
+              TIME</div>
           </div>
-          <div data-a="5" class="card card-e" style="opacity:0;padding:1.1rem 1.4rem;display:flex;align-items:center;gap:1.25rem">
-            <div class="mono" style="font-size:2.8rem;font-weight:900;color:var(--err);line-height:1">0</div>
-            <div style="font-size:.95rem;color:rgba(255,255,255,.55);line-height:1.5">fraud signals in the<br>legacy email workflow</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- RIGHT: visual bottleneck diagram -->
-      <div data-a="r1" style="opacity:0;display:flex;flex-direction:column;gap:1rem">
-        <div style="padding:1.4rem;background:rgba(247,75,109,.06);border:1px solid rgba(247,75,109,.2);border-radius:14px">
-          <div style="font-size:.88rem;font-weight:600;color:rgba(255,255,255,.75);margin-bottom:.6rem">The Old Workflow</div>
-          <!-- visual flow -->
-          <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">
-            <div style="text-align:center;font-size:.78rem;color:rgba(255,255,255,.5)"><div style="font-size:1.8rem">🧑‍💼</div><div>Employee</div></div>
-            <div style="color:rgba(247,75,109,.6);font-size:1.1rem">→</div>
-            <div style="text-align:center;font-size:.78rem;color:rgba(255,255,255,.5)"><div style="font-size:1.8rem">📧</div><div>Email</div></div>
-            <div style="color:rgba(247,75,109,.6);font-size:1.1rem">→</div>
-            <div style="text-align:center;font-size:.78rem;color:rgba(255,255,255,.5)"><div style="font-size:1.8rem">📂</div><div>PDF Drive</div></div>
-            <div style="color:rgba(247,75,109,.6);font-size:1.1rem">→</div>
-            <div style="text-align:center;font-size:.78rem;color:var(--err)"><div style="font-size:1.8rem">😩</div><div style="font-weight:700">HR Queue</div></div>
+          <div data-a="4" style="opacity:0">
+            <h1 style="font-size:5.5rem;font-weight:900;line-height:1;color:#fff;margin-bottom:0.25rem">0</h1>
+            <div style="font-size:1.1rem;color:rgba(255,255,255,.6);font-weight:500;letter-spacing:0.05em">AUTOMATED
+              FRAUD SIGNALS</div>
           </div>
         </div>
 
-        <div style="padding:1.1rem 1.3rem;background:rgba(247,75,109,.06);border-left:3px solid var(--err);border-radius:0 10px 10px 0">
-          <div style="font-size:.95rem;color:rgba(255,255,255,.68);line-height:1.6">Policy in a <strong style="color:#fff">static PDF</strong> on a shared drive. Two reviewers, same claim → two different decisions.</div>
-        </div>
-        <div style="padding:1.1rem 1.3rem;background:rgba(247,75,109,.06);border-left:3px solid var(--err);border-radius:0 10px 10px 0">
-          <div style="font-size:.95rem;color:rgba(255,255,255,.68);line-height:1.6">Employees can inflate AI-extracted receipt amounts. <strong style="color:#fff">No system catches it.</strong></div>
+        <!-- RIGHT: visual bottleneck diagram -->
+        <div data-a="r1" style="opacity:0;display:flex;align-items:center;justify-content:center">
+          <svg width="500" height="300" viewBox="-120 0 520 300" fill="none">
+            <style>
+              .doc-anim {
+                animation: docMove 3s ease-in-out infinite;
+              }
+
+              @keyframes docMove {
+                0% {
+                  transform: translateX(0);
+                  opacity: 0;
+                }
+
+                10% {
+                  opacity: 1;
+                }
+
+                30% {
+                  transform: translateX(60px);
+                  opacity: 1;
+                }
+
+                40% {
+                  transform: translateX(80px);
+                  opacity: 0;
+                }
+
+                100% {
+                  transform: translateX(80px);
+                  opacity: 0;
+                }
+              }
+
+              .claim-line {
+                stroke: #fff;
+                stroke-dasharray: 400;
+                stroke-dashoffset: 400;
+                animation: flowAndPile 3s ease-in-out infinite;
+              }
+
+              .claim-line:nth-child(1) {
+                animation-delay: 0.9s;
+              }
+
+              .claim-line:nth-child(2) {
+                animation-delay: 1.1s;
+              }
+
+              .claim-line:nth-child(3) {
+                animation-delay: 1.3s;
+              }
+
+              .claim-line:nth-child(4) {
+                animation-delay: 1.5s;
+              }
+
+              .claim-line:nth-child(5) {
+                animation-delay: 1.7s;
+              }
+
+              @keyframes flowAndPile {
+                0% {
+                  stroke-dashoffset: 400;
+                  stroke: #fff;
+                  opacity: 1;
+                }
+
+                50% {
+                  stroke-dashoffset: 150;
+                  stroke: var(--err);
+                  opacity: 1;
+                }
+
+                100% {
+                  stroke-dashoffset: 0;
+                  stroke: var(--err);
+                  opacity: 0;
+                }
+              }
+            </style>
+
+            <!-- Employee -->
+            <circle cx="-70" cy="135" r="15" stroke="#fff" stroke-width="2" fill="none" />
+            <path d="M-95,175 C-95,150 -45,150 -45,175" stroke="#fff" stroke-width="2" fill="none" />
+            <text x="-70" y="195" fill="#fff" font-size="12" font-family="monospace"
+              text-anchor="middle">EMPLOYEE</text>
+
+            <!-- Animated Document -->
+            <g class="doc-anim">
+              <rect x="-30" y="130" width="20" height="26" rx="2" stroke="#fff" stroke-width="2" fill="none" />
+              <line x1="-25" y1="138" x2="-15" y2="138" stroke="#fff" stroke-width="2" />
+              <line x1="-25" y1="146" x2="-15" y2="146" stroke="#fff" stroke-width="2" />
+            </g>
+
+            <!-- Destination node (HR Queue) -->
+            <rect x="340" y="100" width="20" height="100" rx="4" fill="rgba(247,75,109,0.2)" stroke="var(--err)"
+              stroke-width="2" />
+            <text x="350" y="225" fill="var(--err)" font-size="12" font-family="monospace" text-anchor="middle"
+              font-weight="bold">HR QUEUE</text>
+
+            <!-- Lines -->
+            <g>
+              <path class="claim-line" d="M0,50 C200,50 250,150 340,150" stroke-width="3" stroke-linecap="round" />
+              <path class="claim-line" d="M0,100 C200,100 250,150 340,150" stroke-width="3" stroke-linecap="round" />
+              <path class="claim-line" d="M0,150 L340,150" stroke-width="3" stroke-linecap="round" />
+              <path class="claim-line" d="M0,200 C200,200 250,150 340,150" stroke-width="3" stroke-linecap="round" />
+              <path class="claim-line" d="M0,250 C200,250 250,150 340,150" stroke-width="3" stroke-linecap="round" />
+            </g>
+          </svg>
         </div>
       </div>
     </div>
   </div>
-</div>
 
-<!-- ══════════════════════════════════════════════
+  <!-- ══════════════════════════════════════════════
      SLIDE 3 — THE SOLUTION
 ══════════════════════════════════════════════ -->
-<div class="slide" id="s2" style="flex-direction:column;justify-content:center;padding:3.5rem 5.5rem">
-  <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 80% 50%,rgba(70,71,211,.1) 0%,transparent 60%);pointer-events:none"></div>
-  <div style="position:relative;z-index:10;max-width:1160px;margin:0 auto;width:100%">
+  <div class="slide" id="s2" style="flex-direction:column;justify-content:center;padding:3.5rem 5.5rem">
+    <div
+      style="position:absolute;inset:0;background:radial-gradient(ellipse at 80% 50%,rgba(70,71,211,.1) 0%,transparent 60%);pointer-events:none">
+    </div>
+    <div style="position:relative;z-index:10;max-width:1200px;margin:0 auto;width:100%">
 
-    <div data-a="1" class="sec-lbl" style="opacity:0;color:var(--p)">02 / THE SOLUTION</div>
-    <h2 data-a="2" style="opacity:0;font-size:2.6rem;font-weight:800;color:#fff;line-height:1.1;margin-bottom:2rem">
-      Efficiency by Exception.<br>
-      <span style="font-size:1.5rem;font-weight:500;color:rgba(255,255,255,.42)">AI classifies every claim before HR opens a single case.</span>
-    </h2>
+      <div data-a="1" class="sec-lbl" style="opacity:0;color:var(--p)">02 / THE SOLUTION</div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem">
-      <!-- Bucket A -->
-      <div class="card card-ok bucket-a" style="opacity:0;padding:1.4rem">
-        <div style="display:flex;align-items:center;gap:.9rem;margin-bottom:.9rem">
-          <!-- animated checkmark -->
-          <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-            <circle cx="16" cy="16" r="14" stroke="#4ade80" stroke-width="1.8"
-              stroke-dasharray="88" class="chk-circle" style="--dl:88;stroke-dashoffset:88"/>
-            <polyline points="8,16 13,22 24,10" stroke="#4ade80" stroke-width="2.5"
-              stroke-linecap="round" stroke-linejoin="round"
-              stroke-dasharray="28" class="chk-mark" style="--dl:28;stroke-dashoffset:28"/>
+      <!-- THE RECLAIM ENGINE HEADER -->
+      <div data-a="1"
+        style="opacity:0;text-align:center;display:flex;flex-direction:column;align-items:center;margin-bottom:0">
+        <div
+          style="padding:0.75rem 2rem;border:2px solid var(--p);border-radius:8px;background:rgba(147,150,255,0.1);box-shadow:0 0 20px rgba(147,150,255,0.2);display:inline-block">
+          <h2 class="grad-text" style="font-size:1.8rem;font-weight:900;letter-spacing:0.1em;color:var(--p);margin:0">
+            THE RECLAIM ENGINE</h2>
+        </div>
+        <svg width="800" height="50" viewBox="0 0 800 50" style="overflow:visible;margin-top:4px">
+          <style>
+            .route-line {
+              stroke: var(--p);
+              stroke-width: 2;
+              stroke-dasharray: 6 6;
+              animation: dashFlow 2s linear infinite;
+              opacity: 0.6;
+            }
+
+            @keyframes dashFlow {
+              to {
+                stroke-dashoffset: -24;
+              }
+            }
+          </style>
+          <path class="route-line" d="M 400,0 C 400,25 130,25 130,50" fill="none" />
+          <path class="route-line" d="M 400,0 L 400,50" fill="none" />
+          <path class="route-line" d="M 400,0 C 400,25 670,25 670,50" fill="none" />
+          <circle cx="400" cy="0" r="4" fill="var(--p)" />
+          <circle cx="130" cy="50" r="4" fill="var(--p)" />
+          <circle cx="400" cy="50" r="4" fill="var(--p)" />
+          <circle cx="670" cy="50" r="4" fill="var(--p)" />
+        </svg>
+      </div>
+
+      <div style="display:flex;flex-direction:row;gap:2rem;margin-bottom:1.5rem">
+        <!-- Bucket A -->
+        <div data-a="2" class="card bucket-a"
+          style="opacity:0;flex:1;padding:2rem;display:flex;flex-direction:column;align-items:center;text-align:center;position:relative;overflow:hidden">
+          <style>
+            .scan-line-a {
+              animation: scanA 3s ease-in-out infinite;
+            }
+
+            .chk-scale {
+              transform: scale(0);
+              transform-origin: center;
+              animation: popCheck 3s ease-in-out infinite;
+            }
+
+            .pulse-border-a {
+              animation: pulseBorderA 3s ease-in-out infinite;
+            }
+
+            @keyframes scanA {
+              0% {
+                transform: translateY(-30px);
+                opacity: 0;
+              }
+
+              20% {
+                opacity: 1;
+              }
+
+              70% {
+                transform: translateY(70px);
+                opacity: 1;
+              }
+
+              80% {
+                opacity: 0;
+              }
+
+              100% {
+                opacity: 0;
+              }
+            }
+
+            @keyframes popCheck {
+
+              0%,
+              65% {
+                transform: scale(0);
+                opacity: 0;
+              }
+
+              75%,
+              90% {
+                transform: scale(1);
+                opacity: 1;
+              }
+
+              100% {
+                transform: scale(0);
+                opacity: 0;
+              }
+            }
+
+            @keyframes pulseBorderA {
+
+              0%,
+              70% {
+                stroke: rgba(255, 255, 255, 0.2);
+              }
+
+              75%,
+              90% {
+                stroke: var(--ok);
+                filter: drop-shadow(0 0 8px rgba(74, 222, 128, 0.5));
+              }
+
+              100% {
+                stroke: rgba(255, 255, 255, 0.2);
+              }
+            }
+          </style>
+          <svg width="80" height="100" viewBox="0 0 80 100" style="margin-bottom:1.5rem;overflow:visible">
+            <!-- Document -->
+            <rect class="pulse-border-a" x="10" y="10" width="60" height="80" rx="4" fill="rgba(255,255,255,0.05)"
+              stroke="rgba(255,255,255,0.2)" stroke-width="2" />
+            <line x1="20" y1="30" x2="60" y2="30" stroke="rgba(255,255,255,0.2)" stroke-width="2"
+              stroke-linecap="round" />
+            <line x1="20" y1="50" x2="50" y2="50" stroke="rgba(255,255,255,0.2)" stroke-width="2"
+              stroke-linecap="round" />
+            <line x1="20" y1="70" x2="60" y2="70" stroke="rgba(255,255,255,0.2)" stroke-width="2"
+              stroke-linecap="round" />
+            <!-- Scanning Line -->
+            <line class="scan-line-a" x1="0" y1="20" x2="80" y2="20" stroke="var(--ok)" stroke-width="2" />
+            <polygon class="scan-line-a" points="0,20 80,20 40,30" fill="rgba(74,222,128,0.2)" />
+            <!-- Checkmark -->
+            <path class="chk-scale" d="M 25 50 L 35 60 L 55 35" stroke="var(--ok)" stroke-width="6"
+              stroke-linecap="round" stroke-linejoin="round" fill="none" />
           </svg>
-          <span class="mono" style="color:#4ade80;font-size:.92rem;letter-spacing:.1em;font-weight:600">BUCKET A — PASSED AI REVIEW</span>
+          <div class="mono"
+            style="color:var(--ok);font-size:.85rem;letter-spacing:.1em;font-weight:700;margin-bottom:0.5rem">PASSED
+          </div>
+          <div style="font-size:.9rem;color:rgba(255,255,255,.7);line-height:1.5">AI verified. Zero violations.
+            Fast-tracked.</div>
         </div>
-        <div style="font-size:.95rem;color:rgba(255,255,255,.65);line-height:1.6">High-confidence, zero-violation claims. HR fast-tracks with a full AI audit record attached. No manual policy lookup required.</div>
-      </div>
 
-      <!-- Bucket B -->
-      <div class="card card-w bucket-b" style="opacity:0;padding:1.4rem">
-        <div style="display:flex;align-items:center;gap:.9rem;margin-bottom:.9rem">
-          <div style="width:32px;height:32px;border-radius:50%;background:rgba(251,146,60,.2);
-            display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0">⚠</div>
-          <span class="mono" style="color:var(--warn);font-size:.92rem;letter-spacing:.1em;font-weight:600">BUCKET B — REQUIRES ATTENTION</span>
-        </div>
-        <div style="font-size:.95rem;color:rgba(255,255,255,.65);line-height:1.6">Flagged violations, partial approvals, employee edits. AI surfaces the exact policy clause breached — HR arrives with evidence, not a stack of attachments.</div>
-      </div>
+        <!-- Bucket B -->
+        <div data-a="3" class="card bucket-b"
+          style="opacity:0;flex:1;padding:2rem;display:flex;flex-direction:column;align-items:center;text-align:center;position:relative;overflow:hidden">
+          <style>
+            .scan-line-b {
+              animation: scanB 3s ease-in-out infinite;
+            }
 
-      <!-- Fraud Trap -->
-      <div class="card card-t bucket-c" style="opacity:0;padding:1.4rem">
-        <div style="display:flex;align-items:center;gap:.9rem;margin-bottom:.9rem">
-          <div style="width:32px;height:32px;border-radius:50%;background:rgba(239,110,255,.2);
-            display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0">🔍</div>
-          <span class="mono" style="color:var(--t);font-size:.92rem;letter-spacing:.1em;font-weight:600">THE FRAUD TRAP</span>
+            .pulse-border-b {
+              animation: pulseBorderB 3s ease-in-out infinite;
+            }
+
+            .anomaly {
+              animation: pulseAnomaly 3s ease-in-out infinite;
+            }
+
+            @keyframes scanB {
+              0% {
+                transform: translateY(-30px);
+                opacity: 0;
+              }
+
+              20% {
+                opacity: 1;
+              }
+
+              45% {
+                transform: translateY(30px);
+                opacity: 1;
+              }
+
+              55%,
+              85% {
+                transform: translateY(30px);
+                opacity: 1;
+                stroke: var(--err);
+                fill: rgba(247, 75, 109, 0.2);
+              }
+
+              100% {
+                opacity: 0;
+              }
+            }
+
+            @keyframes pulseBorderB {
+
+              0%,
+              45% {
+                stroke: rgba(255, 255, 255, 0.2);
+              }
+
+              50%,
+              85% {
+                stroke: var(--warn);
+                filter: drop-shadow(0 0 8px rgba(251, 146, 60, 0.5));
+              }
+
+              100% {
+                stroke: rgba(255, 255, 255, 0.2);
+              }
+            }
+
+            @keyframes pulseAnomaly {
+
+              0%,
+              45% {
+                stroke: rgba(255, 255, 255, 0.2);
+              }
+
+              50%,
+              85% {
+                stroke: var(--err);
+                stroke-width: 4;
+              }
+
+              100% {
+                stroke: rgba(255, 255, 255, 0.2);
+              }
+            }
+          </style>
+          <svg width="80" height="100" viewBox="0 0 80 100" style="margin-bottom:1.5rem;overflow:visible">
+            <!-- Document -->
+            <rect class="pulse-border-b" x="10" y="10" width="60" height="80" rx="4" fill="rgba(255,255,255,0.05)"
+              stroke="rgba(255,255,255,0.2)" stroke-width="2" />
+            <line x1="20" y1="30" x2="60" y2="30" stroke="rgba(255,255,255,0.2)" stroke-width="2"
+              stroke-linecap="round" />
+            <line class="anomaly" x1="20" y1="50" x2="50" y2="50" stroke="rgba(255,255,255,0.2)" stroke-width="2"
+              stroke-linecap="round" />
+            <line x1="20" y1="70" x2="60" y2="70" stroke="rgba(255,255,255,0.2)" stroke-width="2"
+              stroke-linecap="round" />
+            <!-- Scanning Line -->
+            <line class="scan-line-b" x1="0" y1="20" x2="80" y2="20" stroke="var(--warn)" stroke-width="2" />
+            <polygon class="scan-line-b" points="0,20 80,20 40,30" fill="rgba(251,146,60,0.2)" />
+          </svg>
+          <div class="mono"
+            style="color:var(--warn);font-size:.85rem;letter-spacing:.1em;font-weight:700;margin-bottom:0.5rem">
+            ATTENTION</div>
+          <div style="font-size:.9rem;color:rgba(255,255,255,.7);line-height:1.5">Policy breach flagged. HR provided
+            with exact clause.</div>
         </div>
-        <div style="font-size:.95rem;color:rgba(255,255,255,.65);line-height:1.6">Employee edits any AI-extracted field → system silently records deviation, assigns <span class="mono" style="color:var(--t);font-size:.9rem">HIGH / MEDIUM / LOW</span> risk. Permanent, immutable signal surfaced to HR before they open the claim.</div>
+
+        <!-- Fraud Trap -->
+        <div data-a="4" class="card bucket-c"
+          style="opacity:0;flex:1;padding:2rem;display:flex;flex-direction:column;align-items:center;text-align:center;position:relative;overflow:hidden">
+          <style>
+            .cursor-move {
+              animation: cursorAnim 3s ease-in-out infinite;
+            }
+
+            .val-change {
+              animation: valChange 3s ease-in-out infinite;
+            }
+
+            .lock-snap {
+              transform-origin: center;
+              animation: lockSnap 3s ease-in-out infinite;
+            }
+
+            @keyframes cursorAnim {
+              0% {
+                transform: translate(10px, 60px);
+                opacity: 0;
+              }
+
+              20% {
+                opacity: 1;
+              }
+
+              40%,
+              60% {
+                transform: translate(50px, 45px);
+                opacity: 1;
+              }
+
+              70%,
+              100% {
+                opacity: 0;
+              }
+            }
+
+            @keyframes valChange {
+
+              0%,
+              40% {
+                fill: rgba(255, 255, 255, 0.6);
+                content: "85.00";
+              }
+
+              45%,
+              100% {
+                fill: var(--err);
+                content: "850.00";
+              }
+            }
+
+            @keyframes lockSnap {
+
+              0%,
+              45% {
+                transform: scale(0);
+                opacity: 0;
+              }
+
+              50%,
+              90% {
+                transform: scale(1);
+                opacity: 1;
+                filter: drop-shadow(0 0 10px rgba(239, 110, 255, 0.6));
+              }
+
+              100% {
+                transform: scale(0);
+                opacity: 0;
+              }
+            }
+          </style>
+          <svg width="100" height="100" viewBox="0 0 100 100" style="margin-bottom:1.5rem;overflow:visible">
+            <!-- Receipt vs Form -->
+            <rect x="5" y="10" width="40" height="60" rx="2" fill="rgba(255,255,255,0.05)"
+              stroke="rgba(255,255,255,0.2)" />
+            <text x="25" y="45" font-size="10" fill="rgba(255,255,255,0.6)" text-anchor="middle">85.00</text>
+
+            <rect x="55" y="10" width="40" height="60" rx="2" fill="rgba(147,150,255,0.1)"
+              stroke="rgba(147,150,255,0.4)" />
+            <text class="val-change" x="75" y="45" font-size="10" text-anchor="middle">850.00</text>
+
+            <!-- Cursor -->
+            <path class="cursor-move" d="M0,0 L12,12 L5,14 Z" fill="#fff" stroke="#000" stroke-width="1" />
+
+            <!-- Padlock -->
+            <g class="lock-snap" transform="translate(35, 65)">
+              <rect x="5" y="10" width="20" height="15" rx="3" fill="var(--t)" />
+              <path d="M10,10 V6 C10,3 20,3 20,6 V10" fill="none" stroke="var(--t)" stroke-width="3" />
+            </g>
+          </svg>
+          <div class="mono"
+            style="color:var(--t);font-size:.85rem;letter-spacing:.1em;font-weight:700;margin-bottom:0.5rem">FRAUD TRAP
+          </div>
+          <div style="font-size:.9rem;color:rgba(255,255,255,.7);line-height:1.5">Immutable audit trail. Every edit
+            logged and mathematically verified.</div>
+        </div>
       </div>
 
       <!-- Quote -->
-      <div class="card bucket-d" style="opacity:0;padding:1.4rem;border-style:dashed;display:flex;align-items:center">
-        <p style="font-size:.95rem;color:rgba(255,255,255,.38);font-style:italic;line-height:1.7">"We don't replace HR. We give them a compliance analyst that processes every receipt against policy before they open a single case."</p>
+      <div data-a="5"
+        style="opacity:0;width:100%;padding:1.5rem;background:linear-gradient(90deg, rgba(70,71,211,0.2) 0%, rgba(158,0,180,0.2) 100%);border-radius:12px;text-align:center;border:1px solid rgba(147,150,255,0.2)">
+        <p style="font-size:1.1rem;color:rgba(255,255,255,0.8);font-style:italic;line-height:1.5;font-weight:500">
+          "Efficiency by Exception. AI classifies every claim before HR opens a single case."</p>
       </div>
+
     </div>
   </div>
-</div>
 
-<!-- ══════════════════════════════════════════════
-     SLIDE 4 — SYSTEM ARCHITECTURE (animated pipeline)
+  <!-- ══════════════════════════════════════════════
+     SLIDE 4 — SYSTEM ARCHITECTURE
 ══════════════════════════════════════════════ -->
-<div class="slide gbg" id="s3" style="flex-direction:column;justify-content:center;padding:3rem 4rem">
-  <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,rgba(70,71,211,.09) 0%,transparent 60%);pointer-events:none"></div>
-  <div style="position:relative;z-index:10;max-width:1200px;margin:0 auto;width:100%">
-
-    <div data-a="1" class="sec-lbl" style="opacity:0;color:var(--p)">03 / SYSTEM ARCHITECTURE</div>
-    <h2 data-a="2" style="opacity:0;font-size:2rem;font-weight:800;color:#fff;margin-bottom:2.5rem">
-      From raw receipt to HR verdict — fully automated, fully auditable.
-    </h2>
-
-    <!-- Animated pipeline -->
-    <div style="display:flex;align-items:center;justify-content:center;gap:.25rem;margin-bottom:2.5rem;flex-wrap:nowrap">
-
-      <div data-a="f1" class="fnode" style="opacity:0">
-        <div class="fnode-icon" style="border-color:rgba(147,150,255,.4);background:rgba(147,150,255,.08)">📎</div>
-        <div style="font-size:.88rem;font-weight:700;color:#fff">Receipt</div>
-        <div style="font-size:.78rem;color:rgba(255,255,255,.42)">JPEG · PNG · PDF</div>
-      </div>
-
-      <div data-a="a1" class="farrow" style="opacity:0">›</div>
-
-      <div data-a="f2" class="fnode" style="opacity:0">
-        <div class="fnode-icon" style="border-color:rgba(129,204,255,.4);background:rgba(129,204,255,.08)">👁</div>
-        <div style="font-size:.88rem;font-weight:700;color:#fff">Document Agent</div>
-        <div style="font-size:.78rem;color:rgba(255,255,255,.42)">OCR · 4 parallel workers</div>
-      </div>
-
-      <div data-a="a2" class="farrow" style="opacity:0">›</div>
-
-      <div data-a="f3" class="fnode" style="opacity:0">
-        <div class="fnode-icon" style="border-color:rgba(239,110,255,.4);background:rgba(239,110,255,.08)">⚖</div>
-        <div style="font-size:.88rem;font-weight:700;color:#fff">Compliance Agent</div>
-        <div style="font-size:.78rem;color:rgba(255,255,255,.42)">ReAct · policy check</div>
-      </div>
-
-      <div data-a="a3" class="farrow" style="opacity:0">›</div>
-
-      <div data-a="f4" class="fnode" style="opacity:0">
-        <div class="fnode-icon" style="border-color:rgba(74,222,128,.4);background:rgba(74,222,128,.08)">🤖</div>
-        <div style="font-size:.88rem;font-weight:700;color:#fff">AI Verdict</div>
-        <div style="font-size:.78rem;color:rgba(255,255,255,.42)">APPROVE / FLAG / MANUAL</div>
-      </div>
-
-      <div data-a="a4" class="farrow" style="opacity:0">›</div>
-
-      <div data-a="f5" class="fnode" style="opacity:0">
-        <div class="fnode-icon" style="border-color:rgba(147,150,255,.4);background:rgba(147,150,255,.08)">🧑‍💼</div>
-        <div style="font-size:.88rem;font-weight:700;color:#fff">HR Decision</div>
-        <div style="font-size:.78rem;color:rgba(255,255,255,.42)">Final authority</div>
-      </div>
+  <div class="slide gbg" id="s3" style="flex-direction:column;justify-content:center;padding:3rem 4rem">
+    <div
+      style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,rgba(70,71,211,.09) 0%,transparent 60%);pointer-events:none">
     </div>
+    <div style="position:relative;z-index:10;max-width:1200px;margin:0 auto;width:100%;text-align:center">
 
-    <!-- LLM services row -->
-    <div data-a="6" style="opacity:0;display:grid;grid-template-columns:repeat(4,1fr);gap:1rem">
-      <div class="card" style="padding:1rem">
-        <div class="mono" style="font-size:.72rem;color:rgba(255,255,255,.35);letter-spacing:.12em;margin-bottom:.45rem">PRIMARY LLM</div>
-        <div style="font-size:.95rem;font-weight:700;color:#fff;margin-bottom:.25rem">GLM-5.1</div>
-        <div style="font-size:.85rem;color:rgba(255,255,255,.45);line-height:1.45">ILMU API · policy extraction, compliance ReAct, PDF OCR</div>
-      </div>
-      <div class="card" style="padding:1rem">
-        <div class="mono" style="font-size:.72rem;color:rgba(255,255,255,.35);letter-spacing:.12em;margin-bottom:.45rem">VISION LLM</div>
-        <div style="font-size:.95rem;font-weight:700;color:#fff;margin-bottom:.25rem">Llama 3.2 Vision</div>
-        <div style="font-size:.85rem;color:rgba(255,255,255,.45);line-height:1.45">OpenRouter · image receipt OCR, base64 multimodal</div>
-      </div>
-      <div class="card" style="padding:1rem">
-        <div class="mono" style="font-size:.72rem;color:rgba(255,255,255,.35);letter-spacing:.12em;margin-bottom:.45rem">FALLBACK LLM</div>
-        <div style="font-size:.95rem;font-weight:700;color:#fff;margin-bottom:.25rem">Gemini Flash Lite</div>
-        <div style="font-size:.85rem;color:rgba(255,255,255,.45);line-height:1.45">Auto-switches if GLM-5.1 fails 15s health check</div>
-      </div>
-      <div class="card" style="padding:1rem">
-        <div class="mono" style="font-size:.72rem;color:rgba(255,255,255,.35);letter-spacing:.12em;margin-bottom:.45rem">OBSERVABILITY</div>
-        <div style="font-size:.95rem;font-weight:700;color:#fff;margin-bottom:.25rem">LangSmith</div>
-        <div style="font-size:.85rem;color:rgba(255,255,255,.45);line-height:1.45">Full trace per LLM call · project: um_hackathon</div>
+      <div data-a="1" class="sec-lbl" style="opacity:0;color:var(--p)">03 / SYSTEM ARCHITECTURE (TWO-PHASE)</div>
+
+      <div
+        style="position:relative;width:1050px;margin:3rem auto 0;display:flex;flex-direction:column;gap:3rem;text-align:left">
+
+        <style>
+          /* Phase 1 Setup */
+          .p1-container {
+            opacity: 0;
+          }
+
+          .is-v .p1-container {
+            animation: pFadeIn 0.32s ease forwards;
+          }
+
+          .is-v .p1-n1 {
+            animation: p1Pulse 0.6s 0.2s forwards;
+          }
+
+          .is-v .p1-n2 {
+            animation: p1Pulse 0.6s 0.8s forwards;
+          }
+
+          .is-v .p1-n3 {
+            animation: p1Pulse 0.6s 1.4s forwards;
+          }
+
+          .is-v .p1-n4 {
+            animation: p1Pulse 0.6s 2.0s forwards;
+          }
+
+          .is-v .p1-n5 {
+            animation: p1Pulse 0.6s 2.6s forwards;
+          }
+
+          @keyframes pFadeIn {
+            to {
+              opacity: 1;
+            }
+          }
+
+          @keyframes pFadeInLine {
+            to {
+              opacity: 0.4;
+            }
+          }
+
+          @keyframes p1Pulse {
+            0% {
+              transform: scale(1);
+              filter: brightness(1);
+            }
+
+            20% {
+              transform: scale(1.15);
+              filter: brightness(1.5) drop-shadow(0 0 10px var(--s));
+            }
+
+            80% {
+              transform: scale(1.15);
+              filter: brightness(1.5) drop-shadow(0 0 10px var(--s));
+            }
+
+            100% {
+              transform: scale(1);
+              filter: brightness(1);
+            }
+          }
+
+          /* Phase 2 Setup */
+          .p2-lbl,
+          .p2-line,
+          .p2-emp,
+          .p2-ocr,
+          .p2-comp,
+          .p2-cross,
+          .p2-verd,
+          .p2-check {
+            opacity: 0;
+          }
+
+          .is-v .p2-lbl {
+            animation: pFadeIn 0.2s 3.0s forwards;
+          }
+
+          .is-v .p2-line {
+            animation: pFadeInLine 0.2s 3.2s forwards;
+          }
+
+          .is-v .p2-emp {
+            animation: pFadeIn 0.2s 3.2s forwards;
+          }
+
+          .is-v .p2-ocr {
+            animation: p2PulseP 1.2s 3.4s forwards;
+          }
+
+          .is-v .p2-cross {
+            animation: p2LinePulse 1.2s 4.6s forwards;
+          }
+
+          .is-v .p2-comp {
+            animation: p2PulseT 1.2s 4.6s forwards;
+          }
+
+          .is-v .p2-verd {
+            animation: p2PulseOk 1.2s 5.8s forwards;
+          }
+
+          .is-v .p2-check {
+            animation: checkPop 0.24s 7.0s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+          }
+
+          @keyframes p2PulseP {
+            0% {
+              opacity: 0;
+              transform: translateY(20px);
+              box-shadow: none;
+              border-color: rgba(255, 255, 255, 0.1);
+            }
+
+            10% {
+              opacity: 1;
+              transform: translateY(0);
+              box-shadow: 0 0 25px rgba(147, 150, 255, 0.4);
+              border-color: var(--p);
+            }
+
+            90% {
+              opacity: 1;
+              transform: translateY(0);
+              box-shadow: 0 0 25px rgba(147, 150, 255, 0.4);
+              border-color: var(--p);
+            }
+
+            100% {
+              opacity: 1;
+              transform: translateY(0);
+              box-shadow: none;
+              border-color: rgba(255, 255, 255, 0.1);
+              border-top-color: var(--p);
+            }
+          }
+
+          @keyframes p2PulseT {
+            0% {
+              opacity: 0;
+              transform: translateY(20px);
+              box-shadow: none;
+              border-color: rgba(255, 255, 255, 0.1);
+            }
+
+            10% {
+              opacity: 1;
+              transform: translateY(0);
+              box-shadow: 0 0 25px rgba(239, 110, 255, 0.4);
+              border-color: var(--t);
+            }
+
+            90% {
+              opacity: 1;
+              transform: translateY(0);
+              box-shadow: 0 0 25px rgba(239, 110, 255, 0.4);
+              border-color: var(--t);
+            }
+
+            100% {
+              opacity: 1;
+              transform: translateY(0);
+              box-shadow: none;
+              border-color: rgba(255, 255, 255, 0.1);
+              border-top-color: var(--t);
+            }
+          }
+
+          @keyframes p2PulseOk {
+            0% {
+              opacity: 0;
+              transform: translateY(20px);
+              box-shadow: none;
+              border-color: rgba(255, 255, 255, 0.1);
+            }
+
+            10% {
+              opacity: 1;
+              transform: translateY(0);
+              box-shadow: 0 0 25px rgba(74, 222, 128, 0.4);
+              border-color: var(--ok);
+            }
+
+            90% {
+              opacity: 1;
+              transform: translateY(0);
+              box-shadow: 0 0 25px rgba(74, 222, 128, 0.4);
+              border-color: var(--ok);
+            }
+
+            100% {
+              opacity: 1;
+              transform: translateY(0);
+              box-shadow: none;
+              border-color: rgba(255, 255, 255, 0.1);
+              border-top-color: var(--ok);
+            }
+          }
+
+          @keyframes p2LinePulse {
+            0% {
+              opacity: 0;
+              filter: none;
+            }
+
+            10% {
+              opacity: 0.8;
+              filter: drop-shadow(0 0 8px var(--s));
+            }
+
+            90% {
+              opacity: 0.8;
+              filter: drop-shadow(0 0 8px var(--s));
+            }
+
+            100% {
+              opacity: 0.5;
+              filter: none;
+            }
+          }
+
+          @keyframes checkPop {
+            0% {
+              opacity: 0;
+              transform: scale(0);
+            }
+
+            100% {
+              opacity: 1;
+              transform: scale(1);
+            }
+          }
+        </style>
+
+        <!-- PHASE 1: Policy Initialization -->
+        <div class="p1-container"
+          style="position:relative; width:100%; display:flex; justify-content:space-between; align-items:center; padding:0 20px">
+          <!-- Connecting Line Phase 1 -->
+          <div
+            style="position:absolute; top:50%; left:40px; right:40px; height:2px; border-top:2px dashed var(--s); opacity:0.3; z-index:0">
+          </div>
+
+          <div
+            style="position:absolute; top:-25px; left:20px; color:var(--s); font-family:monospace; font-size:0.8rem; font-weight:bold; letter-spacing:0.1em; opacity:0.8">
+            PHASE 1: POLICY INITIALIZATION</div>
+
+          <!-- HR Admin -->
+          <div class="p1-n1"
+            style="z-index:1; display:flex; flex-direction:column; align-items:center; background:#0B0F19; padding:10px 15px; border-radius:8px">
+            <svg width="40" height="40" viewBox="0 0 40 40" stroke="var(--s)" fill="none" stroke-width="2">
+              <circle cx="20" cy="12" r="8" />
+              <path d="M5,35 C5,22 35,22 35,35" />
+            </svg>
+            <div style="font-size:0.75rem;color:var(--s);margin-top:0.5rem;font-family:monospace">HR Admin</div>
+          </div>
+
+          <!-- Upload Policy -->
+          <div class="p1-n2"
+            style="z-index:1; display:flex; flex-direction:column; align-items:center; background:#0B0F19; padding:10px 15px; border-radius:8px">
+            <svg width="40" height="40" viewBox="0 0 40 40" stroke="var(--s)" fill="none" stroke-width="2">
+              <rect x="8" y="4" width="24" height="32" rx="2" />
+              <path d="M14,14 L26,14 M14,22 L26,22 M14,30 L20,30" />
+            </svg>
+            <div style="font-size:0.75rem;color:var(--s);margin-top:0.5rem;font-family:monospace">Upload Policy</div>
+          </div>
+
+          <!-- AI Extraction Engine -->
+          <div class="p1-n3"
+            style="z-index:1; display:flex; flex-direction:column; align-items:center; background:#0B0F19; padding:10px 15px; border-radius:8px">
+            <svg width="40" height="40" viewBox="0 0 40 40" stroke="var(--s)" fill="none" stroke-width="2"
+              style="overflow:visible">
+              <polygon points="20,2 36,10 36,30 20,38 4,30 4,10" fill="rgba(129,204,255,0.1)" />
+              <circle cx="20" cy="20" r="4" fill="var(--s)" />
+            </svg>
+            <div style="font-size:0.75rem;color:var(--s);margin-top:0.5rem;font-family:monospace">AI Extractor</div>
+          </div>
+
+          <!-- Policy DB -->
+          <div class="p1-n4"
+            style="z-index:1; display:flex; flex-direction:column; align-items:center; background:#0B0F19; padding:10px 15px; border-radius:8px; position:relative">
+            <svg width="40" height="40" viewBox="0 0 40 50" stroke="var(--s)" fill="none" stroke-width="2">
+              <ellipse cx="20" cy="10" rx="16" ry="6" />
+              <path d="M4,10 V40 C4,46 36,46 36,40 V10" />
+              <path d="M4,20 C4,26 36,26 36,20" />
+              <path d="M4,30 C4,36 36,36 36,30" />
+            </svg>
+            <div style="font-size:0.75rem;color:var(--s);margin-top:0.5rem;font-family:monospace">Policy DB</div>
+          </div>
+
+          <!-- Active Policy -->
+          <div class="p1-n5"
+            style="z-index:1; display:flex; flex-direction:column; align-items:center; background:#0B0F19; padding:10px 15px; border-radius:8px">
+            <svg width="40" height="40" viewBox="0 0 40 40" stroke="var(--s)" fill="none" stroke-width="2">
+              <circle cx="20" cy="20" r="16" fill="rgba(129,204,255,0.1)" />
+              <path d="M12,20 L18,26 L28,14" stroke="var(--s)" stroke-width="3" />
+            </svg>
+            <div style="font-size:0.75rem;color:var(--s);margin-top:0.5rem;font-family:monospace">Active Policy</div>
+          </div>
+        </div>
+
+        <!-- PHASE 2: Core Claim Execution -->
+        <div style="position:relative; width:100%; display:grid; grid-template-columns: 120px 1fr 1fr 1fr; gap: 2rem">
+
+          <div class="p2-lbl"
+            style="position:absolute; top:-25px; left:20px; color:var(--p); font-family:monospace; font-size:0.8rem; font-weight:bold; letter-spacing:0.1em; opacity:0.8">
+            PHASE 2: CORE CLAIM EXECUTION</div>
+
+          <!-- Cross line from DB (Phase 1) to Compliance Agent (Phase 2) -->
+          <svg class="p2-cross"
+            style="position:absolute; top:-60px; left:0; width:1050px; height:180px; z-index:0; pointer-events:none; overflow:visible">
+            <path d="M 760 -40 C 760 40 600 40 600 80" stroke="var(--s)" stroke-dasharray="5 5" stroke-width="2"
+              fill="none" />
+          </svg>
+
+          <!-- Connecting Line Phase 2 -->
+          <div class="p2-line"
+            style="position:absolute; top:45px; left:60px; right:139px; height:4px; background:var(--p); z-index:0; border-radius:2px; box-shadow:0 0 10px var(--p)">
+          </div>
+
+          <!-- Node 1: Input -->
+          <div class="p2-emp"
+            style="z-index:1; display:flex; flex-direction:column; align-items:center; padding-top:15px">
+            <div
+              style="width:60px;height:60px;background:#0f111a;border:2px solid var(--p);border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 0 15px rgba(147,150,255,0.3)">
+              <svg width="30" height="30" viewBox="0 0 40 40" stroke="var(--p)" fill="none" stroke-width="2">
+                <circle cx="20" cy="12" r="8" />
+                <path d="M5,35 C5,22 35,22 35,35" />
+              </svg>
+            </div>
+            <div style="font-size:0.8rem;color:#fff;margin-top:0.75rem;font-family:monospace;text-align:center">
+              Employee<br />Upload</div>
+          </div>
+
+          <!-- Node 2: OCR Processing -->
+          <div class="p2-ocr"
+            style="z-index:1; margin-top:60px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); border-top: 3px solid var(--p); border-radius:8px; padding:1.25rem; backdrop-filter:blur(4px)">
+            <div
+              style="font-weight:bold; font-size:1rem; color:#fff; margin-bottom:1rem; display:flex; align-items:center; gap:0.5rem">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="var(--p)">
+                <circle cx="10" cy="10" r="10" fill="rgba(147,150,255,0.2)" />
+                <circle cx="10" cy="10" r="4" />
+              </svg>
+              OCR Processing
+            </div>
+            <div style="display:flex;flex-direction:column;gap:0.5rem">
+              <div
+                style="background:rgba(255,255,255,0.05);padding:0.6rem;border-radius:6px;font-size:0.8rem;color:rgba(255,255,255,0.8);display:flex;align-items:center;gap:0.5rem">
+                <svg width="14" height="14" viewBox="0 0 24 24" stroke="var(--p)" fill="none">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                </svg>
+                Extract Data from Receipt
+              </div>
+              <div style="text-align:center;color:var(--p);line-height:0.5">↓</div>
+              <div
+                style="background:rgba(255,255,255,0.05);padding:0.6rem;border-radius:6px;font-size:0.8rem;color:rgba(255,255,255,0.8);display:flex;align-items:center;gap:0.5rem">
+                <svg width="14" height="14" viewBox="0 0 24 24" stroke="var(--p)" fill="none">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="12" y1="3" x2="12" y2="21"></line>
+                </svg>
+                User Verification
+              </div>
+              <div style="text-align:center;color:var(--p);line-height:0.5">↓</div>
+              <div
+                style="background:rgba(255,255,255,0.05);padding:0.6rem;border-radius:6px;font-size:0.8rem;color:rgba(255,255,255,0.8);display:flex;align-items:center;gap:0.5rem">
+                <svg width="14" height="14" viewBox="0 0 24 24" stroke="var(--p)" fill="none">
+                  <path d="M22 2L11 13"></path>
+                  <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+                Send to Agent
+              </div>
+            </div>
+          </div>
+
+          <!-- Node 3: Compliance Agent -->
+          <div class="p2-comp"
+            style="z-index:1; margin-top:60px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); border-top: 3px solid var(--t); border-radius:8px; padding:1.25rem; backdrop-filter:blur(4px)">
+            <div
+              style="font-weight:bold; font-size:1rem; color:#fff; margin-bottom:1rem; display:flex; align-items:center; gap:0.5rem">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="var(--t)">
+                <circle cx="10" cy="10" r="10" fill="rgba(239,110,255,0.2)" />
+                <circle cx="10" cy="10" r="4" />
+              </svg>
+              Compliance Agent
+            </div>
+            <div style="display:flex;flex-direction:column;gap:0.5rem">
+              <div
+                style="background:rgba(255,255,255,0.05);padding:0.6rem;border-radius:6px;font-size:0.8rem;color:rgba(255,255,255,0.8);display:flex;align-items:center;gap:0.5rem">
+                <svg width="14" height="14" viewBox="0 0 24 24" stroke="var(--t)" fill="none">
+                  <polyline points="16 18 22 12 16 6"></polyline>
+                  <polyline points="8 6 2 12 8 18"></polyline>
+                </svg>
+                Receive RAW JSON
+              </div>
+              <div style="text-align:center;color:var(--t);line-height:0.5">↓</div>
+              <div
+                style="background:rgba(255,255,255,0.05);padding:0.6rem;border-radius:6px;font-size:0.8rem;color:rgba(255,255,255,0.8);display:flex;align-items:center;gap:0.5rem">
+                <svg width="14" height="14" viewBox="0 0 24 24" stroke="var(--t)" fill="none">
+                  <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                  <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+                  <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+                </svg>
+                Compare with DB
+              </div>
+              <div style="text-align:center;color:var(--t);line-height:0.5">↓</div>
+              <div
+                style="background:rgba(255,255,255,0.05);padding:0.6rem;border-radius:6px;font-size:0.8rem;color:rgba(255,255,255,0.8);display:flex;align-items:center;gap:0.5rem">
+                <svg width="14" height="14" viewBox="0 0 24 24" stroke="var(--t)" fill="none">
+                  <path d="M12 2v20"></path>
+                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                </svg>
+                Call External Tools
+              </div>
+            </div>
+          </div>
+
+          <!-- Node 4: Final Verdict -->
+          <div class="p2-verd"
+            style="z-index:1; margin-top:60px; position:relative; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); border-top: 3px solid var(--ok); border-radius:8px; padding:1.25rem; backdrop-filter:blur(4px); display:flex; flex-direction:column">
+            <div class="p2-check"
+              style="position:absolute; top:-15px; right:-15px; width:34px; height:34px; background:var(--ok); border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 0 15px var(--ok); z-index:10">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="3">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </div>
+
+            <div
+              style="font-weight:bold; font-size:1rem; color:#fff; margin-bottom:1rem; display:flex; align-items:center; gap:0.5rem">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="var(--ok)">
+                <circle cx="10" cy="10" r="10" fill="rgba(74,222,128,0.2)" />
+                <circle cx="10" cy="10" r="4" />
+              </svg>
+              Final Verdict
+            </div>
+            <div style="display:flex;flex-direction:column;gap:0.5rem;flex:1">
+              <div
+                style="background:rgba(255,255,255,0.05);padding:0.6rem;border-radius:6px;font-size:0.8rem;color:rgba(255,255,255,0.8);display:flex;align-items:center;gap:0.5rem">
+                <svg width="14" height="14" viewBox="0 0 24 24" stroke="var(--ok)" fill="none">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="3" y1="9" x2="21" y2="9"></line>
+                  <line x1="9" y1="21" x2="9" y2="9"></line>
+                </svg>
+                HR Dashboard
+              </div>
+              <div
+                style="background:rgba(255,255,255,0.05);padding:0.6rem;border-radius:6px;font-size:0.8rem;color:rgba(255,255,255,0.8);display:flex;align-items:center;gap:0.5rem">
+                <svg width="14" height="14" viewBox="0 0 24 24" stroke="var(--ok)" fill="none">
+                  <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path>
+                  <line x1="4" y1="22" x2="4" y2="15"></line>
+                </svg>
+                Flags & Logs
+              </div>
+              <div
+                style="margin-top:auto; background:rgba(74,222,128,0.1);border:1px solid rgba(74,222,128,0.3);padding:0.6rem;border-radius:6px;font-size:0.8rem;color:var(--ok);text-align:center;font-weight:bold">
+                Status: Approve / Reject
+              </div>
+            </div>
+          </div>
+
+        </div>
       </div>
     </div>
   </div>
-</div>
 
-<!-- ══════════════════════════════════════════════
-     SLIDE 5 — THREE AGENT PIPELINES
+  <!-- ══════════════════════════════════════════════
+     SLIDE 5 — AGENTIC CORE (THREE PIPELINES)
 ══════════════════════════════════════════════ -->
-<div class="slide" id="s4" style="flex-direction:column;justify-content:center;padding:3rem 4.5rem">
-  <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,rgba(158,0,180,.1) 0%,transparent 60%);pointer-events:none"></div>
-  <div style="position:relative;z-index:10;max-width:1200px;margin:0 auto;width:100%">
+  <div class="slide" id="s4" style="flex-direction:column;justify-content:center;padding:3rem 4.5rem">
+    <div
+      style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,rgba(158,0,180,.1) 0%,transparent 60%);pointer-events:none">
+    </div>
+    <div style="position:relative;z-index:10;max-width:1200px;margin:0 auto;width:100%">
 
-    <div data-a="1" class="sec-lbl" style="opacity:0;color:var(--t)">04 / AGENTIC CORE — THREE LANGGRAPH PIPELINES</div>
+      <div data-a="1" class="sec-lbl" style="opacity:0;color:var(--t)">04 / AGENTIC CORE</div>
 
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem">
+      <div style="display:flex;gap:2rem">
+        <!-- Agent 1: Policy Agent -->
+        <div data-a="s1" class="card card-p"
+          style="opacity:0;flex:1;padding:2rem;display:flex;flex-direction:column;align-items:center;text-align:center">
+          <svg width="200" height="150" viewBox="0 0 200 150" style="margin-bottom:1rem;overflow:visible">
+            <style>
+              .pulse-light-1 {
+                offset-path: path('M 50 75 L 100 75 L 150 75');
+                animation: pLight1 2s linear infinite;
+              }
 
-      <!-- Agent 1 -->
-      <div data-a="s1" class="card card-p" style="opacity:0;padding:1.6rem">
-        <div style="display:flex;align-items:center;gap:.85rem;margin-bottom:1.25rem">
-          <div style="width:44px;height:44px;border-radius:12px;background:rgba(147,150,255,.18);
-            border:1px solid rgba(147,150,255,.35);display:flex;align-items:center;justify-content:center;
-            font-size:1.3rem;flex-shrink:0">📋</div>
-          <div>
-            <div style="font-size:1.1rem;font-weight:700;color:#fff">Policy Agent</div>
-            <div class="mono" style="font-size:.78rem;color:rgba(255,255,255,.38);letter-spacing:.08em">4-NODE PIPELINE</div>
-          </div>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:.55rem;margin-bottom:1.1rem">
-          <div style="display:flex;gap:.65rem;align-items:baseline;font-size:.9rem;color:rgba(255,255,255,.62)">
-            <span class="mono" style="color:var(--p);font-size:.85rem">›</span>process_pdfs → markdown
-          </div>
-          <div style="display:flex;gap:.65rem;align-items:baseline;font-size:.9rem;color:rgba(255,255,255,.62)">
-            <span class="mono" style="color:var(--p);font-size:.85rem">›</span>extract_categories_and_summary
-          </div>
-          <div style="display:flex;gap:.65rem;align-items:baseline;font-size:.9rem;color:rgba(255,255,255,.62)">
-            <span class="mono" style="color:var(--p);font-size:.85rem">›</span>extract_conditions (JSON)
-          </div>
-          <div style="display:flex;gap:.65rem;align-items:baseline;font-size:.9rem;color:rgba(255,255,255,.62)">
-            <span class="mono" style="color:var(--p);font-size:.85rem">›</span>save_to_db → ACTIVE policy
-          </div>
-        </div>
-        <div style="padding:.7rem .9rem;background:rgba(147,150,255,.1);border-radius:9px">
-          <div style="font-size:.88rem;color:var(--p);line-height:1.5">Structured conditions injected directly into compliance prompts. Zero retrieval latency.</div>
-        </div>
-      </div>
+              @keyframes pLight1 {
+                0% {
+                  offset-distance: 0%;
+                  opacity: 1;
+                }
 
-      <!-- Agent 2 -->
-      <div data-a="s2" class="card card-s" style="opacity:0;padding:1.6rem">
-        <div style="display:flex;align-items:center;gap:.85rem;margin-bottom:1.25rem">
-          <div style="width:44px;height:44px;border-radius:12px;background:rgba(129,204,255,.18);
-            border:1px solid rgba(129,204,255,.35);display:flex;align-items:center;justify-content:center;
-            font-size:1.3rem;flex-shrink:0">📸</div>
-          <div>
-            <div style="font-size:1.1rem;font-weight:700;color:#fff">Document Agent</div>
-            <div class="mono" style="font-size:.78rem;color:rgba(255,255,255,.38);letter-spacing:.08em">PARALLEL OCR · ≤4 WORKERS</div>
-          </div>
+                100% {
+                  offset-distance: 100%;
+                  opacity: 0;
+                }
+              }
+            </style>
+            <!-- Lines -->
+            <path d="M 50 75 L 150 75" stroke="rgba(147,150,255,0.3)" stroke-width="3" fill="none" />
+            <!-- Icons as SVG shapes -->
+            <!-- PDF -->
+            <rect x="25" y="60" width="25" height="30" rx="2" fill="rgba(147,150,255,0.1)" stroke="var(--p)"
+              stroke-width="2" />
+            <text x="37.5" y="80" font-size="10" fill="var(--p)" text-anchor="middle" font-family="monospace">PDF</text>
+            <!-- Gear -->
+            <circle cx="100" cy="75" r="15" fill="rgba(147,150,255,0.1)" stroke="var(--p)" stroke-width="2" />
+            <circle cx="100" cy="75" r="5" fill="var(--p)" />
+            <!-- JSON -->
+            <rect x="150" y="60" width="25" height="30" rx="2" fill="rgba(147,150,255,0.1)" stroke="var(--p)"
+              stroke-width="2" />
+            <text x="162.5" y="80" font-size="10" fill="var(--p)" text-anchor="middle" font-family="monospace">{
+              }</text>
+            <!-- Animation pulse -->
+            <circle class="pulse-light-1" cx="0" cy="0" r="4" fill="#fff" filter="drop-shadow(0 0 5px #fff)" />
+          </svg>
+          <div style="font-size:1.2rem;font-weight:700;color:#fff;margin-bottom:0.5rem">Policy Agent</div>
+          <div style="font-size:0.9rem;color:rgba(255,255,255,0.6)">Unstructured PDF &rarr; Structured JSON</div>
         </div>
-        <div style="display:flex;flex-direction:column;gap:.55rem;margin-bottom:1.1rem">
-          <div style="display:flex;gap:.65rem;align-items:baseline;font-size:.9rem;color:rgba(255,255,255,.62)">
-            <span class="mono" style="color:var(--s);font-size:.85rem">›</span>Images → Llama 3.2 Vision
-          </div>
-          <div style="display:flex;gap:.65rem;align-items:baseline;font-size:.9rem;color:rgba(255,255,255,.62)">
-            <span class="mono" style="color:var(--s);font-size:.85rem">›</span>PDFs → PyMuPDF → GLM-5.1
-          </div>
-          <div style="display:flex;gap:.65rem;align-items:baseline;font-size:.9rem;color:rgba(255,255,255,.62)">
-            <span class="mono" style="color:var(--s);font-size:.85rem">›</span>ThreadPoolExecutor, ≤4 calls
-          </div>
-          <div style="display:flex;gap:.65rem;align-items:baseline;font-size:.9rem;color:rgba(255,255,255,.62)">
-            <span class="mono" style="color:var(--s);font-size:.85rem">›</span>Extracts merchant, amount, flags
-          </div>
-        </div>
-        <div style="padding:.7rem .9rem;background:rgba(129,204,255,.1);border-radius:9px">
-          <div style="font-size:.88rem;color:var(--s);line-height:1.5">10 receipts run concurrently. Total time = slowest receipt, not the sum.</div>
-        </div>
-      </div>
 
-      <!-- Agent 3 -->
-      <div data-a="s3" class="card card-t" style="opacity:0;padding:1.6rem">
-        <div style="display:flex;align-items:center;gap:.85rem;margin-bottom:1.25rem">
-          <div style="width:44px;height:44px;border-radius:12px;background:rgba(239,110,255,.18);
-            border:1px solid rgba(239,110,255,.35);display:flex;align-items:center;justify-content:center;
-            font-size:1.3rem;flex-shrink:0">⚖</div>
-          <div>
-            <div style="font-size:1.1rem;font-weight:700;color:#fff">Compliance Agent</div>
-            <div class="mono" style="font-size:.78rem;color:rgba(255,255,255,.38);letter-spacing:.08em">4-NODE REACT PIPELINE</div>
-          </div>
+        <!-- Agent 2: Document Agent -->
+        <div data-a="s2" class="card card-s"
+          style="opacity:0;flex:1;padding:2rem;display:flex;flex-direction:column;align-items:center;text-align:center">
+          <svg width="200" height="150" viewBox="0 0 200 150" style="margin-bottom:1rem;overflow:visible">
+            <style>
+              .pulse-line-2 {
+                stroke: var(--s);
+                animation: pLine2 1.5s ease-in-out infinite alternate;
+              }
+
+              @keyframes pLine2 {
+                0% {
+                  stroke-opacity: 0.2;
+                }
+
+                100% {
+                  stroke-opacity: 1;
+                  filter: drop-shadow(0 0 8px var(--s));
+                }
+              }
+            </style>
+            <!-- Base Lines -->
+            <path d="M 40 75 L 70 75" stroke="rgba(129,204,255,0.3)" stroke-width="2" fill="none" />
+            <path d="M 70 30 L 70 120" stroke="rgba(129,204,255,0.3)" stroke-width="2" fill="none" />
+            <path d="M 130 30 L 130 120" stroke="rgba(129,204,255,0.3)" stroke-width="2" fill="none" />
+            <path d="M 130 75 L 160 75" stroke="rgba(129,204,255,0.3)" stroke-width="2" fill="none" />
+
+            <!-- Parallel glowing lines -->
+            <line class="pulse-line-2" x1="70" y1="30" x2="130" y2="30" stroke-width="3" />
+            <line class="pulse-line-2" x1="70" y1="60" x2="130" y2="60" stroke-width="3" />
+            <line class="pulse-line-2" x1="70" y1="90" x2="130" y2="90" stroke-width="3" />
+            <line class="pulse-line-2" x1="70" y1="120" x2="130" y2="120" stroke-width="3" />
+
+            <!-- Icons -->
+            <!-- Receipt -->
+            <rect x="20" y="60" width="20" height="30" rx="2" fill="rgba(129,204,255,0.1)" stroke="var(--s)"
+              stroke-width="2" />
+            <line x1="25" y1="65" x2="35" y2="65" stroke="var(--s)" stroke-width="2" />
+            <line x1="25" y1="75" x2="35" y2="75" stroke="var(--s)" stroke-width="2" />
+            <!-- Nodes -->
+            <circle cx="100" cy="30" r="6" fill="var(--s)" />
+            <circle cx="100" cy="60" r="6" fill="var(--s)" />
+            <circle cx="100" cy="90" r="6" fill="var(--s)" />
+            <circle cx="100" cy="120" r="6" fill="var(--s)" />
+            <!-- Output Node -->
+            <circle cx="160" cy="75" r="12" fill="rgba(129,204,255,0.1)" stroke="var(--s)" stroke-width="2" />
+          </svg>
+          <div style="font-size:1.2rem;font-weight:700;color:#fff;margin-bottom:0.5rem">Document Agent</div>
+          <div style="font-size:0.9rem;color:rgba(255,255,255,0.6)">Parallel OCR Processing</div>
         </div>
-        <div style="display:flex;flex-direction:column;gap:.55rem;margin-bottom:1.1rem">
-          <div style="display:flex;gap:.65rem;align-items:baseline;font-size:.9rem;color:rgba(255,255,255,.62)">
-            <span class="mono" style="color:var(--t);font-size:.85rem">›</span>load_context (user + policy + receipt)
-          </div>
-          <div style="display:flex;gap:.65rem;align-items:baseline;font-size:.9rem;color:rgba(255,255,255,.62)">
-            <span class="mono" style="color:var(--t);font-size:.85rem">›</span>check_conditions (ReAct, ≤5 calls)
-          </div>
-          <div style="display:flex;gap:.65rem;align-items:baseline;font-size:.9rem;color:rgba(255,255,255,.62)">
-            <span class="mono" style="color:var(--t);font-size:.85rem">›</span>build_judgment → APPROVE / FLAG
-          </div>
-          <div style="display:flex;gap:.65rem;align-items:baseline;font-size:.9rem;color:rgba(255,255,255,.62)">
-            <span class="mono" style="color:var(--t);font-size:.85rem">›</span>save_reimbursement + line_items
-          </div>
-        </div>
-        <div style="padding:.7rem .9rem;background:rgba(239,110,255,.1);border-radius:9px">
-          <div style="font-size:.88rem;color:var(--t);line-height:1.5">Any pipeline failure → MANUAL REVIEW. No claim is ever silently dropped.</div>
+
+        <!-- Agent 3: Compliance Agent -->
+        <div data-a="s3" class="card card-t"
+          style="opacity:0;flex:1;padding:2rem;display:flex;flex-direction:column;align-items:center;text-align:center;overflow:hidden">
+          <svg width="200" height="150" viewBox="0 0 200 150" style="margin-bottom:1rem;overflow:hidden">
+            <!-- Circle path -->
+            <g transform="translate(65, 75)">
+              <circle cx="0" cy="0" r="30" fill="none" stroke="var(--t)" stroke-width="3" stroke-dasharray="10 10">
+                <animateTransform attributeName="transform" type="rotate" from="0 0 0" to="360 0 0" dur="4s"
+                  repeatCount="indefinite" />
+              </circle>
+              <circle cx="0" cy="-30" r="6" fill="var(--t)" />
+              <circle cx="26" cy="15" r="6" fill="var(--t)" />
+              <circle cx="-26" cy="15" r="6" fill="var(--t)" />
+            </g>
+            <!-- Arrow Out -->
+            <path d="M 95 75 L 145 75" stroke="var(--t)" stroke-width="3" stroke-dasharray="5 5" fill="none" />
+            <polygon points="140,70 150,75 140,80" fill="var(--t)" />
+            <!-- Shield/Check -->
+            <path d="M 160 55 L 175 55 L 175 85 C 175 95 167 100 160 100 C 153 100 145 95 145 85 L 145 55 Z"
+              fill="rgba(239,110,255,0.1)" stroke="var(--t)" stroke-width="2" />
+            <path d="M 152 75 L 158 82 L 168 65" stroke="var(--t)" stroke-width="2" fill="none" />
+          </svg>
+          <div style="font-size:1.2rem;font-weight:700;color:#fff;margin-bottom:0.5rem">Compliance Agent</div>
+          <div style="font-size:0.9rem;color:rgba(255,255,255,0.6)">ReAct Evaluation Loop</div>
         </div>
       </div>
     </div>
   </div>
-</div>
 
-<!-- ══════════════════════════════════════════════
+  <!-- ══════════════════════════════════════════════
      SLIDE 6 — LIVE DEMO
 ══════════════════════════════════════════════ -->
-<div class="slide gbg" id="s5" style="flex-direction:column;align-items:center;justify-content:center">
-  <div style="position:absolute;inset:0;background:radial-gradient(circle at 50% 50%,rgba(74,222,128,.1) 0%,transparent 65%);pointer-events:none"></div>
+  <div class="slide gbg" id="s5" style="flex-direction:column;align-items:center;justify-content:center">
+    <div
+      style="position:absolute;inset:0;background:radial-gradient(circle at 50% 50%,rgba(74,222,128,.1) 0%,transparent 65%);pointer-events:none">
+    </div>
 
-  <div style="position:relative;z-index:10;text-align:center">
-    <div data-a="1" class="sec-lbl" style="opacity:0;color:var(--ok);text-align:center">05 / EXECUTION</div>
+    <div style="position:relative;z-index:10;text-align:center">
+      <div data-a="1" class="sec-lbl" style="opacity:0;color:var(--ok);text-align:center">05 / EXECUTION</div>
 
-    <div style="display:flex;align-items:center;justify-content:center;gap:1.25rem;margin-bottom:1.25rem">
-      <div data-a="2" style="opacity:0;width:18px;height:18px;border-radius:50%;background:var(--ok);
+      <div style="display:flex;align-items:center;justify-content:center;gap:1.25rem;margin-bottom:1.25rem">
+        <div data-a="2" style="opacity:0;width:18px;height:18px;border-radius:50%;background:var(--ok);
         box-shadow:0 0 28px rgba(74,222,128,.9);flex-shrink:0;
         animation:pulseGlow 1.4s ease infinite"></div>
-      <h2 data-a="3" style="opacity:0;font-size:6rem;font-weight:900;letter-spacing:-.04em;color:#fff;line-height:1">LIVE</h2>
-    </div>
-
-    <p data-a="4" style="opacity:0;font-size:1.25rem;color:rgba(255,255,255,.4);margin-bottom:3.5rem">
-      Reclaim running end-to-end in production.
-    </p>
-
-    <div data-a="5" style="opacity:0;display:flex;gap:3rem;justify-content:center;align-items:center">
-      <div>
-        <div class="mono" style="color:rgba(255,255,255,.28);font-size:.85rem;letter-spacing:.2em;margin-bottom:.4rem">EMPLOYEE PORTAL</div>
-        <div style="font-size:1rem;color:rgba(255,255,255,.65)">Upload → Verify → Submit</div>
+        <h2 data-a="3" style="opacity:0;font-size:6rem;font-weight:900;letter-spacing:-.04em;color:#fff;line-height:1">
+          LIVE DEMO</h2>
       </div>
-      <div style="width:1px;height:48px;background:rgba(255,255,255,.1)"></div>
-      <div>
-        <div class="mono" style="color:rgba(255,255,255,.28);font-size:.85rem;letter-spacing:.2em;margin-bottom:.4rem">AI PIPELINE</div>
-        <div style="font-size:1rem;color:rgba(255,255,255,.65)">OCR → Compliance → Verdict</div>
-      </div>
-      <div style="width:1px;height:48px;background:rgba(255,255,255,.1)"></div>
-      <div>
-        <div class="mono" style="color:rgba(255,255,255,.28);font-size:.85rem;letter-spacing:.2em;margin-bottom:.4rem">HR PORTAL</div>
-        <div style="font-size:1rem;color:rgba(255,255,255,.65)">Triage → Review → Decide</div>
+
+      <p data-a="4" style="opacity:0;font-size:1.25rem;color:rgba(255,255,255,.4);margin-bottom:3.5rem">
+        Reclaim running end-to-end in production.
+      </p>
+
+      <div data-a="5" style="opacity:0;display:flex;gap:3rem;justify-content:center;align-items:center">
+        <div>
+          <div class="mono"
+            style="color:rgba(255,255,255,.28);font-size:.85rem;letter-spacing:.2em;margin-bottom:.4rem">EMPLOYEE PORTAL
+          </div>
+          <div style="font-size:1rem;color:rgba(255,255,255,.65)">Upload → Verify → Submit</div>
+        </div>
+        <div style="width:1px;height:48px;background:rgba(255,255,255,.1)"></div>
+        <div>
+          <div class="mono"
+            style="color:rgba(255,255,255,.28);font-size:.85rem;letter-spacing:.2em;margin-bottom:.4rem">AI PIPELINE
+          </div>
+          <div style="font-size:1rem;color:rgba(255,255,255,.65)">OCR → Compliance → Verdict</div>
+        </div>
+        <div style="width:1px;height:48px;background:rgba(255,255,255,.1)"></div>
+        <div>
+          <div class="mono"
+            style="color:rgba(255,255,255,.28);font-size:.85rem;letter-spacing:.2em;margin-bottom:.4rem">HR PORTAL</div>
+          <div style="font-size:1rem;color:rgba(255,255,255,.65)">Triage → Review → Decide</div>
+        </div>
       </div>
     </div>
   </div>
-</div>
 
-<!-- ══════════════════════════════════════════════
+  <!-- ══════════════════════════════════════════════
      SLIDE 7 — TWO PORTALS (UI recap)
 ══════════════════════════════════════════════ -->
-<div class="slide" id="s6" style="flex-direction:column;justify-content:center;padding:3rem 5rem">
-  <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 25% 80%,rgba(74,222,128,.07) 0%,transparent 60%);pointer-events:none"></div>
-  <div style="position:relative;z-index:10;max-width:1160px;margin:0 auto;width:100%">
+  <div class="slide" id="s6" style="flex-direction:column;justify-content:center;padding:3rem 5rem">
+    <div
+      style="position:absolute;inset:0;background:radial-gradient(ellipse at 25% 80%,rgba(74,222,128,.07) 0%,transparent 60%);pointer-events:none">
+    </div>
+    <div style="position:relative;z-index:10;max-width:1160px;margin:0 auto;width:100%">
 
-    <div data-a="1" class="sec-lbl" style="opacity:0;color:var(--ok)">06 / UI — TWO ROLE-ISOLATED PORTALS</div>
+      <div data-a="1" class="sec-lbl" style="opacity:0;color:var(--ok)">06 / UI — TWO ROLE-ISOLATED PORTALS</div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:2.5rem">
-      <!-- Employee -->
-      <div>
-        <div data-a="l1" style="opacity:0;display:flex;align-items:center;gap:.75rem;margin-bottom:1.25rem">
-          <div style="width:8px;height:8px;border-radius:50%;background:var(--ok);flex-shrink:0"></div>
-          <h3 style="font-size:1.2rem;font-weight:700;color:#fff">Employee Portal</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:2.5rem">
+        <!-- Employee -->
+        <div>
+          <div data-a="l1" style="opacity:0;display:flex;align-items:center;gap:.75rem;margin-bottom:1.25rem">
+            <div style="width:8px;height:8px;border-radius:50%;background:var(--ok);flex-shrink:0"></div>
+            <h3 style="font-size:1.2rem;font-weight:700;color:#fff">Employee Portal</h3>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:.9rem">
+            <div data-a="l2"
+              style="opacity:0;padding:1rem 1.2rem;background:rgba(255,255,255,.03);border-left:3px solid var(--ok);border-radius:0 10px 10px 0">
+              <div style="display:flex;align-items:center;gap:.65rem;margin-bottom:.35rem">
+                <span style="font-size:1.1rem">📤</span>
+                <div style="font-size:.95rem;font-weight:600;color:#fff">Claim Submission Wizard</div>
+              </div>
+              <div style="font-size:.9rem;color:rgba(255,255,255,.5);line-height:1.5">Category select → drag-and-drop
+                upload → real-time OCR status per file</div>
+            </div>
+            <div data-a="l3"
+              style="opacity:0;padding:1rem 1.2rem;background:rgba(255,255,255,.03);border-left:3px solid var(--t);border-radius:0 10px 10px 0">
+              <div style="display:flex;align-items:center;gap:.65rem;margin-bottom:.35rem">
+                <span style="font-size:1.1rem">🔍</span>
+                <div style="font-size:.95rem;font-weight:600;color:#fff">Side-by-Side Verification <span
+                    style="color:var(--t);font-size:.85rem">(Fraud Trap)</span></div>
+              </div>
+              <div style="font-size:.9rem;color:rgba(255,255,255,.5);line-height:1.5">AI form (left) + original document
+                (right). Any edit writes to audit trail immediately.</div>
+            </div>
+            <div data-a="l4"
+              style="opacity:0;padding:1rem 1.2rem;background:rgba(255,255,255,.03);border-left:3px solid var(--ok);border-radius:0 10px 10px 0">
+              <div style="display:flex;align-items:center;gap:.65rem;margin-bottom:.35rem">
+                <span style="font-size:1.1rem">📊</span>
+                <div style="font-size:.95rem;font-weight:600;color:#fff">Status Dashboard + Claim History</div>
+              </div>
+              <div style="font-size:.9rem;color:rgba(255,255,255,.5);line-height:1.5">PENDING · APPROVED · PARTIAL ·
+                REJECTED with per-receipt AI reasoning inline</div>
+            </div>
+          </div>
         </div>
-        <div style="display:flex;flex-direction:column;gap:.9rem">
-          <div data-a="l2" style="opacity:0;padding:1rem 1.2rem;background:rgba(255,255,255,.03);border-left:3px solid var(--ok);border-radius:0 10px 10px 0">
-            <div style="display:flex;align-items:center;gap:.65rem;margin-bottom:.35rem">
-              <span style="font-size:1.1rem">📤</span>
-              <div style="font-size:.95rem;font-weight:600;color:#fff">Claim Submission Wizard</div>
-            </div>
-            <div style="font-size:.9rem;color:rgba(255,255,255,.5);line-height:1.5">Category select → drag-and-drop upload → real-time OCR status per file</div>
-          </div>
-          <div data-a="l3" style="opacity:0;padding:1rem 1.2rem;background:rgba(255,255,255,.03);border-left:3px solid var(--t);border-radius:0 10px 10px 0">
-            <div style="display:flex;align-items:center;gap:.65rem;margin-bottom:.35rem">
-              <span style="font-size:1.1rem">🔍</span>
-              <div style="font-size:.95rem;font-weight:600;color:#fff">Side-by-Side Verification <span style="color:var(--t);font-size:.85rem">(Fraud Trap)</span></div>
-            </div>
-            <div style="font-size:.9rem;color:rgba(255,255,255,.5);line-height:1.5">AI form (left) + original document (right). Any edit writes to audit trail immediately.</div>
-          </div>
-          <div data-a="l4" style="opacity:0;padding:1rem 1.2rem;background:rgba(255,255,255,.03);border-left:3px solid var(--ok);border-radius:0 10px 10px 0">
-            <div style="display:flex;align-items:center;gap:.65rem;margin-bottom:.35rem">
-              <span style="font-size:1.1rem">📊</span>
-              <div style="font-size:.95rem;font-weight:600;color:#fff">Status Dashboard + Claim History</div>
-            </div>
-            <div style="font-size:.9rem;color:rgba(255,255,255,.5);line-height:1.5">PENDING · APPROVED · PARTIAL · REJECTED with per-receipt AI reasoning inline</div>
-          </div>
-        </div>
-      </div>
 
-      <!-- HR -->
-      <div>
-        <div data-a="r1" style="opacity:0;display:flex;align-items:center;gap:.75rem;margin-bottom:1.25rem">
-          <div style="width:8px;height:8px;border-radius:50%;background:var(--p);flex-shrink:0"></div>
-          <h3 style="font-size:1.2rem;font-weight:700;color:#fff">HR Portal</h3>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:.9rem">
-          <div data-a="r2" style="opacity:0;padding:1rem 1.2rem;background:rgba(255,255,255,.03);border-left:3px solid var(--p);border-radius:0 10px 10px 0">
-            <div style="display:flex;align-items:center;gap:.65rem;margin-bottom:.35rem">
-              <span style="font-size:1.1rem">📋</span>
-              <div style="font-size:.95rem;font-weight:600;color:#fff">Policy Studio</div>
-            </div>
-            <div style="font-size:.9rem;color:rgba(255,255,255,.5);line-height:1.5">Upload PDF → AI extracts categories + conditions → HR confirms → status: ACTIVE</div>
+        <!-- HR -->
+        <div>
+          <div data-a="r1" style="opacity:0;display:flex;align-items:center;gap:.75rem;margin-bottom:1.25rem">
+            <div style="width:8px;height:8px;border-radius:50%;background:var(--p);flex-shrink:0"></div>
+            <h3 style="font-size:1.2rem;font-weight:700;color:#fff">HR Portal</h3>
           </div>
-          <div data-a="r3" style="opacity:0;padding:1rem 1.2rem;background:rgba(255,255,255,.03);border-left:3px solid var(--warn);border-radius:0 10px 10px 0">
-            <div style="display:flex;align-items:center;gap:.65rem;margin-bottom:.35rem">
-              <span style="font-size:1.1rem">🎯</span>
-              <div style="font-size:.95rem;font-weight:600;color:#fff">Triage Dashboard</div>
+          <div style="display:flex;flex-direction:column;gap:.9rem">
+            <div data-a="r2"
+              style="opacity:0;padding:1rem 1.2rem;background:rgba(255,255,255,.03);border-left:3px solid var(--p);border-radius:0 10px 10px 0">
+              <div style="display:flex;align-items:center;gap:.65rem;margin-bottom:.35rem">
+                <span style="font-size:1.1rem">📋</span>
+                <div style="font-size:.95rem;font-weight:600;color:#fff">Policy Studio</div>
+              </div>
+              <div style="font-size:.9rem;color:rgba(255,255,255,.5);line-height:1.5">Upload PDF → AI extracts
+                categories + conditions → HR confirms → status: ACTIVE</div>
             </div>
-            <div style="font-size:.9rem;color:rgba(255,255,255,.5);line-height:1.5">Bucket A (Passed) separated from Bucket B (Attention). HR opens only what needs a human.</div>
-          </div>
-          <div data-a="r4" style="opacity:0;padding:1rem 1.2rem;background:rgba(255,255,255,.03);border-left:3px solid var(--p);border-radius:0 10px 10px 0">
-            <div style="display:flex;align-items:center;gap:.65rem;margin-bottom:.35rem">
-              <span style="font-size:1.1rem">✅</span>
-              <div style="font-size:.95rem;font-weight:600;color:#fff">Decision Engine</div>
+            <div data-a="r3"
+              style="opacity:0;padding:1rem 1.2rem;background:rgba(255,255,255,.03);border-left:3px solid var(--warn);border-radius:0 10px 10px 0">
+              <div style="display:flex;align-items:center;gap:.65rem;margin-bottom:.35rem">
+                <span style="font-size:1.1rem">🎯</span>
+                <div style="font-size:.95rem;font-weight:600;color:#fff">Triage Dashboard</div>
+              </div>
+              <div style="font-size:.9rem;color:rgba(255,255,255,.5);line-height:1.5">Bucket A (Passed) separated from
+                Bucket B (Attention). HR opens only what needs a human.</div>
             </div>
-            <div style="font-size:.9rem;color:rgba(255,255,255,.5);line-height:1.5">Full audit trail · Force Approve · Approve Adjusted · Confirm Rejection · HR Note</div>
+            <div data-a="r4"
+              style="opacity:0;padding:1rem 1.2rem;background:rgba(255,255,255,.03);border-left:3px solid var(--p);border-radius:0 10px 10px 0">
+              <div style="display:flex;align-items:center;gap:.65rem;margin-bottom:.35rem">
+                <span style="font-size:1.1rem">✅</span>
+                <div style="font-size:.95rem;font-weight:600;color:#fff">Decision Engine</div>
+              </div>
+              <div style="font-size:.9rem;color:rgba(255,255,255,.5);line-height:1.5">Full audit trail · Force Approve ·
+                Approve Adjusted · Confirm Rejection · HR Note</div>
+            </div>
           </div>
         </div>
       </div>
     </div>
   </div>
-</div>
 
-<!-- ══════════════════════════════════════════════
+  <!-- ══════════════════════════════════════════════
      SLIDE 8 — FRAUD TRAP MECHANICS
 ══════════════════════════════════════════════ -->
-<div class="slide" id="s7" style="flex-direction:column;justify-content:center;padding:3rem 5rem">
-  <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 75% 30%,rgba(158,0,180,.1) 0%,transparent 60%);pointer-events:none"></div>
-  <div style="position:relative;z-index:10;max-width:1160px;margin:0 auto;width:100%">
+  <div class="slide" id="s7" style="flex-direction:column;justify-content:center;padding:3rem 5rem">
+    <div
+      style="position:absolute;inset:0;background:radial-gradient(ellipse at 75% 30%,rgba(158,0,180,.1) 0%,transparent 60%);pointer-events:none">
+    </div>
+    <div style="position:relative;z-index:10;max-width:1100px;margin:0 auto;width:100%">
 
-    <div data-a="1" class="sec-lbl" style="opacity:0;color:var(--t)">07 / UNDER THE HOOD — FRAUD TRAP MECHANICS</div>
+      <div data-a="1" class="sec-lbl" style="opacity:0;color:var(--t)">07 / THE X-RAY — FRAUD TRAP MECHANICS</div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:2.5rem;align-items:start">
-      <!-- Left: heading + risk bars -->
-      <div>
-        <h2 data-a="2" style="opacity:0;font-size:2rem;font-weight:800;color:#fff;line-height:1.25;margin-bottom:1.75rem">
-          A permanent, immutable fraud signal baked into every submission.
-        </h2>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:2rem;align-items:start">
 
-        <div data-a="3" style="opacity:0">
-          <div class="ritem">
-            <span class="rlbl" style="color:var(--err)">HIGH</span>
-            <div class="rtrack"><div class="rbar" style="--w:92%;background:var(--err);animation-delay:.1s"></div></div>
-            <span class="rdesc">Amount multiplied significantly. Mandatory HR flag.</span>
+        <!-- CARD 1: THE HUMAN OVERRIDE -->
+        <div data-a="2" class="card"
+          style="opacity:0;padding:2rem;overflow:hidden;display:flex;flex-direction:column;gap:1.5rem">
+          <div style="font-size:1.2rem;font-weight:700;color:#fff;display:flex;align-items:center;gap:0.75rem">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--warn)" stroke-width="2">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+            Human Override Detection
           </div>
-          <div class="ritem">
-            <span class="rlbl" style="color:#fbbf24">MED</span>
-            <div class="rtrack"><div class="rbar" style="--w:65%;background:#fbbf24;animation-delay:.25s"></div></div>
-            <span class="rdesc">Amount increased above AI extraction.</span>
+
+          <div
+            style="background:rgba(0,0,0,0.2);border-radius:8px;padding:2rem;display:flex;justify-content:center;position:relative">
+            <style>
+              .input-border {
+                animation: borderFlash 5s infinite;
+              }
+
+              @keyframes borderFlash {
+
+                0%,
+                69.9% {
+                  stroke: rgba(255, 255, 255, 0.2);
+                }
+
+                70%,
+                75% {
+                  stroke: var(--err);
+                }
+
+                80% {
+                  stroke: rgba(255, 255, 255, 0.2);
+                }
+
+                85%,
+                95% {
+                  stroke: var(--err);
+                }
+
+                100% {
+                  stroke: rgba(255, 255, 255, 0.2);
+                }
+              }
+
+              .cursor-anim {
+                animation: curMove 5s infinite;
+                transform-origin: top left;
+              }
+
+              @keyframes curMove {
+                0% {
+                  transform: translate(0, 50px);
+                  opacity: 0;
+                }
+
+                15%,
+                25% {
+                  transform: translate(110px, 15px);
+                  opacity: 1;
+                }
+
+                30%,
+                100% {
+                  transform: translate(110px, 35px);
+                  opacity: 0;
+                }
+              }
+
+              .orig-text {
+                animation: txtHide 5s infinite;
+              }
+
+              @keyframes txtHide {
+
+                0%,
+                25% {
+                  opacity: 1;
+                }
+
+                25.1%,
+                100% {
+                  opacity: 0;
+                }
+              }
+
+              .type-text {
+                animation: txtType 5s infinite;
+              }
+
+              @keyframes txtType {
+
+                0%,
+                30% {
+                  clip-path: inset(0 100% 0 0);
+                  opacity: 0;
+                }
+
+                30.1% {
+                  opacity: 1;
+                  clip-path: inset(0 100% 0 0);
+                }
+
+                60%,
+                100% {
+                  opacity: 1;
+                  clip-path: inset(0 -10% 0 0);
+                }
+              }
+            </style>
+            <svg width="200" height="60" viewBox="0 0 200 60" style="overflow:visible">
+              <rect class="input-border" x="10" y="10" width="180" height="40" rx="4" fill="rgba(255,255,255,0.05)"
+                stroke-width="2" />
+              <text class="orig-text" x="25" y="36" font-size="20" font-family="monospace" font-weight="bold"
+                fill="var(--ok)">
+                RM 20.00
+              </text>
+              <text class="type-text" x="25" y="36" font-size="20" font-family="monospace" font-weight="bold"
+                fill="#fff">
+                RM 200.00
+              </text>
+              <path class="cursor-anim" d="M0,0 L12,12 L5,14 Z" fill="#fff" stroke="#000" stroke-width="1" />
+            </svg>
           </div>
-          <div class="ritem">
-            <span class="rlbl" style="color:var(--ok)">LOW</span>
-            <div class="rtrack"><div class="rbar" style="--w:35%;background:var(--ok);animation-delay:.4s"></div></div>
-            <span class="rdesc">Minor field edits. Logged, not flagged.</span>
-          </div>
-          <div class="ritem">
-            <span class="rlbl" style="color:rgba(255,255,255,.28)">NONE</span>
-            <div class="rtrack"><div class="rbar" style="--w:8%;background:rgba(255,255,255,.25);animation-delay:.55s"></div></div>
-            <span class="rdesc">No edits. Clean audit record.</span>
+
+          <div style="text-align:center;color:rgba(255,255,255,0.3)">↓</div>
+
+          <div
+            style="background:rgba(247,75,109,0.1);border:1px solid rgba(247,75,109,0.3);border-radius:8px;padding:1.5rem;text-align:center">
+            <div style="color:var(--err);font-weight:bold;margin-bottom:1rem;font-size:1.1rem">⚠️ Delta Detected: +900%
+            </div>
+            <div style="display:flex;align-items:center;gap:1rem;font-size:0.85rem;color:rgba(255,255,255,0.6)">
+              AI Flag Confidence
+              <div
+                style="flex:1;height:10px;background:rgba(255,255,255,0.1);border-radius:5px;overflow:hidden;position:relative">
+                <style>
+                  .conf-bar {
+                    animation: barFill 5s infinite;
+                  }
+
+                  @keyframes barFill {
+
+                    0%,
+                    69.9% {
+                      width: 10%;
+                      background: var(--ok);
+                    }
+
+                    70%,
+                    95% {
+                      width: 99%;
+                      background: var(--err);
+                    }
+
+                    100% {
+                      width: 10%;
+                      background: var(--ok);
+                    }
+                  }
+                </style>
+                <div class="conf-bar" style="height:100%;border-radius:5px"></div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- Right: code block + note -->
-      <div>
-        <div data-a="r1" class="card" style="opacity:0;padding:1.5rem;background:rgba(0,0,0,.45);margin-bottom:1rem">
-          <div class="mono" style="font-size:.72rem;color:rgba(255,255,255,.3);letter-spacing:.12em;margin-bottom:.85rem">CHANGE_SUMMARY JSONB — WRITTEN ON EDIT</div>
-          <pre style="font-family:'JetBrains Mono',monospace;font-size:.82rem;color:var(--t);line-height:1.8;white-space:pre">{
-  "has_changes": true,
-  "overall_risk": "HIGH",
-  "changes_by_field": {
-    "total_amount": {
-      "original":  85.00,
-      "edited":   850.00,
-      "delta_pct": 900
-    }
-  }
-}</pre>
-        </div>
+        <!-- CARD 2: DIGITAL FORGERY -->
+        <div data-a="3" class="card"
+          style="opacity:0;padding:2rem;overflow:hidden;display:flex;flex-direction:column;gap:1.5rem">
+          <div style="font-size:1.2rem;font-weight:700;color:#fff;display:flex;align-items:center;gap:0.75rem">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--s)" stroke-width="2">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+            Image Integrity Analysis
+          </div>
 
-        <div data-a="r2" style="opacity:0;padding:1rem 1.2rem;background:rgba(239,110,255,.07);
-          border:1px solid rgba(239,110,255,.22);border-radius:10px">
-          <div style="font-size:.92rem;color:rgba(255,255,255,.55);line-height:1.6">
-            This record is <strong style="color:var(--t)">permanent and immutable.</strong> HR sees the original AI value vs. what the employee submitted — field by field — before they open the claim.
+          <div
+            style="background:rgba(0,0,0,0.2);border-radius:8px;padding:1rem;display:flex;justify-content:center;position:relative">
+            <style>
+              .scan-box {
+                animation: scanSweep 4s infinite;
+              }
+
+              @keyframes scanSweep {
+                0% {
+                  transform: translateX(0);
+                }
+
+                30%,
+                100% {
+                  transform: translateX(85px);
+                }
+              }
+
+              .glitch-one {
+                animation: pulseGlitch 4s infinite;
+              }
+
+              @keyframes pulseGlitch {
+
+                0%,
+                29% {
+                  stroke: none;
+                  fill: none;
+                }
+
+                30%,
+                100% {
+                  stroke: var(--err);
+                  fill: rgba(247, 75, 109, 0.2);
+                }
+              }
+            </style>
+            <svg width="200" height="80" viewBox="0 0 200 80" style="overflow:visible">
+              <rect x="25" y="10" width="150" height="60" rx="4" fill="rgba(255,255,255,0.05)"
+                stroke="rgba(255,255,255,0.2)" stroke-width="2" />
+              <text x="50" y="48" font-size="28" font-weight="bold" fill="#fff" font-family="monospace">1000</text>
+              <text x="50" y="25" font-size="12" fill="rgba(255,255,255,0.5)">TOTAL (RM)</text>
+
+              <!-- The Glitch Box around '1' -->
+              <rect class="glitch-one" x="48" y="25" width="20" height="26" stroke-dasharray="2 2" stroke-width="2" />
+
+              <!-- Scanner Box -->
+              <g class="scan-box" transform="translate(10, 0)">
+                <rect x="0" y="5" width="30" height="70" fill="rgba(129,204,255,0.2)" stroke="var(--s)" stroke-width="1"
+                  stroke-dasharray="4 2" />
+                <line x1="15" y1="5" x2="15" y2="75" stroke="var(--s)" stroke-width="2" />
+              </g>
+            </svg>
+          </div>
+
+          <div style="text-align:center;color:rgba(255,255,255,0.3)">↓</div>
+
+          <div
+            style="background:#0a0a0a;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:1.5rem;position:relative;min-height:90px;display:flex;flex-direction:column;justify-content:center;overflow:hidden">
+            <style>
+              .type-1 {
+                animation: type1 4s infinite;
+              }
+
+              @keyframes type1 {
+
+                0%,
+                30% {
+                  opacity: 0;
+                }
+
+                35%,
+                100% {
+                  opacity: 1;
+                }
+              }
+
+              .type-2 {
+                animation: type2 4s infinite;
+              }
+
+              @keyframes type2 {
+
+                0%,
+                45% {
+                  opacity: 0;
+                }
+
+                50%,
+                100% {
+                  opacity: 1;
+                }
+              }
+
+              .stamp-anim {
+                animation: stamp 4s infinite;
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                margin-top: -25px;
+                margin-left: -70px;
+                z-index: 10;
+              }
+
+              @keyframes stamp {
+
+                0%,
+                55% {
+                  transform: scale(3) rotate(-15deg);
+                  opacity: 0;
+                }
+
+                60%,
+                95% {
+                  transform: scale(1) rotate(-15deg);
+                  opacity: 1;
+                  filter: drop-shadow(0 0 10px var(--err));
+                }
+
+                100% {
+                  opacity: 0;
+                  transform: scale(1) rotate(-15deg);
+                }
+              }
+            </style>
+            <div class="type-1"
+              style="font-family:monospace;font-size:0.85rem;color:rgba(255,255,255,0.6);margin-bottom:0.75rem">&gt;
+              analyzing_pixels...</div>
+            <div class="type-2"
+              style="font-family:monospace;font-size:0.85rem;color:var(--err);font-weight:bold;line-height:1.5">&gt;
+              ERROR: Artifact mismatch at X,Y.<br />Possible photoshop overlay.</div>
+
+            <!-- Stamp -->
+            <svg class="stamp-anim" width="140" height="50" viewBox="0 0 140 50">
+              <rect x="5" y="5" width="130" height="40" rx="4" fill="rgba(247,75,109,0.2)" stroke="var(--err)"
+                stroke-width="4" />
+              <text x="70" y="32" font-size="18" font-weight="900" font-family="sans-serif" fill="var(--err)"
+                text-anchor="middle" letter-spacing="2">REJECTED</text>
+            </svg>
           </div>
         </div>
+
       </div>
     </div>
   </div>
-</div>
 
-<!-- ══════════════════════════════════════════════
+  <!-- ══════════════════════════════════════════════
      SLIDE 9 — MVP SCOPE & ROADMAP
 ══════════════════════════════════════════════ -->
-<div class="slide" id="s8" style="flex-direction:column;justify-content:center;padding:3.5rem 5.5rem">
-  <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 110%,rgba(70,71,211,.09) 0%,transparent 60%);pointer-events:none"></div>
-  <div style="position:relative;z-index:10;max-width:1100px;margin:0 auto;width:100%">
+  <div class="slide" id="s8" style="flex-direction:column;justify-content:center;padding:3.5rem 5.5rem">
+    <div
+      style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 110%,rgba(70,71,211,.09) 0%,transparent 60%);pointer-events:none">
+    </div>
+    <div style="position:relative;z-index:10;max-width:1100px;margin:0 auto;width:100%">
 
-    <div data-a="1" class="sec-lbl" style="opacity:0;color:var(--p)">08 / MVP SCOPE &amp; IMMEDIATE ROADMAP</div>
+      <div data-a="1" class="sec-lbl" style="opacity:0;color:var(--p)">08 / MVP SCOPE &amp; FUTURE ENHANCEMENT</div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:3.5rem">
-      <!-- Shipped -->
-      <div>
-        <div data-a="l1" style="opacity:0;display:flex;align-items:center;gap:.75rem;margin-bottom:1.4rem">
-          <div style="width:8px;height:8px;border-radius:50%;background:var(--ok);flex-shrink:0"></div>
-          <h3 style="font-size:1.15rem;font-weight:700;color:#fff">Shipped in 10 Days</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4rem">
+        <!-- Left: Shipped MVP -->
+        <div>
+          <div data-a="l1" style="opacity:0;margin-bottom:1.5rem">
+            <h3 style="font-size:2rem;font-weight:800;color:#fff">Shipped MVP</h3>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem">
+            <!-- Module 1 -->
+            <div data-a="l2" class="card"
+              style="opacity:0;padding:1.5rem;display:flex;flex-direction:column;align-items:flex-start;background:rgba(255,255,255,0.02)">
+              <svg width="32" height="32" viewBox="0 0 32 32" style="margin-bottom:1rem">
+                <rect x="4" y="4" width="24" height="24" rx="4" fill="none" stroke="var(--s)" stroke-width="2" />
+                <line x1="10" y1="10" x2="22" y2="10" stroke="var(--s)" stroke-width="2" />
+                <line x1="10" y1="16" x2="22" y2="16" stroke="var(--s)" stroke-width="2" />
+                <line x1="10" y1="22" x2="16" y2="22" stroke="var(--s)" stroke-width="2" />
+              </svg>
+              <div style="font-size:1.1rem;font-weight:700;color:#fff;margin-bottom:1rem">Parallel OCR</div>
+              <div style="display:flex;align-items:center;gap:0.5rem">
+                <div
+                  style="width:10px;height:10px;border-radius:50%;background:var(--ok);box-shadow:0 0 10px var(--ok);animation:blink 1.5s infinite">
+                </div>
+                <span style="color:var(--ok);font-size:0.8rem;font-weight:bold;letter-spacing:0.1em">LIVE</span>
+              </div>
+            </div>
+            <!-- Module 2 -->
+            <div data-a="l2" class="card"
+              style="opacity:0;padding:1.5rem;display:flex;flex-direction:column;align-items:flex-start;background:rgba(255,255,255,0.02)">
+              <svg width="32" height="32" viewBox="0 0 32 32" style="margin-bottom:1rem">
+                <circle cx="16" cy="16" r="12" fill="none" stroke="var(--t)" stroke-width="2" stroke-dasharray="4 4" />
+                <circle cx="16" cy="16" r="4" fill="var(--t)" />
+              </svg>
+              <div style="font-size:1.1rem;font-weight:700;color:#fff;margin-bottom:1rem">Fraud Trap</div>
+              <div style="display:flex;align-items:center;gap:0.5rem">
+                <div
+                  style="width:10px;height:10px;border-radius:50%;background:var(--ok);box-shadow:0 0 10px var(--ok);animation:blink 1.5s infinite">
+                </div>
+                <span style="color:var(--ok);font-size:0.8rem;font-weight:bold;letter-spacing:0.1em">LIVE</span>
+              </div>
+            </div>
+            <!-- Module 3 -->
+            <div data-a="l3" class="card"
+              style="opacity:0;padding:1.5rem;display:flex;flex-direction:column;align-items:flex-start;background:rgba(255,255,255,0.02)">
+              <svg width="32" height="32" viewBox="0 0 32 32" style="margin-bottom:1rem">
+                <path d="M 6 6 L 20 6 L 26 12 L 26 26 L 6 26 Z" fill="none" stroke="var(--p)" stroke-width="2" />
+                <path d="M 20 6 L 20 12 L 26 12" fill="none" stroke="var(--p)" stroke-width="2" />
+              </svg>
+              <div style="font-size:1.1rem;font-weight:700;color:#fff;margin-bottom:1rem">Policy Studio</div>
+              <div style="display:flex;align-items:center;gap:0.5rem">
+                <div
+                  style="width:10px;height:10px;border-radius:50%;background:var(--ok);box-shadow:0 0 10px var(--ok);animation:blink 1.5s infinite">
+                </div>
+                <span style="color:var(--ok);font-size:0.8rem;font-weight:bold;letter-spacing:0.1em">LIVE</span>
+              </div>
+            </div>
+            <!-- Module 4 -->
+            <div data-a="l3" class="card"
+              style="opacity:0;padding:1.5rem;display:flex;flex-direction:column;align-items:flex-start;background:rgba(255,255,255,0.02)">
+              <svg width="32" height="32" viewBox="0 0 32 32" style="margin-bottom:1rem">
+                <path d="M 16 4 L 28 10 L 28 22 L 16 28 L 4 22 L 4 10 Z" fill="none" stroke="#fff" stroke-width="2" />
+                <circle cx="16" cy="16" r="4" fill="#fff" />
+              </svg>
+              <div style="font-size:1.1rem;font-weight:700;color:#fff;margin-bottom:1rem">ReAct Engine</div>
+              <div style="display:flex;align-items:center;gap:0.5rem">
+                <div
+                  style="width:10px;height:10px;border-radius:50%;background:var(--ok);box-shadow:0 0 10px var(--ok);animation:blink 1.5s infinite">
+                </div>
+                <span style="color:var(--ok);font-size:0.8rem;font-weight:bold;letter-spacing:0.1em">LIVE</span>
+              </div>
+            </div>
+          </div>
         </div>
-        <div style="display:flex;flex-direction:column;gap:.75rem">
-          <div data-a="l2" style="opacity:0;display:flex;gap:.9rem;align-items:center;padding:.7rem 1rem;background:rgba(74,222,128,.05);border:1px solid rgba(74,222,128,.15);border-radius:9px">
-            <span style="color:var(--ok);font-size:1rem;flex-shrink:0">✓</span>
-            <span style="font-size:.95rem;color:rgba(255,255,255,.7)">Multi-receipt parallel OCR (up to 10 files)</span>
-          </div>
-          <div data-a="l2" style="opacity:0;display:flex;gap:.9rem;align-items:center;padding:.7rem 1rem;background:rgba(74,222,128,.05);border:1px solid rgba(74,222,128,.15);border-radius:9px">
-            <span style="color:var(--ok);font-size:1rem;flex-shrink:0">✓</span>
-            <span style="font-size:.95rem;color:rgba(255,255,255,.7)">Fraud Trap with immutable change_summary JSONB</span>
-          </div>
-          <div data-a="l3" style="opacity:0;display:flex;gap:.9rem;align-items:center;padding:.7rem 1rem;background:rgba(74,222,128,.05);border:1px solid rgba(74,222,128,.15);border-radius:9px">
-            <span style="color:var(--ok);font-size:1rem;flex-shrink:0">✓</span>
-            <span style="font-size:.95rem;color:rgba(255,255,255,.7)">Policy Studio — PDF → structured conditions</span>
-          </div>
-          <div data-a="l3" style="opacity:0;display:flex;gap:.9rem;align-items:center;padding:.7rem 1rem;background:rgba(74,222,128,.05);border:1px solid rgba(74,222,128,.15);border-radius:9px">
-            <span style="color:var(--ok);font-size:1rem;flex-shrink:0">✓</span>
-            <span style="font-size:.95rem;color:rgba(255,255,255,.7)">ReAct compliance evaluation with confidence score</span>
-          </div>
-          <div data-a="l4" style="opacity:0;display:flex;gap:.9rem;align-items:center;padding:.7rem 1rem;background:rgba(74,222,128,.05);border:1px solid rgba(74,222,128,.15);border-radius:9px">
-            <span style="color:var(--ok);font-size:1rem;flex-shrink:0">✓</span>
-            <span style="font-size:.95rem;color:rgba(255,255,255,.7)">Efficiency by Exception triage dashboard</span>
-          </div>
-          <div data-a="l4" style="opacity:0;display:flex;gap:.9rem;align-items:center;padding:.7rem 1rem;background:rgba(74,222,128,.05);border:1px solid rgba(74,222,128,.15);border-radius:9px">
-            <span style="color:var(--ok);font-size:1rem;flex-shrink:0">✓</span>
-            <span style="font-size:.95rem;color:rgba(255,255,255,.7)">GLM-5.1 → Gemini fallback via health check</span>
-          </div>
-        </div>
-      </div>
 
-      <!-- Roadmap -->
-      <div>
-        <div data-a="r1" style="opacity:0;display:flex;align-items:center;gap:.75rem;margin-bottom:1.4rem">
-          <div style="width:8px;height:8px;border-radius:50%;background:var(--p);flex-shrink:0"></div>
-          <h3 style="font-size:1.15rem;font-weight:700;color:#fff">Post-Hackathon Integrations</h3>
-        </div>
-        <div style="display:flex;flex-direction:column">
-          <div data-a="r2" class="tl-item" style="opacity:0">
-            <div class="tl-line"></div>
-            <div class="tl-dot" style="background:var(--p)"></div>
-            <div style="font-size:.95rem;color:rgba(255,255,255,.55);line-height:1.5;padding-bottom:.3rem">
-              <strong style="color:rgba(255,255,255,.8)">Auto PDF generation</strong> on HR approval — endpoint built, event trigger not wired yet
-            </div>
+        <!-- Right: Roadmap -->
+        <div data-a="r1" style="opacity:0;position:relative">
+          <div style="margin-bottom:1.5rem">
+            <h3 style="font-size:2rem;font-weight:800;color:#fff">Future Enhancement</h3>
           </div>
-          <div data-a="r2" class="tl-item" style="opacity:0">
-            <div class="tl-line"></div>
-            <div class="tl-dot" style="background:var(--p)"></div>
-            <div style="font-size:.95rem;color:rgba(255,255,255,.55);line-height:1.5">
-              <strong style="color:rgba(255,255,255,.8)">Policy condition editing UI</strong> — currently requires PDF re-upload
-            </div>
-          </div>
-          <div data-a="r3" class="tl-item" style="opacity:0">
-            <div class="tl-line"></div>
-            <div class="tl-dot" style="background:var(--s)"></div>
-            <div style="font-size:.95rem;color:rgba(255,255,255,.55);line-height:1.5">
-              <strong style="color:rgba(255,255,255,.8)">Async job queue</strong> (Celery + Redis) to decouple compliance from request lifecycle
-            </div>
-          </div>
-          <div data-a="r3" class="tl-item" style="opacity:0">
-            <div class="tl-line"></div>
-            <div class="tl-dot" style="background:var(--s)"></div>
-            <div style="font-size:.95rem;color:rgba(255,255,255,.55);line-height:1.5">
-              <strong style="color:rgba(255,255,255,.8)">Push notifications</strong> on claim state transitions (Slack / email)
-            </div>
-          </div>
-          <div data-a="r4" class="tl-item" style="opacity:0">
-            <div style="width:0"></div>
-            <div class="tl-dot" style="background:rgba(255,255,255,.2)"></div>
-            <div style="font-size:.95rem;color:rgba(255,255,255,.55);line-height:1.5">
-              <strong style="color:rgba(255,255,255,.8)">Admin portal</strong> for company onboarding and user management
-            </div>
-          </div>
+          <style>
+            .flow-path {
+              stroke-dasharray: 20;
+              animation: flowDash 2s linear infinite;
+            }
+
+            @keyframes flowDash {
+              to {
+                stroke-dashoffset: -40;
+              }
+            }
+          </style>
+          <svg width="400" height="300" viewBox="0 0 400 300" style="overflow:visible">
+            <!-- Curving Path -->
+            <path class="flow-path" d="M 50 20 C 50 100 150 100 150 150 C 150 200 50 200 50 280" fill="none"
+              stroke="var(--p)" stroke-width="4" />
+
+            <!-- Nodes and Text -->
+            <!-- Node 1 -->
+            <circle cx="50" cy="20" r="10" fill="var(--bg)" stroke="var(--p)" stroke-width="3" />
+            <text x="80" y="25" fill="#fff" font-size="16" font-weight="bold">Direct Banking Integration</text>
+
+            <!-- Node 2 -->
+            <circle cx="150" cy="150" r="10" fill="var(--bg)" stroke="var(--p)" stroke-width="3" />
+            <text x="180" y="155" fill="#fff" font-size="16" font-weight="bold">Third-Party Messaging Bots</text>
+
+            <!-- Node 3 -->
+            <circle cx="50" cy="280" r="10" fill="var(--bg)" stroke="var(--p)" stroke-width="3" />
+            <text x="80" y="285" fill="#fff" font-size="16" font-weight="bold">Visual Drag-and-Drop <br />Workflow
+              Builders</text>
+          </svg>
         </div>
       </div>
     </div>
   </div>
-</div>
 
-<!-- ══════════════════════════════════════════════
+  <!-- ══════════════════════════════════════════════
      SLIDE 10 — SIGN-OFF
 ══════════════════════════════════════════════ -->
-<div class="slide gbg" id="s9" style="flex-direction:column;align-items:center;justify-content:center">
-  <div style="position:absolute;inset:0;background:radial-gradient(circle at 50% 60%,rgba(158,0,180,.1) 0%,transparent 65%);pointer-events:none"></div>
-
-  <div style="position:relative;z-index:10;text-align:center;max-width:700px">
-    <div data-a="1" class="sec-lbl" style="opacity:0;color:rgba(255,255,255,.28);text-align:center">09 / THE TEAM</div>
-    <div data-a="2" class="mono" style="opacity:0;color:var(--p);font-size:1rem;letter-spacing:.22em;margin-bottom:1.5rem">TEAM BOGOSORT</div>
-
-    <!-- Names — staggered via CSS on .nm -->
-    <div style="display:flex;flex-wrap:wrap;gap:.9rem;justify-content:center;margin-bottom:2.75rem">
-      <span class="nm">Darrell</span>
-      <span class="nm">Filbert</span>
-      <span class="nm">Christian</span>
-      <span class="nm">Michael</span>
-      <span class="nm">Chingiz</span>
+  <div class="slide gbg" id="s9" style="flex-direction:column;align-items:center;justify-content:center">
+    <div
+      style="position:absolute;inset:0;background:radial-gradient(circle at 50% 60%,rgba(158,0,180,.1) 0%,transparent 65%);pointer-events:none">
     </div>
 
-    <div class="nm-divider" style="margin:0 auto 2rem"></div>
+    <div style="position:relative;z-index:10;text-align:center;max-width:700px">
+      <div data-a="1" class="sec-lbl" style="opacity:0;color:rgba(255,255,255,.28);text-align:center">09 / THE TEAM
+      </div>
+      <div data-a="2" class="mono"
+        style="opacity:0;color:var(--p);font-size:1rem;letter-spacing:.22em;margin-bottom:1.5rem">TEAM BOGOSORT</div>
 
-    <div class="nm-thanks" style="font-size:1.5rem;font-weight:700;color:#fff;margin-bottom:.6rem">Thank you.</div>
-    <div class="nm-thanks" style="font-size:.95rem;color:rgba(255,255,255,.36);line-height:1.7">
-      Built in 10 days for UMHackathon 2026.<br>
-      Every claim: AI-analyzed, policy-grounded, permanently auditable.
-    </div>
+      <!-- Names — staggered via CSS on .nm -->
+      <div style="display:flex;flex-wrap:wrap;gap:.9rem;justify-content:center;margin-bottom:2.75rem">
+        <span class="nm">Darrell</span>
+        <span class="nm">Filbert</span>
+        <span class="nm">Christian</span>
+        <span class="nm">Michael</span>
+        <span class="nm">Chingiz</span>
+      </div>
 
-    <div class="nm-logo" style="margin-top:2.5rem">
-      <span class="logo-shimmer" style="font-size:4rem;font-weight:900;letter-spacing:-.04em">reclaim</span>
+      <div class="nm-divider" style="margin:0 auto 2rem"></div>
+
+      <div class="nm-thanks" style="font-size:1.5rem;font-weight:700;color:#fff;margin-bottom:.6rem">Thank you.</div>
+      <div class="nm-thanks" style="font-size:.95rem;color:rgba(255,255,255,.36);line-height:1.7">
+        Built in 10 days for UMHackathon 2026.<br>
+        Every claim: AI-analyzed, policy-grounded, permanently auditable.
+      </div>
+
+      <div class="nm-logo" style="margin-top:2.5rem">
+        <span class="logo-shimmer" style="font-size:4rem;font-weight:900;letter-spacing:-.04em">reclaim</span>
+      </div>
     </div>
   </div>
-</div>
 
-<!-- ══════════════════════════════════════════════
+  <!-- ══════════════════════════════════════════════
      SCRIPT
 ══════════════════════════════════════════════ -->
-<script>
-(function(){
-  var cur   = 0;
-  var slides = document.querySelectorAll('.slide');
-  var ctr   = document.getElementById('ctr');
-  var to    = document.getElementById('to');
-  var dt    = document.getElementById('dt');
-  var total = slides.length;
-  var busy  = false;
+  <script>
+    (function () {
+      var cur = 0;
+      var slides = document.querySelectorAll('.slide');
+      var ctr = document.getElementById('ctr');
+      var to = document.getElementById('to');
+      var dt = document.getElementById('dt');
+      var total = slides.length;
+      var busy = false;
 
-  function activate(n){
-    slides[cur].classList.remove('active','is-v');
-    cur = n;
-    slides[cur].classList.add('active');
-    // Two rAFs ensure the slide is painted before animating
-    requestAnimationFrame(function(){
-      requestAnimationFrame(function(){
-        slides[cur].classList.add('is-v');
+      function activate(n) {
+        slides[cur].classList.remove('active', 'is-v');
+        cur = n;
+        slides[cur].classList.add('active');
+        // Two rAFs ensure the slide is painted before animating
+        requestAnimationFrame(function () {
+          requestAnimationFrame(function () {
+            slides[cur].classList.add('is-v');
+          });
+        });
+        ctr.textContent = (cur + 1) + ' / ' + total;
+      }
+
+      function go(n) {
+        if (busy || n < 0 || n >= total || n === cur) return;
+
+        // Special demo transition: only going FORWARD into slide index 5
+        if (n === 5 && cur === 4) {
+          busy = true;
+          dt.classList.add('on');
+          setTimeout(function () {
+            activate(n);
+            setTimeout(function () {
+              dt.classList.remove('on');
+              busy = false;
+            }, 400);
+          }, 1500);
+          return;
+        }
+
+        busy = true;
+        to.classList.add('on');
+        setTimeout(function () {
+          activate(n);
+          to.classList.remove('on');
+          setTimeout(function () { busy = false; }, 300);
+        }, 220);
+      }
+
+      document.getElementById('zn').addEventListener('click', function () { go(cur + 1); });
+      document.getElementById('zp').addEventListener('click', function () { go(cur - 1); });
+
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); go(cur + 1); }
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); go(cur - 1); }
       });
-    });
-    ctr.textContent = (cur+1)+' / '+total;
-  }
 
-  function go(n){
-    if(busy||n<0||n>=total||n===cur) return;
-
-    // Special demo transition: only going FORWARD into slide index 5
-    if(n===5 && cur===4){
-      busy = true;
-      dt.classList.add('on');
-      setTimeout(function(){
-        activate(n);
-        setTimeout(function(){
-          dt.classList.remove('on');
-          busy = false;
-        }, 400);
-      }, 1500);
-      return;
-    }
-
-    busy = true;
-    to.classList.add('on');
-    setTimeout(function(){
-      activate(n);
-      to.classList.remove('on');
-      setTimeout(function(){ busy=false; }, 300);
-    }, 220);
-  }
-
-  document.getElementById('zn').addEventListener('click', function(){ go(cur+1); });
-  document.getElementById('zp').addEventListener('click', function(){ go(cur-1); });
-
-  document.addEventListener('keydown', function(e){
-    if(e.key==='ArrowRight'||e.key==='ArrowDown'||e.key===' '){ e.preventDefault(); go(cur+1); }
-    if(e.key==='ArrowLeft' ||e.key==='ArrowUp')               { e.preventDefault(); go(cur-1); }
-  });
-
-  // Kick off initial slide animations
-  requestAnimationFrame(function(){
-    requestAnimationFrame(function(){
-      slides[0].classList.add('is-v');
-    });
-  });
-  ctr.textContent = '1 / '+total;
-})();
-</script>
+      // Kick off initial slide animations
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+          slides[0].classList.add('is-v');
+        });
+      });
+      ctr.textContent = '1 / ' + total;
+    })();
+  </script>
 </body>
+
 </html>
