@@ -1,9 +1,10 @@
 from sqlmodel import Session, select
-from core.database import engine
+from core.database import engine, init_db
 from core.models import User, UserRole
 from core.security import get_password_hash
 
 def create_users():
+    init_db()
     with Session(engine) as db:
         # Check and create Employee
         statement = select(User).where(User.email == "employee@example.com")
