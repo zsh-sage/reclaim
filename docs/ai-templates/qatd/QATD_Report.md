@@ -47,7 +47,7 @@ This section ensures that every test case conducted maps directly to a specific 
 - **HR History Page** — Currently restricted with a "FEATURE RESTRICTED — MVP PRODUCTION" banner; audit history browsing is not available in this sprint.
 - **Forgot Password / Account Recovery** — Returns an MVP restriction toast; no password recovery flow implemented.
 
-2
+
 
 ## **2. Risk Assessment & Mitigation Strategy**
 
