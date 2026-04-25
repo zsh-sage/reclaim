@@ -252,9 +252,16 @@ class ReimbursementResponse(BaseModel):
         from_attributes = True
 
 
+class LineItemAdjustment(BaseModel):
+    line_item_id: UUID
+    approved_amount: float
+
+
 class StatusUpdateRequest(BaseModel):
     status: ReimbursementStatus
     reviewed_by: UUID
+    line_items: Optional[List[LineItemAdjustment]] = None
+    hr_note: Optional[str] = None
 
 
 class AnalyzeReimbursementRequest(BaseModel):

@@ -68,6 +68,7 @@ function mapToBundle(r: ReimbursementRaw): ClaimBundle {
 
   const lineItems = (r.line_items ?? []).map((li: LineItem) => ({
     document_id: li.document_id ?? `${r.reim_id}-li-unknown`,
+    line_item_id: li.line_item_id ?? undefined,
     date: li.expense_date ?? r.created_at?.split("T")[0] ?? "",
     category: (li.category ?? "others").toLowerCase().includes("meal")
       ? "meals" as const
@@ -164,10 +165,21 @@ export async function getHRClaimBundle(reimId: string): Promise<ClaimBundle | nu
 /** HR updates the status of a reimbursement (approve / reject). */
 export async function updateReimbursementStatus(
   reimId: string,
-  status: "APPROVED" | "REJECTED",
+  status: "APPROVED" | "REJECTED" | "REVIEW",
   reviewedBy: string,
+  options?: {
+    lineItems?: Array<{ line_item_id: string; approved_amount: number }>;
+    hrNote?: string;
+  },
 ): Promise<{ ok: boolean; error?: string }> {
-  const result = await apiPatch<void>(`${API_PREFIX}/reimbursements/${reimId}/status`, { status, reviewed_by: reviewedBy });
+  const body: Record<string, unknown> = { status, reviewed_by: reviewedBy };
+  if (options?.lineItems?.length) {
+    body.line_items = options.lineItems;
+  }
+  if (options?.hrNote) {
+    body.hr_note = options.hrNote;
+  }
+  const result = await apiPatch<void>(`${API_PREFIX}/reimbursements/${reimId}/status`, body);
   if (result.error) {
     return { ok: false, error: result.error };
   }

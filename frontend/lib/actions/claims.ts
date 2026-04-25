@@ -27,13 +27,25 @@ export async function getClaims(status?: string): Promise<ClaimSummary[]> {
   return [];
 }
 
+/** Fetch all reimbursements as raw data (no mapping) — used by history page. */
+export async function getRawReimbursements(): Promise<ReimbursementRaw[]> {
+  const result = await apiGet<ReimbursementRaw[]>(`${API_PREFIX}/reimbursements/`);
+  return result.data ?? [];
+}
+
+/** Fetch a single reimbursement as raw data (includes line_items) — used by history page. */
+export async function getRawReimbursement(id: string): Promise<ReimbursementRaw | null> {
+  const result = await apiGet<ReimbursementRaw>(`${API_PREFIX}/reimbursements/${id}`);
+  return result.data ?? null;
+}
+
 /** Fetch full details of a specific claim. */
 export async function getClaimById(
   id: string
 ): Promise<DetailedClaim | null> {
-  const result = await apiGet<ReimbursementRaw>(`${API_PREFIX}/reimbursements/${id}`);
-  if (!result.data) return null;
-  const summary = mapReimbursementToClaim(result.data);
+  const raw = await getRawReimbursement(id);
+  if (!raw) return null;
+  const summary = mapReimbursementToClaim(raw);
   return {
     ...summary,
     timeline: [],

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Plane, UtensilsCrossed, Monitor, ChevronRight } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 import { getRecentClaims } from "@/lib/actions/dashboard";
@@ -45,6 +46,7 @@ const STATUS_DOT: Record<ClaimStatus, string> = {
 /* ─── Component ──────────────────────────────────────── */
 export default function RecentClaimsTable() {
   const [claims, setClaims] = useState<DisplayClaim[]>([]);
+  const router = useRouter();
 
   useEffect(() => {
     getRecentClaims(3).then((data) => {
@@ -67,6 +69,7 @@ export default function RecentClaimsTable() {
         </h3>
         <button
           id="recent-claims-view-all-btn"
+          onClick={() => router.push("/employee/history")}
           className="text-primary font-body text-sm font-semibold hover:underline underline-offset-4 flex items-center gap-1 active:scale-95 transition-transform"
         >
           View All
@@ -81,8 +84,8 @@ export default function RecentClaimsTable() {
             <tr className="bg-surface-container-low text-on-surface-variant font-body text-xs uppercase tracking-wider">
               <th className="p-4 font-semibold rounded-tl-xl">Claim ID</th>
               <th className="p-4 font-semibold">Date</th>
-              <th className="p-4 font-semibold">Main Category</th>
-              <th className="p-4 font-semibold">Sub Category</th>
+              <th className="p-4 font-semibold">Policy</th>
+              <th className="p-4 font-semibold">Receipts</th>
               <th className="p-4 font-semibold">Amount</th>
               <th className="p-4 font-semibold rounded-tr-xl">Status</th>
             </tr>
@@ -91,6 +94,7 @@ export default function RecentClaimsTable() {
             {claims.map((claim) => (
               <tr
                 key={claim.id}
+                onClick={() => router.push("/employee/history")}
                 className="border-t border-outline-variant/5 hover:bg-surface-container-highest/40 transition-colors cursor-pointer group"
               >
                 <td className="p-4 font-medium text-on-surface">{claim.id}</td>
@@ -103,14 +107,7 @@ export default function RecentClaimsTable() {
                     <span className="text-on-surface">{claim.category}</span>
                   </div>
                 </td>
-                <td className="p-4">
-                  <div className="flex items-center gap-2.5">
-                    <div className="p-1.5 bg-surface-variant rounded-lg text-on-surface-variant">
-                      <claim.categoryIcon className="w-4 h-4" strokeWidth={1.75} />
-                    </div>
-                    <span className="text-on-surface">{claim.subCategory}</span>
-                  </div>
-                </td>
+                <td className="p-4 text-on-surface">{claim.subCategory}</td>
                 <td className="p-4 font-semibold text-on-surface tabular-nums">
                   {claim.amount}
                 </td>
@@ -135,6 +132,7 @@ export default function RecentClaimsTable() {
         {claims.map((claim) => (
           <div
             key={claim.id}
+            onClick={() => router.push("/employee/history")}
             className="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant/10 flex items-center justify-between hover:bg-surface-container-highest/30 transition-colors active:scale-[0.98]"
           >
             {/* Left: icon + meta */}

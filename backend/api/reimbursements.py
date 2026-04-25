@@ -69,12 +69,20 @@ def _build_reimbursement_response(
         employee_name = employee_name or "Unknown"
         department_name = department_name or "Unknown"
 
+    # Fetch policy name if policy_id is set
+    policy_name = None
+    if r.policy_id:
+        policy = db.get(Policy, r.policy_id)
+        if policy:
+            policy_name = policy.title
+
     result = {
         "reim_id": str(r.reim_id),
         "user_id": str(r.user_id),
         "employee_name": employee_name,
         "department_name": department_name,
         "policy_id": str(r.policy_id) if r.policy_id else None,
+        "policy_name": policy_name,
         "settlement_id": str(r.settlement_id) if r.settlement_id else None,
         "main_category": r.main_category,
         "currency": r.currency,
@@ -91,6 +99,7 @@ def _build_reimbursement_response(
         "created_at": r.created_at.isoformat() if r.created_at else None,
         "updated_at": r.updated_at.isoformat() if r.updated_at else None,
         "sub_categories": [sc.sub_category for sc in sub_cats],
+        "receipt_count": len(line_items),
     }
 
     if include_line_items:
@@ -213,14 +222,24 @@ def update_reimbursement_status(
         select(LineItem).where(LineItem.reim_id == r.reim_id)
     ).all()
 
-    # Constraint 1: Cannot APPROVE if any line item is REJECTED without override
-    if body.status in (ReimbursementStatus.APPROVED,):
-        rejected_items = [li for li in line_items if li.judgment == JudgmentResult.REJECTED]
-        if rejected_items:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Cannot approve: {len(rejected_items)} line item(s) are rejected. Override required."
-            )
+    # Apply HR line-item amount overrides (if provided)
+    if body.line_items:
+        override_map = {li.line_item_id: li.approved_amount for li in body.line_items}
+        for li in line_items:
+            if li.line_item_id in override_map:
+                li.approved_amount = override_map[li.line_item_id]
+                li.judgment = JudgmentResult.APPROVED if override_map[li.line_item_id] > 0 else JudgmentResult.REJECTED
+        db.add_all(line_items)
+        db.flush()
+
+    # When HR approves the whole claim, auto-override any rejected line items
+    if body.status == ReimbursementStatus.APPROVED:
+        for li in line_items:
+            if li.judgment == JudgmentResult.REJECTED:
+                li.judgment = JudgmentResult.APPROVED
+                li.approved_amount = li.claimed_amount
+        db.add_all(line_items)
+        db.flush()
 
     # Constraint 2: total_approved_amount must equal SUM(line_items.approved_amount)
     approved_sum = sum(
@@ -233,6 +252,16 @@ def update_reimbursement_status(
     r.status = body.status
     r.reviewed_by = body.reviewed_by
     r.reviewed_at = datetime.now(timezone.utc)
+    # Update judgment based on HR decision so dashboard tabs reflect correctly
+    if body.status == ReimbursementStatus.REVIEW:
+        r.judgment = JudgmentResult.NEEDS_INFO
+    else:
+        r.judgment = JudgmentResult.APPROVED
+    # Store HR note if provided
+    if body.hr_note:
+        reasoning = dict(r.ai_reasoning or {})
+        reasoning["hr_note"] = body.hr_note
+        r.ai_reasoning = reasoning
     r.updated_at = datetime.now(timezone.utc)
     db.add(r)
     db.commit()

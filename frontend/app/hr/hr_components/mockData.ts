@@ -68,6 +68,7 @@ export interface AuditLogEntry {
 
 export interface LineItem {
   document_id: string;
+  line_item_id?: string;
   date: string;
   category: "meals" | "transportation" | "accommodation" | "others";
   description: string;

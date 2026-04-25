@@ -93,6 +93,7 @@ export interface ReimbursementRaw {
   employee_name?: string;
   department_name?: string;
   policy_id: string | null;
+  policy_name?: string | null;
   settlement_id: string | null;
   main_category: string;
   currency: string;
@@ -110,6 +111,7 @@ export interface ReimbursementRaw {
   created_at: string | null;
   updated_at?: string | null;
   sub_categories: string[];
+  receipt_count?: number;
 }
 
 /** Map a backend ReimbursementRaw into the frontend ClaimSummary shape. */
@@ -138,8 +140,8 @@ export function mapReimbursementToClaim(r: ReimbursementRaw): ClaimSummary {
   return {
     id: r.reim_id,
     date: displayDate,
-    category: r.main_category,
-    subCategory: r.sub_categories.length > 0 ? r.sub_categories.join(", ") : "General",
+    category: r.policy_name ?? r.main_category ?? "General",
+    subCategory: `${r.receipt_count ?? 0} receipts`,
     merchant: r.summary?.split(".")[0] ?? "",
     amount: formattedAmount,
     amountNumeric: amountValue,

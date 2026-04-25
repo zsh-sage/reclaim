@@ -7,19 +7,21 @@ import HistoryList from "./_components/HistoryList";
 import ClaimSidebar from "./_components/ClaimSidebar";
 import { type HistoryClaim, type ClaimStatus, type LineItem } from "./_components/historyData";
 import type { ReimbursementRaw } from "@/lib/api/types";
+import { getRawReimbursements, getRawReimbursement } from "@/lib/actions/claims";
 
 // ─── Map backend ReimbursementRaw → HistoryClaim ─────────────────────────────
 
 function mapToHistoryClaim(r: ReimbursementRaw): HistoryClaim {
   const statusMap: Record<string, ClaimStatus> = {
-    APPROVE: "Approved", APPROVED: "Approved", Approved: "Approved",
-    REJECT: "Rejected",  REJECTED: "Rejected",  Rejected: "Rejected",
-    REVIEW: "Pending",   Pending: "Pending",
-    PAID: "Paid",        Paid: "Paid",
-    PARTIAL: "Partially Approved",
-    NEEDS_INFO: "Pending",
+    APPROVED: "Approved",
+    REJECTED: "Rejected",
+    PENDING: "Pending",
+    REVIEW: "Pending",
+    APPEALED: "Pending",
+    Paid: "Paid",
+    PAID: "Paid",
   };
-  const claimStatus: ClaimStatus = statusMap[r.judgment] ?? statusMap[r.status] ?? "Pending";
+  const claimStatus: ClaimStatus = statusMap[r.status] ?? "Pending";
 
   const sym = ({ MYR: "RM ", USD: "$", EUR: "€", GBP: "£" } as Record<string, string>)[r.currency] ?? `${r.currency} `;
   const net = r.total_approved_amount ?? 0;
@@ -58,6 +60,10 @@ function mapToHistoryClaim(r: ReimbursementRaw): HistoryClaim {
     lineItems,
     receiptCount: lineItems.length,
     pdfDownloadUrl: `/api/v1/reimbursements/${r.reim_id}/pdf`,
+    settlementId: r.settlement_id,
+    settlementTemplateUrl: r.settlement_id
+      ? `/api/v1/documents/settlement/${r.settlement_id}/template`
+      : undefined,
     employee: {
       name: r.employee_name ?? "Unknown",
       id: r.user_id ?? "",
@@ -71,28 +77,30 @@ function mapToHistoryClaim(r: ReimbursementRaw): HistoryClaim {
 export default function HistoryPage() {
   const [currentStatus, setCurrentStatus] = useState<FilterStatus>("All");
   const [selectedClaim, setSelectedClaim] = useState<HistoryClaim | null>(null);
+  const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [dateRange, setDateRange] = useState("All Time");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [claims, setClaims] = useState<HistoryClaim[]>([]);
 
-  // Fetch real reimbursements from the backend on mount
   useEffect(() => {
-    const fetchClaims = async () => {
-      try {
-        const base = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
-        const res = await fetch(`${base}/api/v1/reimbursements/`, { credentials: "include", cache: "no-store" });
-        if (res.ok) {
-          const raw: ReimbursementRaw[] = await res.json();
-          if (raw.length > 0) {
-            setClaims(raw.map(mapToHistoryClaim));
-          }
-        }
-      } catch {
-        // Keep empty array on error — UI will show empty state
-      }
-    };
-    fetchClaims();
+    getRawReimbursements().then((raw) => {
+      if (raw.length > 0) setClaims(raw.map(mapToHistoryClaim));
+    });
   }, []);
+
+  async function handleSelectClaim(claim: HistoryClaim) {
+    setIsLoadingDetail(true);
+    try {
+      const raw = await getRawReimbursement(claim.id);
+      if (raw) {
+        setSelectedClaim(mapToHistoryClaim(raw));
+        return;
+      }
+    } finally {
+      setIsLoadingDetail(false);
+    }
+    setSelectedClaim(claim);
+  }
 
   // Filter claims based on the selected filters
   const filteredClaims = useMemo(() => {
@@ -159,7 +167,7 @@ export default function HistoryPage() {
         <section aria-label="Claims List" className="relative z-0">
           <HistoryList
             claims={filteredClaims}
-            onSelectClaim={setSelectedClaim}
+            onSelectClaim={handleSelectClaim}
           />
         </section>
 
@@ -169,6 +177,7 @@ export default function HistoryPage() {
       <ClaimSidebar
         claim={selectedClaim}
         onClose={() => setSelectedClaim(null)}
+        isLoading={isLoadingDetail}
       />
     </main>
   );

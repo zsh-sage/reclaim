@@ -56,6 +56,10 @@ export interface HistoryClaim {
   receiptCount: number;
   /** Backend URL used by the Download PDF button. */
   pdfDownloadUrl: string;
+  /** Backend settlement ID — used for PDF/template download. */
+  settlementId?: string | null;
+  /** Settlement template endpoint URL. */
+  settlementTemplateUrl?: string;
   employee: {
     name: string;
     id: string;
