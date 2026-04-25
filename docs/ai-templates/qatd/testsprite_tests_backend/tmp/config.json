@@ -1,0 +1,20 @@
+{
+  "status": "commited",
+  "type": "frontend",
+  "scope": "codebase",
+  "localEndpoint": "http://localhost:3000/login",
+  "loginUser": "mic@example.com",
+  "loginPassword": "password",
+  "executionArgs": {
+    "projectName": "reclaim",
+    "projectPath": "c:\\Main Storage\\Programming\\Hackathon\\um_hackathon_bogosort\\reclaim",
+    "testIds": [],
+    "additionalInstruction": "Focus on these three core workflows: WF1 (Policy Sync - upload and parsing of a policy document), WF2 (Upload Receipt - standard receipt upload and OCR extraction path), and WF3 (Compliance & Fraud Trap - discrepancy routing logic with User Input vs OCR extraction and AI boundary limits). Also test form validation edge cases (negative edge cases, oversized files >5MB), and API processing latency (measure response time of LangChain AI agent for WF1, WF2, and WF3). Constrain ALL tests to localhost only - do not test external deployments. The app is running on http://localhost:3000. Use the Admin Demo quick-login button to authenticate as HR admin (do NOT use mic@example.com credentials directly for HR flows — use the Admin Demo button). Use the Employee Demo quick-login button for employee flows.",
+    "serverMode": "development",
+    "envs": {
+      "API_KEY": "sk-user-DP0lR1mHjFTRKTe4MMvSoGmlJ0j9MOLF5NX92sEgi6Wq0yY7IisJ7cYYpMYGxINJxMay4PDpDRRnoxZDNc3ttnGAJQTuSIBjWxWas2ipn6rLlN3jtai2YhFaW7j1OfBEpuQ"
+    }
+  },
+  "serverPort": 61655,
+  "proxy": "http://e6af163d-c5d7-4292-9aad-6504a204b3a9:lvu8FFhAjA5cG5aCNNrjjLpQqHZEFm2A@tun.testsprite.com:8080"
+}

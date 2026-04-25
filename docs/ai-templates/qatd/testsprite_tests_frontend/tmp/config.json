@@ -1,0 +1,20 @@
+{
+  "status": "commited",
+  "type": "frontend",
+  "scope": "codebase",
+  "localEndpoint": "http://localhost:3000/login",
+  "loginUser": "mic@example.com",
+  "loginPassword": "password",
+  "executionArgs": {
+    "projectName": "reclaim",
+    "projectPath": "c:\\Main Storage\\Programming\\Hackathon\\um_hackathon_bogosort\\reclaim",
+    "testIds": [],
+    "additionalInstruction": "Execute a comprehensive QA test suite focusing on the following backend-driven workflows and metrics:\n\nWF1 (Policy Sync): Test the full policy document upload pipeline — metadata entry (name, department), file upload (PDF/DOCX), LangGraph processing pipeline (Uploading→Analyzing→Saving states), and final Active status appearance in the policy library. Measure total API latency from upload initiation to Active state.\n\nWF2 (Upload Receipt): Test the employee receipt submission flow — upload one or more receipt images, wait for OCR/LLM extraction to complete, verify extracted fields (vendor, amount, date, category) are returned and pre-filled in the form. Measure API response time for the full OCR LangChain agent call.\n\nWF3 (Compliance & Fraud Trap): Test the compliance evaluation path — submit a basket of receipts where User Input values deliberately differ from OCR-extracted values (e.g., user enters a higher amount than the OCR detected). Verify the AI correctly flags the discrepancy, routes to 'Requires Attention', and does NOT auto-approve. Also test boundary limits: submit receipts that exceed policy limits and verify rejection/flagging.\n\nForm Validation (Negative Edge Cases):\n- Upload a receipt file larger than 5MB and verify rejection with an appropriate error message.\n- Upload a policy file with an unsupported type (e.g., .exe or .txt) and verify rejection.\n- Submit the login form with empty email and verify inline validation error.\n- Submit with invalid credentials and verify auth failure banner.\n- Submit the reimbursement form without required fields and verify field-level errors.\n\nAPI Latency Measurement: For each of WF1, WF2, and WF3, record the wall-clock time from API call initiation to final response/state change. Report these as latency metrics in the test results.\n\nSecurity: Verify unauthenticated access to /hr/dashboard redirects to login. Verify employee role cannot access HR pages.\n\nAll tests MUST be constrained to http://localhost:3000 only. Do not contact any external endpoints.",
+    "serverMode": "development",
+    "envs": {
+      "API_KEY": "sk-user-DP0lR1mHjFTRKTe4MMvSoGmlJ0j9MOLF5NX92sEgi6Wq0yY7IisJ7cYYpMYGxINJxMay4PDpDRRnoxZDNc3ttnGAJQTuSIBjWxWas2ipn6rLlN3jtai2YhFaW7j1OfBEpuQ"
+    }
+  },
+  "serverPort": 50862,
+  "proxy": "http://5d2ad5b2-fcb7-4383-91b9-aa19ffe77092:tfdErDUKcWmeQIxWqXFQCB9zeMDsQpgs@tun.testsprite.com:8080"
+}

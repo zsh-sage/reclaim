@@ -1,0 +1,1580 @@
+[
+  {
+    "id": "TC001",
+    "title": "HR can log in and reach the HR dashboard",
+    "description": "Verifies an HR user can sign in and is redirected into the HR dashboard experience successfully.",
+    "category": "User Login",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Select the HR portal option"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_USER}} into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user lands on the HR dashboard"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC002",
+    "title": "Redirect unauthenticated users away from HR dashboard",
+    "description": "This test verifies an unauthenticated user cannot access the HR dashboard and is redirected to the login page.",
+    "category": "Security & Gating",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /hr/dashboard"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user is redirected to the login page"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC003",
+    "title": "HR can review a claim and update its decision status with an HR note",
+    "description": "Verifies HR can open a claim from Requires Attention, submit an approval or rejection with an HR note, and see the decision reflected back on the dashboard.",
+    "category": "WF3 - Compliance & Fraud Detection (HR Review)",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Select the HR portal option"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_USER}} into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Switch to the Requires Attention bucket"
+      },
+      {
+        "type": "action",
+        "description": "Open the first claim from the list"
+      },
+      {
+        "type": "action",
+        "description": "Choose a decision action for the claim"
+      },
+      {
+        "type": "action",
+        "description": "Fill a short note into the HR note field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the decision"
+      },
+      {
+        "type": "action",
+        "description": "Click to return to the dashboard"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the claim is no longer in the original bucket or shows an updated status in the list"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC004",
+    "title": "Unauthenticated user cannot access HR dashboard route",
+    "description": "Verifies a logged-out user who navigates to the HR dashboard is blocked and is sent to authenticate.",
+    "category": "Authentication + RBAC",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /hr/dashboard"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user is prompted to authenticate"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user does not see the HR dashboard content"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC005",
+    "title": "Allow HR to log in and reach the HR dashboard",
+    "description": "This test verifies an HR user can log in successfully and land on the HR dashboard.",
+    "category": "Form Validation - Login",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Select the HR portal mode"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_USER}} into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user lands on the HR dashboard"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC006",
+    "title": "Block unauthenticated access to HR policy studio",
+    "description": "This test verifies an unauthenticated user cannot access the HR policy studio and is redirected to the login page.",
+    "category": "Security & Gating",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /hr/policy"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user is redirected to the login page"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC007",
+    "title": "Employee is blocked from HR-only routes",
+    "description": "Verifies an authenticated Employee cannot access HR-only pages and is blocked from viewing HR content.",
+    "category": "Authentication + RBAC",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Select the Employee portal option"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_USER}} into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click to navigate to an HR-only page from the address bar by navigating to /hr/dashboard"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify access is denied for the HR-only page"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify HR dashboard content is not shown"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC008",
+    "title": "Unauthenticated user cannot view HR claims triage dashboard",
+    "description": "Verifies a logged-out user cannot access the HR claims triage page content.",
+    "category": "HR Dashboard - Claims Triage",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /hr/dashboard"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user is prompted to authenticate"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify claims triage content is not visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC009",
+    "title": "Employee can log in and reach the Employee submit area",
+    "description": "Verifies an Employee user can sign in and is redirected into the Employee submission experience successfully.",
+    "category": "User Login",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Select the Employee portal option"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_USER}} into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user lands on the employee submit page"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC010",
+    "title": "HR can triage claims by switching buckets and opening a claim",
+    "description": "Verifies the HR dashboard allows switching between triage buckets and opening a claim to view details.",
+    "category": "HR Dashboard - Claims Triage",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Select the HR portal option"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_USER}} into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Switch to the Requires Attention bucket"
+      },
+      {
+        "type": "action",
+        "description": "Open the first claim from the list"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the claim detail view is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC011",
+    "title": "Authenticated HR session persists across reload to protected page",
+    "description": "Verifies an HR user remains logged in after a page reload and can still access a protected HR route.",
+    "category": "Authentication + RBAC",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Select the HR portal option"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_USER}} into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Reload the page"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user still sees the HR dashboard content"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC012",
+    "title": "HR can upload a valid policy document and see it in the policy list",
+    "description": "Verifies an HR user can create a new policy with a valid document upload and the policy appears in the library list.",
+    "category": "WF1 - Policy Document Upload (Policy Sync)",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Select the HR portal option"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_USER}} into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the navigation link to open the policy studio"
+      },
+      {
+        "type": "action",
+        "description": "Start creating a new policy"
+      },
+      {
+        "type": "action",
+        "description": "Fill Policy Alpha into the policy name field"
+      },
+      {
+        "type": "action",
+        "description": "Fill Finance into the department field"
+      },
+      {
+        "type": "action",
+        "description": "Upload a valid PDF or DOCX policy document under 10MB"
+      },
+      {
+        "type": "action",
+        "description": "Save the new policy"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the new policy appears in the policies list"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC013",
+    "title": "Employee cannot access the HR policy studio",
+    "description": "Verifies an authenticated Employee is blocked from viewing the HR Policy Studio page.",
+    "category": "WF1 - Policy Sync/Studio",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Select the Employee portal option"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_USER}} into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /hr/policy"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify access is denied for the HR-only page"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify policy studio content is not shown"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC014",
+    "title": "Invalid login is blocked",
+    "description": "Verifies a user cannot log in with invalid credentials and remains unauthenticated.",
+    "category": "Authentication + RBAC",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill invalid-user@example.com into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill wrong-password into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a login error is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user is not logged in"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC015",
+    "title": "Allow HR to log out and lose access to protected HR routes",
+    "description": "This test verifies logging out clears the session such that protected HR routes redirect back to login.",
+    "category": "Security & Gating",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Select the HR portal mode"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_USER}} into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the form"
+      },
+      {
+        "type": "action",
+        "description": "Click the logout control"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /hr/dashboard"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user is redirected to the login page"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC016",
+    "title": "Invalid credentials are rejected with a visible error",
+    "description": "Verifies a user entering invalid credentials cannot log in and sees an authentication error state.",
+    "category": "User Login",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Select the HR portal option"
+      },
+      {
+        "type": "action",
+        "description": "Fill invalid.user@example.com into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill wrong-password into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a login error message is visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC017",
+    "title": "HR can log out and is prevented from returning to protected routes",
+    "description": "Verifies logging out ends the session and prevents access to protected HR pages.",
+    "category": "Authentication + RBAC",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Select the HR portal option"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_USER}} into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the logout control"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /hr/dashboard"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user is prompted to authenticate"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC018",
+    "title": "HR can delete a policy and it is removed from the list",
+    "description": "Verifies an HR user can delete an existing policy and it no longer appears in the policy library list.",
+    "category": "WF1 - Policy List & Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Select the HR portal option"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_USER}} into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the navigation link to open the policy studio"
+      },
+      {
+        "type": "action",
+        "description": "Start creating a new policy"
+      },
+      {
+        "type": "action",
+        "description": "Fill Policy To Delete into the policy name field"
+      },
+      {
+        "type": "action",
+        "description": "Fill Operations into the department field"
+      },
+      {
+        "type": "action",
+        "description": "Upload a valid PDF or DOCX policy document under 10MB"
+      },
+      {
+        "type": "action",
+        "description": "Save the new policy"
+      },
+      {
+        "type": "action",
+        "description": "Search policies by name using Policy To Delete"
+      },
+      {
+        "type": "action",
+        "description": "Open the policy from the list"
+      },
+      {
+        "type": "action",
+        "description": "Initiate policy deletion"
+      },
+      {
+        "type": "action",
+        "description": "Confirm the deletion in the confirmation modal"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the deleted policy no longer appears in the policies list"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC019",
+    "title": "Delete a policy and confirm it is removed from the list",
+    "description": "This test verifies an HR user can delete a policy and it no longer appears in the policy list.",
+    "category": "File Upload Validation",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Select the HR portal mode"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_USER}} into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the form"
+      },
+      {
+        "type": "action",
+        "description": "Click the navigation link to the policy studio"
+      },
+      {
+        "type": "action",
+        "description": "Select a valid PDF or DOCX file under the size limit for upload"
+      },
+      {
+        "type": "action",
+        "description": "Submit the policy upload"
+      },
+      {
+        "type": "action",
+        "description": "Delete the newly uploaded policy from the policies list"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the deleted policy no longer appears in the policies list"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC020",
+    "title": "Employee opens a reimbursement to view full chain-of-evidence",
+    "description": "Verifies an employee can open a reimbursement from their history and see chain-of-evidence details such as extraction/verdicts and audit information.",
+    "category": "Stateful Audit Trail & Claim History",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Select the Employee portal option"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_USER}} into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the navigation link to open the employee history page"
+      },
+      {
+        "type": "action",
+        "description": "If any reimbursement is listed, click the first reimbursement row to open its detail view"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the reimbursement detail view shows chain-of-evidence information such as extraction/verdicts and an audit or change history section"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC021",
+    "title": "HR review detail shows AI evidence and audit trail information",
+    "description": "Verifies the HR claim review page displays AI judgment, confidence, and evidence/audit information needed for compliance review.",
+    "category": "WF3 - Compliance & Fraud Detection (HR Review)",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Select the HR portal option"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_USER}} into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Switch to the Requires Attention bucket"
+      },
+      {
+        "type": "action",
+        "description": "Open the first claim from the list"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify AI verdicts, confidence, and policy citation evidence are displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify an audit trail or change summary section is displayed"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC022",
+    "title": "HR can use dashboard filters to refine the claims list",
+    "description": "Verifies HR can apply filters (such as AI status, category, or amount range) and see the list reflect the filter criteria.",
+    "category": "HR Dashboard - Claims Triage",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Select the HR portal option"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_USER}} into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the filter panel"
+      },
+      {
+        "type": "action",
+        "description": "Select a valid AI status filter option"
+      },
+      {
+        "type": "action",
+        "description": "Apply the filters"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the claims list reflects the applied filters"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC023",
+    "title": "Reject oversized policy file before upload",
+    "description": "This test verifies the policy uploader prevents uploading an oversized file and shows a size validation message.",
+    "category": "File Upload Validation",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Select the HR portal mode"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_USER}} into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the form"
+      },
+      {
+        "type": "action",
+        "description": "Click the navigation link to the policy studio"
+      },
+      {
+        "type": "action",
+        "description": "Select an oversized policy file for upload"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a file size validation error is visible"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC024",
+    "title": "Employee views own reimbursement history list",
+    "description": "Verifies an authenticated employee can open their history page and see a list of their own reimbursement records (or a clear empty state) without errors.",
+    "category": "Stateful Audit Trail & Claim History",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Select the Employee portal option"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_USER}} into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the navigation link to open the employee history page"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the employee reimbursement history view displays either a list of reimbursements or an empty state message"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC025",
+    "title": "Show error feedback on invalid credentials",
+    "description": "This test verifies that submitting the login form with incorrect credentials shows a visible login failure message and does not authenticate the user.",
+    "category": "Form Validation - Login",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill invalid.user@example.com into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill wrong-password into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a login error banner is visible"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC026",
+    "title": "HR can view the policy processing state after upload",
+    "description": "Verifies that after saving a new uploaded policy, the UI shows a processing state before returning to the policy library.",
+    "category": "WF1 - Policy Document Upload (Policy Sync)",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Select the HR portal option"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_USER}} into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the navigation link to open the policy studio"
+      },
+      {
+        "type": "action",
+        "description": "Start creating a new policy"
+      },
+      {
+        "type": "action",
+        "description": "Fill Policy Processing Check into the policy name field"
+      },
+      {
+        "type": "action",
+        "description": "Fill Legal into the department field"
+      },
+      {
+        "type": "action",
+        "description": "Upload a valid PDF or DOCX policy document under 10MB"
+      },
+      {
+        "type": "action",
+        "description": "Save the new policy"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a processing progress view is displayed"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC027",
+    "title": "HR can open a passed-review claim in read-only mode",
+    "description": "Verifies an HR user can navigate from an HR claim list into a read-only claim view and see evidence and decision details.",
+    "category": "Stateful Audit Trail & Claim History",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Select the HR portal option"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_USER}} into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the navigation link to open the HR dashboard"
+      },
+      {
+        "type": "action",
+        "description": "If a passed-review or approved bucket/list is available, open the first claim in that bucket in the read-only view"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the HR claim read-only view displays the claim’s evidence and decision details"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC028",
+    "title": "HR can search claims in the dashboard list",
+    "description": "Verifies HR can enter a search query to narrow the visible claims list.",
+    "category": "HR Dashboard - Claims Triage",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Select the HR portal option"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_USER}} into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Fill a valid search query into the claims search field"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the claims list updates to show only matching results or an empty state"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC029",
+    "title": "Reject unsupported policy file type before upload",
+    "description": "This test verifies the policy uploader prevents selecting an unsupported file type and shows a validation message without starting an upload.",
+    "category": "File Upload Validation",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Select the HR portal mode"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_USER}} into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the form"
+      },
+      {
+        "type": "action",
+        "description": "Click the navigation link to the policy studio"
+      },
+      {
+        "type": "action",
+        "description": "Select an unsupported file type for the policy upload input"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a file type validation error is visible"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC030",
+    "title": "Unsupported policy file type shows an upload error",
+    "description": "Verifies that uploading a policy document with an unsupported file type is blocked with a visible upload error state.",
+    "category": "WF1 - Policy Document Upload (Policy Sync)",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Select the HR portal option"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_USER}} into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the navigation link to open the policy studio"
+      },
+      {
+        "type": "action",
+        "description": "Start creating a new policy"
+      },
+      {
+        "type": "action",
+        "description": "Fill Policy Unsupported Type into the policy name field"
+      },
+      {
+        "type": "action",
+        "description": "Fill HR into the department field"
+      },
+      {
+        "type": "action",
+        "description": "Upload an unsupported file type as the policy document"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify an upload error banner is visible"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC031",
+    "title": "Login form validation prevents submission with missing required fields",
+    "description": "Verifies the login form blocks submission when required fields are empty and shows validation feedback.",
+    "category": "Authentication + RBAC",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_USER}} into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Clear the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a required-field validation error is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user is not logged in"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC032",
+    "title": "Demo login enters an authenticated session and routes correctly",
+    "description": "Verifies the demo-login shortcut signs a user in and routes them to the correct portal landing page.",
+    "category": "User Login",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Use the HR demo login option"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user lands on the HR dashboard"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC033",
+    "title": "HR can open the full pending requests list from the dashboard",
+    "description": "Verifies HR can open the full list of pending requests from the dashboard and view it in the intended UI.",
+    "category": "HR Dashboard - Claims Triage",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Select the HR portal option"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_USER}} into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the control to view all pending requests"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the full pending requests list is displayed"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC034",
+    "title": "HR can filter and search policies in the policy library",
+    "description": "Verifies an HR user can use status filters and search to narrow the policy list results.",
+    "category": "WF1 - Policy List & Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Select the HR portal option"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_USER}} into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the navigation link to open the policy studio"
+      },
+      {
+        "type": "action",
+        "description": "Select a policy status filter option"
+      },
+      {
+        "type": "action",
+        "description": "Fill Policy into the search field"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the policies list updates to show only matching results"
+      }
+    ],
+    "priority": "Low"
+  },
+  {
+    "id": "TC035",
+    "title": "Block login when email format is invalid",
+    "description": "This test verifies the user cannot submit the login form with an invalid email format and sees an inline validation error.",
+    "category": "Form Validation - Login",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill invalid-email into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill valid-password into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify an email format validation error is visible"
+      }
+    ],
+    "priority": "Low"
+  },
+  {
+    "id": "TC036",
+    "title": "HR sees validation feedback when uploading an unsupported policy file type",
+    "description": "Verifies the policy uploader prevents or rejects unsupported file types and shows a clear validation error to the user.",
+    "category": "WF1 - Policy Sync/Studio",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Select the HR portal option"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_USER}} into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click to open the HR policy studio from the app navigation"
+      },
+      {
+        "type": "action",
+        "description": "Attempt to upload a file with an unsupported type"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify an upload validation error is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify no new policy is added to the policy list"
+      }
+    ],
+    "priority": "Low"
+  },
+  {
+    "id": "TC037",
+    "title": "Client-side validation blocks submitting empty login fields",
+    "description": "Verifies the login form prevents submission when required fields are empty and shows validation feedback.",
+    "category": "User Login",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Select the HR portal option"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify required-field validation errors are visible"
+      }
+    ],
+    "priority": "Low"
+  },
+  {
+    "id": "TC038",
+    "title": "Block login when email is missing",
+    "description": "This test verifies the user cannot submit the login form with an empty email and sees an inline validation error.",
+    "category": "Form Validation - Login",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill  into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill valid-password into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify an email validation error is visible"
+      }
+    ],
+    "priority": "Low"
+  },
+  {
+    "id": "TC039",
+    "title": "Block login when password is missing",
+    "description": "This test verifies the user cannot submit the login form with an empty password and sees an inline validation error.",
+    "category": "Form Validation - Login",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill user@example.com into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill  into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a password validation error is visible"
+      }
+    ],
+    "priority": "Low"
+  },
+  {
+    "id": "TC040",
+    "title": "Employee submit page renders and allows logout despite placeholder state",
+    "description": "Verifies an authenticated Employee can reach the submit page and use logout even when the receipt upload form is not implemented.",
+    "category": "WF2 - Employee Receipt Upload & OCR Extraction",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Select the Employee portal option"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_USER}} into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click to open the employee submit page from the app navigation"
+      },
+      {
+        "type": "action",
+        "description": "Click the logout control"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user is prompted to authenticate"
+      }
+    ],
+    "priority": "Low"
+  },
+  {
+    "id": "TC041",
+    "title": "HR cannot use History page for full claim browsing in MVP",
+    "description": "Verifies the HR history page shows the MVP restriction state instead of an interactive history workflow.",
+    "category": "Stateful Audit Trail & Claim History",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Select the HR portal option"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_USER}} into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the navigation link to open the HR history page"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify an MVP restriction message is visible and interactive history browsing is not available"
+      }
+    ],
+    "priority": "Low"
+  },
+  {
+    "id": "TC042",
+    "title": "Forgot password shows MVP restriction feedback",
+    "description": "Verifies that using the forgot-password entry point shows a visible MVP restriction message rather than a reset flow.",
+    "category": "User Login",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Click the forgot password action"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a restriction toast or banner is visible"
+      }
+    ],
+    "priority": "Low"
+  }
+]

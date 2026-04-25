@@ -1,0 +1,233 @@
+version: "2"
+type: frontend
+tech_stack:
+  - TypeScript
+  - Next.js 14 (App Router)
+  - React
+  - Tailwind CSS (custom design tokens)
+  - Zod + React Hook Form
+  - LangChain / LangGraph (backend AI)
+  - FastAPI (backend)
+  - pgvector / PostgreSQL
+routes:
+  - path: /login
+    file: app/login/page.tsx
+    auth_required: false
+    description: Employee and HR login page with portal toggle, email/password form, demo login buttons
+  - path: /hr/dashboard
+    file: app/hr/dashboard/page.tsx
+    auth_required: true
+    description: HR dashboard showing pending and approved reimbursement claims, KPI cards, filterable table
+  - path: /hr/policy
+    file: app/hr/policy/page.tsx
+    auth_required: true
+    description: HR Policy Studio - upload, view, edit and delete policy documents (WF1)
+  - path: /hr/review/[id]
+    file: app/hr/review/page.tsx
+    auth_required: true
+    description: HR claim review page for approving/rejecting a reimbursement bundle (WF3)
+  - path: /hr/view/[id]
+    file: app/hr/view/page.tsx
+    auth_required: true
+    description: HR read-only view of a passed-AI-review claim bundle
+  - path: /hr/history
+    file: app/hr/history/page.tsx
+    auth_required: true
+    description: HR history of all past processed claims
+  - path: /hr/settings
+    file: app/hr/settings/page.tsx
+    auth_required: true
+    description: HR settings page
+  - path: /hr/support
+    file: app/hr/support/page.tsx
+    auth_required: true
+    description: HR support page
+  - path: /employee/dashboard
+    file: app/employee/dashboard/page.tsx
+    auth_required: true
+    description: Employee dashboard showing personal claim summary
+  - path: /employee/submit
+    file: app/employee/submit/page.tsx
+    auth_required: true
+    description: Employee submit page (WF2) - receipt upload, OCR extraction, claim submission
+  - path: /employee/claims
+    file: app/employee/claims/page.tsx
+    auth_required: true
+    description: Employee list of own submitted claims
+  - path: /employee/history
+    file: app/employee/history/page.tsx
+    auth_required: true
+    description: Employee reimbursement history
+  - path: /employee/settings
+    file: app/employee/settings/page.tsx
+    auth_required: true
+    description: Employee settings page
+  - path: /employee/support
+    file: app/employee/support/page.tsx
+    auth_required: true
+    description: Employee support page
+
+features:
+  - name: User Login
+    description: Login with email and password credentials with role-based redirection (HR to /hr/dashboard, Employee to /employee/submit)
+    files:
+      - app/login/page.tsx
+      - context/AuthContext.tsx
+    entry_route: /login
+    user_interactions:
+      - Click Employee Portal or HR Dashboard tab toggle
+      - Fill email input field with valid email
+      - Fill password input field
+      - Click Sign In button
+      - Click Employee Demo or Admin Demo quick-login buttons
+      - Click Forgot Password? button (shows MVP restriction toast)
+      - See error message on invalid credentials
+      - See loading spinner while login is in progress
+    api_calls:
+      - method: POST
+        endpoint: /api/v1/auth/login
+    auth_required: false
+
+  - name: WF1 - Policy Document Upload (Policy Sync)
+    description: HR admin uploads a policy PDF or DOCX, backend parses it with LangChain AI, stores embeddings in pgvector, and the policy appears in the library
+    files:
+      - app/hr/policy/page.tsx
+      - lib/actions/hr.ts
+      - lib/actions/policies.ts
+    entry_route: /hr/policy
+    user_interactions:
+      - Click + New Policy button to open edit view
+      - Fill Policy Name field
+      - Fill Department field
+      - Click Upload Policy Document drop zone or drag a PDF/DOCX file
+      - Optionally add appendix files via Add Source button
+      - Click Save button
+      - See animated processing screen (Uploading -> Analyzing -> Saving steps)
+      - See updated policy list after successful upload
+      - See error banner if upload fails
+    api_calls:
+      - method: POST
+        endpoint: /api/v1/policies/upload
+      - method: GET
+        endpoint: /api/v1/policies/
+    auth_required: true
+
+  - name: WF1 - Policy List & Management
+    description: HR can view, filter, edit and delete policies in the Policy Studio
+    files:
+      - app/hr/policy/page.tsx
+      - lib/actions/policies.ts
+    entry_route: /hr/policy
+    user_interactions:
+      - Filter policies by status (Active, Impending, Expired)
+      - Search policies by name
+      - Click a policy card to open edit view
+      - Edit policy name, department, version, effective date
+      - Change policy status via dropdown
+      - Click Delete button and confirm deletion in modal
+      - Click Back to Policy Studio to return to list
+    api_calls:
+      - method: GET
+        endpoint: /api/v1/policies/
+      - method: DELETE
+        endpoint: /api/v1/policies/{policy_id}
+    auth_required: true
+
+  - name: WF2 - Employee Receipt Upload & OCR Extraction
+    description: Employee uploads receipt images, the backend OCR extracts amount/date/category, and the employee submits the claim
+    files:
+      - app/employee/submit/page.tsx
+    entry_route: /employee/submit
+    user_interactions:
+      - Navigate to employee submit page after login
+      - Upload receipt image (JPEG, PNG, PDF)
+      - See OCR-extracted fields (merchant, amount, date, category)
+      - Review and potentially edit OCR fields (discrepancy creation)
+      - Fill in trip purpose and destination
+      - Click Submit Claim button
+      - See success or error confirmation
+    api_calls:
+      - method: POST
+        endpoint: /api/v1/documents/upload
+      - method: POST
+        endpoint: /api/v1/reimbursements/
+    auth_required: true
+
+  - name: WF3 - Compliance & Fraud Detection (HR Review)
+    description: HR reviews flagged reimbursements where OCR amount differs from user-input amount; AI evaluates compliance against policy RAG
+    files:
+      - app/hr/review/[id]/page.tsx
+      - lib/actions/hr.ts
+    entry_route: /hr/review/[id]
+    user_interactions:
+      - Navigate to a claim flagged as Policy Flagged or Awaiting Review
+      - View AI judgment, confidence score, and summary
+      - View individual line items with claimed vs approved amounts
+      - View audit notes per line item
+      - Edit approved amounts for line items (manual override)
+      - Click Approve, Partial Approve, or Reject action button
+      - Enter HR note on rejection/approval
+      - See confirmation after status update
+    api_calls:
+      - method: GET
+        endpoint: /api/v1/reimbursements/{reim_id}
+      - method: PATCH
+        endpoint: /api/v1/reimbursements/{reim_id}/status
+    auth_required: true
+
+  - name: HR Dashboard - Claims Triage
+    description: HR views pending and approved claims in a filterable table with search capability
+    files:
+      - app/hr/dashboard/page.tsx
+      - lib/actions/hr.ts
+    entry_route: /hr/dashboard
+    user_interactions:
+      - Switch between Requires Attention and Passed AI Review tabs
+      - Search claims by employee name, category or status
+      - Open filter panel and filter by AI status, category, and amount range
+      - Click a claim row to navigate to review or view page
+      - Click View All Pending Requests to open modal with full list
+    api_calls:
+      - method: GET
+        endpoint: /api/v1/reimbursements/
+    auth_required: true
+
+  - name: Form Validation - Login
+    description: Zod-based form validation on login page with inline error messages
+    files:
+      - app/login/page.tsx
+    entry_route: /login
+    user_interactions:
+      - Submit login form with empty email field and see validation error
+      - Submit login form with invalid email format and see error message
+      - Submit login form with empty password and see validation error
+      - Submit with wrong credentials and see server error banner
+    api_calls: []
+    auth_required: false
+
+  - name: File Upload Validation
+    description: Policy upload enforces file type and size constraints (PDF/DOCX/TXT, max 10MB stated in UI)
+    files:
+      - app/hr/policy/page.tsx
+    entry_route: /hr/policy
+    user_interactions:
+      - Attempt to upload an oversized file (>5MB) and see rejection or warning
+      - Attempt to upload an unsupported file type and see rejection
+    api_calls:
+      - method: POST
+        endpoint: /api/v1/policies/upload
+    auth_required: true
+
+known_limitations:
+  - issue: Employee submit page (/employee/submit) shows a placeholder card with only a logout button, not a full receipt upload form
+    location: app/employee/submit/page.tsx
+    impact: WF2 receipt upload cannot be tested through this route; may be accessible at a different path or via the employee claims page
+  - issue: KPI cards on HR dashboard (Auto-Approval Rate 84.2%) show hardcoded mock values, not live data
+    location: app/hr/dashboard/page.tsx
+    impact: These metrics cannot be validated against actual backend data
+  - issue: Forgot Password feature shows MVP restriction toast — not implemented
+    location: app/login/page.tsx
+    impact: Password recovery flow cannot be tested
+  - issue: Edit existing policy is local-only (localStorage) for metadata; only new policy creation calls the real backend upload API
+    location: app/hr/policy/page.tsx
+    impact: Edits to existing mock policies are not persisted to backend
