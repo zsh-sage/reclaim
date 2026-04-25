@@ -215,111 +215,166 @@ flowchart LR
 ## Diagram 5: Entity Relationship Diagram — Normalized Database Schema (Section 2.3.2)
 
 ```mermaid
+%%{init: {'er': {'layoutDirection': 'LR'}}}%%
 erDiagram
+    departments {
+        UUID        department_id           PK
+        string      name                    ""
+        string      cost_center_code        "nullable"
+    }
+
     employees {
-        UUID user_id PK
-        string email "unique"
-        string hashed_password
-        string name
-        string role "HR or Employee"
-        string department "nullable"
-        int rank "default 1 nullable"
-        string privilege_level "default Standard nullable"
-        string user_code "nullable"
+        UUID        user_id                 PK
+        UUID        department_id           FK "nullable"
+        string      user_code               "nullable"
+        string      email                   "unique"
+        string      hashed_password         ""
+        string      name                    ""
+        string      role                    "UserRole"
+        string      privilege_level         "PrivilegeLevel"
+        int         rank                    "default 1"
+        bool        is_active               "default true"
+        datetime    created_at              "nullable"
     }
 
     policies {
-        UUID policy_id PK
-        string alias
-        string title
-        jsonb reimbursable_category "List[str]"
-        datetime effective_date
-        text overview_summary
-        text mandatory_conditions "JSON-serialized dict"
-        string source_file_url
-        string status "ACTIVE or DRAFT or ARCHIVED"
-        datetime created_at
+        UUID        policy_id               PK
+        UUID        created_by              FK
+        string      alias                   ""
+        string      title                   ""
+        datetime    effective_date          ""
+        datetime    expiry_date             "nullable"
+        text        overview_summary        ""
+        text        mandatory_conditions    ""
+        string      source_file_url         ""
+        jsonb       reimbursable_categories "List[str]"
+        string      status                  "PolicyStatus"
+        datetime    created_at              ""
     }
 
     policy_sections {
-        UUID section_id PK
-        UUID policy_id FK
-        text content "markdown chunk ~1000 chars"
-        jsonb metadata_data "source_file chunk_index"
-        vector embedding "pgvector 1536-dim ACTIVE for RAG"
+        UUID        section_id              PK
+        UUID        policy_id               FK
+        text        content                 "markdown chunk"
+        jsonb       metadata_data           ""
+        vector      embedding               "1536-dim"
     }
 
     travel_settlements {
-        UUID settlement_id PK
-        UUID reimbursement_id FK "deferred FK to reimbursements nullable"
-        string employee_id "plain str NOT a FK denormalized copy of user_id"
-        string employee_name "nullable"
-        string employee_code "nullable"
-        string employee_department "nullable"
-        int employee_rank "nullable"
-        string destination "nullable"
-        string departure_date "nullable"
-        string arrival_date "nullable"
-        string location "nullable"
-        bool overseas "nullable"
-        string purpose "nullable"
-        string currency "nullable"
-        string document_path "nullable"
-        jsonb receipts "List of extracted receipt dicts"
-        jsonb totals "transportation accommodation meals others grand_total currency"
-        jsonb all_category "List[str] unique categories"
-        string main_category "most frequent category nullable"
-        datetime created_at
+        UUID        settlement_id           PK
+        UUID        user_id                 FK
+        string      document_path           "nullable"
+        string      main_category           "nullable"
+        string      destination             "nullable"
+        date        departure_date          "nullable"
+        date        arrival_date            "nullable"
+        string      location                "nullable"
+        bool        overseas                "nullable"
+        string      purpose                 "nullable"
+        string      currency                "nullable"
+        Decimal     total_claimed_amount    "nullable"
+        Decimal     total_approved_amount   "nullable"
+        Decimal     total_rejected_amount   "nullable"
+        jsonb       categories              "List[str]"
+        datetime    created_at              ""
+    }
+
+    settlement_receipts {
+        UUID        receipt_id              PK
+        UUID        settlement_id           FK
+        UUID        document_id             FK "nullable"
+        string      merchant_name           "nullable"
+        date        receipt_date            "nullable"
+        string      category                "nullable"
+        Decimal     claimed_amount          "nullable"
+        string      currency                "nullable"
     }
 
     reimbursements {
-        UUID reim_id PK
-        UUID user_id FK
-        UUID policy_id FK "nullable"
-        UUID settlement_id FK "nullable"
-        string main_category
-        jsonb sub_category "List[str]"
-        string employee_department "nullable"
-        int employee_rank "default 1"
-        string currency
-        jsonb totals "total_requested total_deduction net_approved by_category"
-        jsonb line_items "List of per-receipt AI verdicts"
-        string judgment "APPROVE or REJECT or PARTIAL_APPROVE or MANUAL REVIEW"
-        float confidence "0.0 to 1.0 nullable"
-        text summary
-        string status "REVIEW or APPROVED or REJECTED or PAID default REVIEW"
-        datetime created_at
-        datetime updated_at
+        UUID        reim_id                 PK
+        UUID        user_id                 FK
+        UUID        policy_id               FK "nullable"
+        UUID        settlement_id           FK "nullable"
+        UUID        reviewed_by             FK "nullable"
+        string      main_category           ""
+        jsonb       sub_categories          "List[str]"
+        string      currency                ""
+        Decimal     total_claimed_amount    ""
+        Decimal     total_approved_amount   "nullable"
+        Decimal     total_rejected_amount   "nullable"
+        string      judgment                "JudgmentResult"
+        float       confidence              "nullable"
+        jsonb       ai_reasoning            ""
+        string      summary                 ""
+        string      status                  "ReimbursementStatus"
+        datetime    reviewed_at             "nullable"
+        datetime    created_at              ""
+        datetime    updated_at              ""
+    }
+
+    line_items {
+        UUID        line_item_id            PK
+        UUID        reim_id                 FK
+        UUID        document_id             FK "nullable"
+        UUID        policy_section_ref      FK "nullable"
+        string      description             ""
+        string      category                ""
+        float       quantity                "default 1.0"
+        Decimal     unit_price              "nullable"
+        Decimal     claimed_amount          ""
+        Decimal     approved_amount         "nullable"
+        string      currency                ""
+        date        expense_date            "nullable"
+        string      judgment                "nullable"
+        string      rejection_reason        "nullable"
     }
 
     supporting_documents {
-        UUID document_id PK
-        UUID reim_id FK "nullable"
-        UUID settlement_id FK "nullable"
-        UUID user_id FK
-        text name "original filename"
-        string path "relative storage path"
-        string type "image or pdf"
-        bool is_main "default true"
-        string document_class "default RECEIPT"
-        jsonb extracted_data "OCR output from LLM"
-        jsonb editable_fields "human corrections"
-        bool human_edited "default false"
-        jsonb change_summary "has_changes overall_risk changes_by_field"
-        datetime created_at
+        UUID        document_id             PK
+        UUID        reim_id                 FK "nullable"
+        UUID        settlement_id           FK "nullable"
+        UUID        user_id                 FK
+        string      name                    "original filename"
+        string      path                    "relative path"
+        string      type                    "image or pdf"
+        bool        is_main                 "default true"
+        string      document_class          "default RECEIPT"
+        jsonb       extracted_data          "OCR output"
+        jsonb       editable_fields         "human corrections"
+        bool        human_edited            "default false"
+        jsonb       change_summary          "has_changes"
+        datetime    created_at              "nullable"
     }
 
-    employees ||--o{ reimbursements : "user_id FK"
-    employees ||--o{ supporting_documents : "user_id FK"
-    policies ||--o{ policy_sections : "policy_id FK"
-    policies ||--o{ reimbursements : "policy_id FK nullable"
-    reimbursements ||--o{ supporting_documents : "reim_id FK nullable"
-    reimbursements ||--o| travel_settlements : "reimbursement_id deferred FK nullable"
-    travel_settlements ||--o{ supporting_documents : "settlement_id FK nullable"
-    reimbursements }o--|| travel_settlements : "settlement_id FK nullable"
-```
+    document_change_logs {
+        UUID        log_id                  PK
+        UUID        document_id             FK
+        UUID        changed_by              FK
+        string      field_name              ""
+        string      old_value               "nullable"
+        string      new_value               "nullable"
+        datetime    changed_at              ""
+    }
 
-> **Note on `travel_settlements.employee_id`**: This is a plain `str` column — it stores a copy of the user's UUID as a string for PDF template rendering, but carries **no FK constraint** in the database. The formal relationship between employees and their travel settlements is tracked via `reimbursements.user_id → employees.user_id`.
+    reimbursements }o--|| policies : "governed_by"
+    reimbursements |o--|| travel_settlements : "generated_from"
+    reimbursements ||--o{ line_items : "contains"
+    
+    policies }o--|| employees : "created_by"
+    policies ||--o{ policy_sections : "contains"
+    
+    travel_settlements }o--|| employees : "submitted_by"
+    travel_settlements ||--o{ settlement_receipts : "contains"
+    
+    line_items }o--|| policy_sections : "violates_section"
+    
+    settlement_receipts }o--|| supporting_documents : "references_doc"
+    line_items }o--|| supporting_documents : "references_doc"
+    
+    supporting_documents ||--o{ document_change_logs : "tracks"
+    
+    employees }o--|| departments : "belongs_to"
+```
 
 ---
 

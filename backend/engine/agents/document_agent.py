@@ -43,6 +43,21 @@ _READABILITY_FIELDS = [
 # JSON extraction helper
 # ---------------------------------------------------------------------------
 
+def _normalize_llm_content(content) -> str:
+    """Flatten LangChain content that may be a list of content blocks."""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts = []
+        for block in content:
+            if isinstance(block, dict):
+                parts.append(block.get("text", ""))
+            elif isinstance(block, str):
+                parts.append(block)
+        return "\n".join(parts)
+    return str(content)
+
+
 def _extract_json_object(text: str) -> dict:
     """Extract the first complete JSON object from text that may contain surrounding prose."""
     stripped = re.sub(r"```(?:json)?\s*", "", text).strip()
@@ -110,7 +125,7 @@ def _ocr_image(file_path: str, prompt: str) -> dict:
     ])
     response = get_vision_llm().invoke([message])
     try:
-        return _extract_json_object(response.content)
+        return _extract_json_object(_normalize_llm_content(response.content))
     except Exception as e:
         print(f"Failed to parse image OCR response: {e}")
         return {}
@@ -127,7 +142,7 @@ def _ocr_pdf(file_path: str, prompt: str) -> dict:
     full_prompt = f"{prompt}\n\nDocument Text:\n{md_text[:8000]}"
     response = get_text_llm().invoke([HumanMessage(content=full_prompt)])
     try:
-        return _extract_json_object(response.content)
+        return _extract_json_object(_normalize_llm_content(response.content))
     except Exception as e:
         print(f"Failed to parse PDF OCR response: {e}")
         return {}
