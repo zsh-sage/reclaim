@@ -5,59 +5,39 @@ import { History } from "lucide-react";
 import HistoryFilterBar, { FilterStatus } from "./_components/HistoryFilterBar";
 import HistoryList from "./_components/HistoryList";
 import ClaimSidebar from "./_components/ClaimSidebar";
-import { HISTORY_CLAIMS, type HistoryClaim, type ClaimStatus, type LineItem } from "./_components/historyData";
+import { type HistoryClaim, type ClaimStatus, type LineItem } from "./_components/historyData";
+import type { ReimbursementRaw } from "@/lib/api/types";
+import { getRawReimbursements, getRawReimbursement } from "@/lib/actions/claims";
 
 // ─── Map backend ReimbursementRaw → HistoryClaim ─────────────────────────────
 
-interface RawLineItem {
-  receipt_name?: string;
-  status?: string;
-  requested_amount?: number;
-  approved_amount?: number;
-  deduction_amount?: number;
-  audit_notes?: string;
-}
-
-interface ReimbursementRaw {
-  reim_id: string;
-  user_id?: string;
-  main_category?: string;
-  sub_category?: string[];
-  employee_department?: string | null;
-  currency: string;
-  totals?: { total_requested: number; total_deduction: number; net_approved: number };
-  line_items?: RawLineItem[];
-  judgment: string;
-  status: string;
-  summary?: string;
-  created_at?: string | null;
-}
-
 function mapToHistoryClaim(r: ReimbursementRaw): HistoryClaim {
   const statusMap: Record<string, ClaimStatus> = {
-    APPROVE: "Approved", APPROVED: "Approved", Approved: "Approved",
-    REJECT: "Rejected",  REJECTED: "Rejected",  Rejected: "Rejected",
-    REVIEW: "Pending",   Pending: "Pending",
-    PAID: "Paid",        Paid: "Paid",
-    PARTIAL_APPROVE: "Partially Approved",
+    APPROVED: "Approved",
+    REJECTED: "Rejected",
+    PENDING: "Pending",
+    REVIEW: "Pending",
+    APPEALED: "Pending",
+    Paid: "Paid",
+    PAID: "Paid",
   };
-  const claimStatus: ClaimStatus = statusMap[r.judgment] ?? statusMap[r.status] ?? "Pending";
+  const claimStatus: ClaimStatus = statusMap[r.status] ?? "Pending";
 
   const sym = ({ MYR: "RM ", USD: "$", EUR: "€", GBP: "£" } as Record<string, string>)[r.currency] ?? `${r.currency} `;
-  const net = r.totals?.net_approved ?? 0;
-  const requested = r.totals?.total_requested ?? 0;
+  const net = r.total_approved_amount ?? 0;
+  const requested = r.total_claimed_amount ?? 0;
 
   const lineItems: LineItem[] = (r.line_items ?? []).map((li, idx) => ({
     receiptRef: `REC-${String(idx + 1).padStart(2, "0")}`,
-    category: li.receipt_name ?? `Receipt ${idx + 1}`,
-    requested: li.requested_amount ?? 0,
+    category: li.description ?? li.category ?? `Receipt ${idx + 1}`,
+    requested: li.claimed_amount ?? 0,
     approved: li.approved_amount ?? 0,
-    lineStatus: li.status === "APPROVED" ? "Approved"
-      : li.status === "REJECTED" ? "Rejected"
-      : (li.deduction_amount ?? 0) > 0 ? "Adjusted"
+    lineStatus: li.judgment === "APPROVED" ? "Approved"
+      : li.judgment === "REJECTED" ? "Rejected"
+      : (li.claimed_amount ?? 0) > (li.approved_amount ?? 0) ? "Adjusted"
       : "Pending",
-    adjustments: li.audit_notes?.trim()
-      ? [{ code: "AI_NOTE", description: li.audit_notes }]
+    adjustments: li.rejection_reason?.trim()
+      ? [{ code: "AI_NOTE", description: li.rejection_reason }]
       : [],
   }));
 
@@ -69,7 +49,7 @@ function mapToHistoryClaim(r: ReimbursementRaw): HistoryClaim {
     id: r.reim_id,
     date: displayDate,
     category: r.main_category ?? "General",
-    subCategory: r.sub_category?.[0] ?? "",
+    subCategory: r.sub_categories?.[0] ?? "",
     categoryIcon: History as any,
     merchant: r.summary?.split(".")[0] ?? r.main_category ?? "Claim",
     amount: `${sym}${requested.toLocaleString("en-MY", { minimumFractionDigits: 2 })}`,
@@ -80,10 +60,14 @@ function mapToHistoryClaim(r: ReimbursementRaw): HistoryClaim {
     lineItems,
     receiptCount: lineItems.length,
     pdfDownloadUrl: `/api/v1/reimbursements/${r.reim_id}/pdf`,
+    settlementId: r.settlement_id,
+    settlementTemplateUrl: r.settlement_id
+      ? `/api/v1/documents/settlement/${r.settlement_id}/template`
+      : undefined,
     employee: {
-      name: r.employee_department ?? "Unknown",
+      name: r.employee_name ?? "Unknown",
       id: r.user_id ?? "",
-      department: r.employee_department ?? "",
+      department: r.department_name ?? "",
       position: "",
     },
     claimContext: { purpose: r.summary?.split(".")[0] ?? "", overseas: false },
@@ -93,36 +77,30 @@ function mapToHistoryClaim(r: ReimbursementRaw): HistoryClaim {
 export default function HistoryPage() {
   const [currentStatus, setCurrentStatus] = useState<FilterStatus>("All");
   const [selectedClaim, setSelectedClaim] = useState<HistoryClaim | null>(null);
+  const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [dateRange, setDateRange] = useState("All Time");
   const [selectedCategory, setSelectedCategory] = useState("All");
-  const [claims, setClaims] = useState<HistoryClaim[]>(HISTORY_CLAIMS);
+  const [claims, setClaims] = useState<HistoryClaim[]>([]);
 
-  // Fetch real reimbursements from the backend on mount
   useEffect(() => {
-    const fetchClaims = async () => {
-      try {
-        // Use the same Next.js server route that the server actions call.
-        // We can call the server action directly from client components in Next.js 14.
-        const { getClaims } = await import("@/lib/actions/claims");
-        // getClaims returns ClaimSummary[] which is fine for the list, but for the
-        // sidebar detail view we need the richer shape. We call the raw reimbursements
-        // endpoint directly via a client-side fetch (cookies are sent automatically).
-        const base = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
-        const res = await fetch(`${base}/api/v1/reimbursements/`, { credentials: "include", cache: "no-store" });
-        if (res.ok) {
-          const raw: ReimbursementRaw[] = await res.json();
-          if (raw.length > 0) {
-            setClaims(raw.map(mapToHistoryClaim));
-            return;
-          }
-        }
-      } catch {
-        // fall through to mock data
-      }
-      // If fetch failed or returned empty, keep HISTORY_CLAIMS mock
-    };
-    fetchClaims();
+    getRawReimbursements().then((raw) => {
+      if (raw.length > 0) setClaims(raw.map(mapToHistoryClaim));
+    });
   }, []);
+
+  async function handleSelectClaim(claim: HistoryClaim) {
+    setIsLoadingDetail(true);
+    try {
+      const raw = await getRawReimbursement(claim.id);
+      if (raw) {
+        setSelectedClaim(mapToHistoryClaim(raw));
+        return;
+      }
+    } finally {
+      setIsLoadingDetail(false);
+    }
+    setSelectedClaim(claim);
+  }
 
   // Filter claims based on the selected filters
   const filteredClaims = useMemo(() => {
@@ -189,7 +167,7 @@ export default function HistoryPage() {
         <section aria-label="Claims List" className="relative z-0">
           <HistoryList
             claims={filteredClaims}
-            onSelectClaim={setSelectedClaim}
+            onSelectClaim={handleSelectClaim}
           />
         </section>
 
@@ -199,6 +177,7 @@ export default function HistoryPage() {
       <ClaimSidebar
         claim={selectedClaim}
         onClose={() => setSelectedClaim(null)}
+        isLoading={isLoadingDetail}
       />
     </main>
   );

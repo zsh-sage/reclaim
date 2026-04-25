@@ -12,6 +12,7 @@ import {
   ZoomIn,
   ZoomOut,
   Maximize2,
+  Loader2,
 } from "lucide-react";
 import type { DbEmployee, OcrReceiptData, ClaimContext } from "../../../../src/types/claim";
 
@@ -37,6 +38,7 @@ interface VerificationScreenProps {
   onReceiptsChange:     (receipts: OcrReceiptData[]) => void;
   onBack:               () => void;
   onSubmit:             () => void;
+  isSubmitting?:        boolean;
 }
 
 // ─── Locked (read-only) field ─────────────────────────────────────────────────
@@ -404,6 +406,7 @@ export function VerificationScreen({
   onReceiptsChange,
   onBack,
   onSubmit,
+  isSubmitting = false,
 }: VerificationScreenProps) {
   const [activeTab,    setActiveTab]    = useState<"form" | "preview">("form");
   const [identityOpen, setIdentityOpen] = useState(true);
@@ -598,15 +601,16 @@ export function VerificationScreen({
         )}
         <button
           id="submit-claim-btn"
-          disabled={!canSubmit}
+          disabled={!canSubmit || isSubmitting}
           onClick={onSubmit}
-          className={`w-full py-3.5 rounded-xl font-bold text-sm font-body transition-all duration-200 ${
-            canSubmit
+          className={`w-full py-3.5 rounded-xl font-bold text-sm font-body transition-all duration-200 flex items-center justify-center gap-2 ${
+            canSubmit && !isSubmitting
               ? "bg-linear-to-r from-primary to-primary-dim text-on-primary shadow-[0_4px_20px_rgba(70,71,211,0.35)] hover:shadow-[0_6px_28px_rgba(70,71,211,0.45)] hover:scale-[1.01] active:scale-[0.97]"
               : "bg-primary/25 text-on-primary/50 cursor-not-allowed"
           }`}
         >
-          Submit Claim
+          {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />}
+          {isSubmitting ? "Submitting…" : "Submit Claim"}
         </button>
       </div>
     </div>

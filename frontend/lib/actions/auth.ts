@@ -41,7 +41,6 @@ export async function login(
     });
 
     // 3. Fetch user profile with the new token
-    // (apiGet automatically reads the token we just set in the cookies)
     const userResult = await apiGet<any>(`${API_PREFIX}/auth/me`);
 
     if (userResult.error || !userResult.data) {
@@ -51,14 +50,16 @@ export async function login(
     const raw = userResult.data;
     if (!raw.user_id) return { user: null, error: "Malformed user profile response" };
     const user: User = {
-      id:              raw.user_id,
-      email:           raw.email,
-      name:            raw.name,
-      role:            raw.role,
-      department:      raw.department,
-      user_code:       raw.user_code   ?? null,
-      rank:            raw.rank        ?? 0,
+      user_id: raw.user_id,
+      email: raw.email,
+      name: raw.name,
+      role: raw.role,
+      department_id: raw.department_id ?? null,
+      department_name: raw.department_name ?? null, // backend returns department name from joined query
+      user_code: raw.user_code ?? null,
+      rank: raw.rank ?? 0,
       privilege_level: raw.privilege_level,
+      is_active: raw.is_active ?? true,
     };
     return { user, error: null };
   } catch (err) {
@@ -92,14 +93,16 @@ export async function getCurrentUser(): Promise<User | null> {
     const raw = result.data;
     if (!raw.user_id) return null;
     return {
-      id:              raw.user_id,
-      email:           raw.email,
-      name:            raw.name,
-      role:            raw.role,
-      department:      raw.department,
-      user_code:       raw.user_code   ?? null,
-      rank:            raw.rank        ?? 0,
+      user_id: raw.user_id,
+      email: raw.email,
+      name: raw.name,
+      role: raw.role,
+      department_id: raw.department_id ?? null,
+      department_name: raw.department_name ?? null,
+      user_code: raw.user_code ?? null,
+      rank: raw.rank ?? 0,
       privilege_level: raw.privilege_level,
+      is_active: raw.is_active ?? true,
     };
   } catch {
     return null;

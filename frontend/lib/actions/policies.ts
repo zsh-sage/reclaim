@@ -15,7 +15,7 @@ const MOCK_POLICIES: Policy[] = [
     policy_id: "mock-policy-1",
     alias: "BTP-2024",
     title: "Business Travel Policy",
-    reimbursable_category: [
+    reimbursable_categories: [
       "Air Transportation",
       "Train",
       "Ferry",
@@ -255,12 +255,14 @@ export async function getPolicies(): Promise<Policy[]> {
       policy_id: p.policy_id as string,
       alias: p.alias as string,
       title: p.title as string,
-      reimbursable_category: p.reimbursable_category as string[],
+      reimbursable_categories: (p.reimbursable_categories ?? p.reimbursable_category ?? []) as string[],
       overview_summary: p.overview_summary as string,
-      status: p.status as string,
+      status: p.status as "DRAFT" | "ACTIVE" | "DEPRECATED",
       effective_date: (p.effective_date as string | null) ?? null,
+      expiry_date: (p.expiry_date as string | null) ?? null,
       mandatory_conditions: (p.mandatory_conditions as string) ?? "",
       source_file_url: (p.source_file_url as string) ?? "",
+      created_by: (p.created_by as string) ?? undefined,
     };
   });
 }

@@ -12,6 +12,7 @@ import RecentClaimsTable from "./_components/RecentClaimsTable";
 export default function EmployeeDashboardPage() {
   const { user } = useAuth();
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [today, setToday] = useState("");
 
   // Show only the first name in the greeting
   const firstName = user?.name?.split(" ")[0] ?? "there";
@@ -19,6 +20,17 @@ export default function EmployeeDashboardPage() {
   // Fetch dashboard stats via server action
   useEffect(() => {
     getDashboardStats().then(setStats);
+  }, []);
+
+  // Render date client-only to avoid hydration mismatch
+  useEffect(() => {
+    setToday(
+      new Date().toLocaleDateString("en-US", {
+        weekday: "short",
+        month: "long",
+        day: "numeric",
+      })
+    );
   }, []);
 
   return (
@@ -46,11 +58,7 @@ export default function EmployeeDashboardPage() {
           {/* Current date pill — visible on md+ */}
           <div className="hidden md:flex items-center gap-2 px-4 py-2.5 bg-surface-container-low rounded-xl shrink-0">
             <span className="font-label text-sm font-semibold text-primary">
-              {new Date().toLocaleDateString("en-US", {
-                weekday: "short",
-                month:   "long",
-                day:     "numeric",
-              })}
+              {today || "Loading..."}
             </span>
           </div>
         </div>

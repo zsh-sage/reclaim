@@ -18,6 +18,7 @@ import {
   MapPin,
   Calendar as CalendarIcon,
   Sparkles,
+  Loader2,
 } from "lucide-react";
 import type { HistoryClaim, LineItem, ClaimStatus } from "./historyData";
 
@@ -26,6 +27,7 @@ import type { HistoryClaim, LineItem, ClaimStatus } from "./historyData";
 interface ClaimSidebarProps {
   claim: HistoryClaim | null;
   onClose: () => void;
+  isLoading?: boolean;
 }
 
 // ─── Currency formatter (MYR) ─────────────────────────────────────────────────
@@ -451,7 +453,8 @@ function ClaimFormModal({
 
 // ─── Main ClaimSidebar Component ──────────────────────────────────────────────
 
-export default function ClaimSidebar({ claim, onClose }: ClaimSidebarProps) {
+export default function ClaimSidebar({ claim, onClose, isLoading = false }: ClaimSidebarProps) {
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
   const [isVisible,     setIsVisible]     = useState(false);
   const [showFormModal, setShowFormModal] = useState(false);
 
@@ -522,7 +525,11 @@ export default function ClaimSidebar({ claim, onClose }: ClaimSidebarProps) {
         </div>
 
         {/* ── Scrollable body ── */}
-        {claim && (
+        {claim && isLoading ? (
+          <div className="flex-1 flex items-center justify-center">
+            <Loader2 className="w-6 h-6 animate-spin text-primary" />
+          </div>
+        ) : claim && (
           <div className="flex-1 overflow-y-auto px-5 py-5 space-y-6">
 
             {/* ① CONDITIONAL HEADER ─────────────────────────────────────── */}
@@ -787,10 +794,15 @@ export default function ClaimSidebar({ claim, onClose }: ClaimSidebarProps) {
                     <ExternalLink className="w-4 h-4" />
                     View Official Claim Form
                   </button>
-                  {/* Secondary: download PDF via backend URL */}
+                  {/* Secondary: download PDF via settlement template */}
                   <a
                     id={`download-pdf-${claim.id}`}
-                    href={claim.pdfDownloadUrl}
+                    href={claim.settlementTemplateUrl ? `${API_BASE}${claim.settlementTemplateUrl}` : "#"}
+                    onClick={(e) => {
+                      if (!claim.settlementTemplateUrl) {
+                        e.preventDefault();
+                      }
+                    }}
                     download
                     className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border border-outline-variant/20 text-on-surface-variant font-body font-semibold text-sm hover:bg-surface-container transition-colors active:scale-95"
                     aria-label="Download Official Form (PDF)"

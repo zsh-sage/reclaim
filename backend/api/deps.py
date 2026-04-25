@@ -6,7 +6,7 @@ from sqlmodel import Session, select
 
 from core.config import settings
 from core.database import engine
-from core.models import User, UserRole
+from core.enums import UserRole
 from api import schemas
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login")
@@ -17,7 +17,7 @@ def get_db() -> Generator[Session, None, None]:
 
 def get_current_user(
     db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)
-) -> User:
+) -> schemas.UserInDB:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -34,6 +34,8 @@ def get_current_user(
     except JWTError:
         raise credentials_exception
     
+    # Import here to avoid circular import at module load time
+    from core.models import User
     statement = select(User).where(User.email == token_data.email)
     user = db.exec(statement).first()
     if user is None:
@@ -41,8 +43,8 @@ def get_current_user(
     return user
 
 def get_current_hr_user(
-    current_user: User = Depends(get_current_user),
-) -> User:
+    current_user = Depends(get_current_user),
+) -> schemas.UserInDB:
     if current_user.role != UserRole.HR:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="The user doesn't have enough privileges"

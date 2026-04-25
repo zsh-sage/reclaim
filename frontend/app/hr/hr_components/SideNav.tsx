@@ -82,7 +82,7 @@ export default function SideNav() {
                 {user?.name ?? "Employee"}
               </p>
               <p className="font-body text-[11px] text-on-surface-variant truncate">
-                {user?.department ?? "General"}
+                {user?.department_name ?? "General"}
               </p>
             </div>
           </div>

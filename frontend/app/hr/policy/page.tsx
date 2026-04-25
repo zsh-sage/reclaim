@@ -166,6 +166,8 @@ export default function PolicyStudio() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deletingPolicyId, setDeletingPolicyId] = useState<string | null>(null);
+  const [deletingPolicyName, setDeletingPolicyName] = useState<string>("");
 
   // Existing files state (for edit view)
   const [existingMainPolicyDeleted, setExistingMainPolicyDeleted] = useState(false);
@@ -275,28 +277,25 @@ export default function PolicyStudio() {
     // 2. Load from backend
     getPolicies().then((backendPolicies) => {
       if (backendPolicies.length === 0) return;
-      
-      const mapped: Policy[] = backendPolicies
-        .map((p) => ({
-          id: p.policy_id,
-          name: p.title,
-          version: "V1.0",
-          department: "General",
-          lastModified: p.effective_date
-            ? new Date(p.effective_date).toLocaleDateString("en-MY", { month: "short", day: "numeric", year: "numeric" })
-            : "",
-          status: (p.status === "ACTIVE" ? "Active" : p.status === "EXPIRED" ? "Expired" : "Active") as PolicyStatus,
-          icon: FileText,
-          aiConditions: undefined,
-          history: [],
-        }));
-      
-      setPolicies(prev => {
-        const backendMapped = applyEdits(mapped);
-        const localOnly = prev.filter(p => !backendMapped.find(m => m.id === p.id));
-        return applyEdits([...backendMapped, ...localOnly]);
-      });
-    }).catch(() => {});
+      // Map backend Policy type (from types.ts) → local Policy shape (mockData.ts)
+      const mapped: Policy[] = backendPolicies.map((p) => ({
+        id: p.policy_id,
+        name: p.title,
+        version: "V1.0",
+        department: "General",
+        lastModified: p.effective_date
+          ? new Date(p.effective_date).toLocaleDateString("en-MY", { month: "short", day: "numeric", year: "numeric" })
+          : "",
+        status: (p.status === "ACTIVE" ? "Active" : p.status === "DEPRECATED" ? "Expired" : "Impending") as PolicyStatus,
+        icon: FileText,
+        aiConditions: undefined,
+        history: [],
+      }));
+      // Merge: prepend real policies, keep mocks as fallback examples
+      setPolicies([...mapped, ...MOCK_POLICIES]);
+    }).catch(() => {
+      // Keep mock data on error
+    });
   }, []);
 
   // Status dropdown & edit states
@@ -413,7 +412,7 @@ export default function PolicyStudio() {
             lastModified: p.effective_date
               ? new Date(p.effective_date).toLocaleDateString("en-MY", { month: "short", day: "numeric", year: "numeric" })
               : "",
-            status: (p.status === "ACTIVE" ? "Active" : p.status === "EXPIRED" ? "Expired" : "Active") as PolicyStatus,
+            status: (p.status === "ACTIVE" ? "Active" : p.status === "DEPRECATED" ? "Expired" : "Impending") as PolicyStatus,
             icon: FileText,
           }));
           setPolicies([...mapped, ...MOCK_POLICIES]);
@@ -488,6 +487,38 @@ export default function PolicyStudio() {
     setIsSaving(false);
     setEditingPolicy(null);
   };
+
+  async function handleConfirmDelete() {
+    if (!deletingPolicyId) return;
+    setIsDeleting(true);
+    setDeleteError(null);
+    
+    const result = await deletePolicy(deletingPolicyId);
+    
+    if (!result.ok) {
+      setDeleteError(result.error ?? "Failed to delete policy");
+      setIsDeleting(false);
+      return;
+    }
+    
+    // Remove from local state
+    setPolicies(prev => prev.filter(p => p.id !== deletingPolicyId));
+    
+    // Persist deletion in LocalStorage (like the edit-view delete does)
+    const deletedIds = JSON.parse(localStorage.getItem('deleted_policy_ids') || '[]');
+    if (!deletedIds.includes(deletingPolicyId)) {
+      deletedIds.push(deletingPolicyId);
+      localStorage.setItem('deleted_policy_ids', JSON.stringify(deletedIds));
+    }
+    
+    setIsDeleting(false);
+    setDeleteModalOpen(false);
+    if (editingPolicy === deletingPolicyId) {
+      setEditingPolicy(null);
+    }
+    setDeletingPolicyId(null);
+    setDeletingPolicyName("");
+  }
 
   if (editingPolicy) {
     const isNew = editingPolicy === "new";
@@ -773,7 +804,7 @@ export default function PolicyStudio() {
                       <p className="font-body text-xs text-on-surface-variant mt-0.5">This action is permanent and cannot be undone.</p>
                     </div>
                     <button
-                      onClick={() => { setDeleteError(null); setDeleteModalOpen(true); }}
+                      onClick={() => { setDeleteError(null); setDeletingPolicyId(editingPolicy); setDeletingPolicyName(editName); setDeleteModalOpen(true); }}
                       className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl border border-[#dc2626]/30 text-[#dc2626] text-sm font-bold font-body hover:bg-[#dc2626]/10 active:scale-95 transition-all cursor-pointer"
                     >
                       <Trash2 size={15} />
@@ -928,40 +959,20 @@ export default function PolicyStudio() {
         )}
 
         {/* Delete Confirmation Modal */}
-        {!isNew && (
-          <DeleteConfirmModal
-            isOpen={deleteModalOpen}
-            onClose={() => setDeleteModalOpen(false)}
-            policyName={editName}
-            isDeleting={isDeleting}
-            deleteError={deleteError}
-            onConfirm={async () => {
-              setIsDeleting(true);
-              setDeleteError(null);
-              
-              // 1. Call Backend
-              const result = await deletePolicy(editingPolicy as string);
-              
-              // 2. Persist deletion in LocalStorage (so it stays gone on refresh)
-              const deletedIds = JSON.parse(localStorage.getItem('deleted_policy_ids') || '[]');
-              if (!deletedIds.includes(editingPolicy)) {
-                deletedIds.push(editingPolicy);
-                localStorage.setItem('deleted_policy_ids', JSON.stringify(deletedIds));
-              }
-
-              if (!result.ok) {
-                console.error('Backend delete failed:', result.error);
-                // We still proceed to hide it locally for a better UX
-              }
-
-              // 3. Update local state
-              setPolicies(prev => prev.filter(p => p.id !== editingPolicy));
-              setIsDeleting(false);
+        <DeleteConfirmModal
+          isOpen={deleteModalOpen}
+          onClose={() => {
+            if (!isDeleting) {
               setDeleteModalOpen(false);
-              setEditingPolicy(null);
-            }}
-          />
-        )}
+              setDeletingPolicyId(null);
+              setDeletingPolicyName("");
+            }
+          }}
+          policyName={deletingPolicyName}
+          isDeleting={isDeleting}
+          deleteError={deleteError}
+          onConfirm={handleConfirmDelete}
+        />
         
         {/* Bottom Action Bar */}
         <div className="shrink-0 bg-surface-bright/80 backdrop-blur-xl border-t border-surface-container-low p-4 z-40">

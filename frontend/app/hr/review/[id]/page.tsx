@@ -6,6 +6,7 @@ import { ArrowLeft, AlertTriangle, Clock, ShieldCheck, ShieldX, ChevronDown, Zoo
 import { ClaimBundle, LineItem, MOCK_BUNDLES } from "../../hr_components/mockData";
 import { CheckCircle2, LayoutDashboard } from "lucide-react";
 import { SuccessModal } from "../../hr_components/SuccessModal";
+import { useAuth } from "@/context/AuthContext";
 import { getHRClaimBundle, updateReimbursementStatus } from "@/lib/actions/hr";
 
 
@@ -287,6 +288,7 @@ function ClaimFormModal({
 export default function ReviewPage() {
   const { id } = useParams() as { id: string };
   const router = useRouter();
+  const { user } = useAuth();
 
   const [bundle, setBundle] = useState<ClaimBundle | undefined | null>(undefined); // undefined = loading
   const [approvals, setApprovals] = useState<Record<string, number>>({});
@@ -351,7 +353,14 @@ export default function ReviewPage() {
     setSubmitting(true);
     setSubmitError(null);
     const status = decision === "reject" ? "REJECTED" : "APPROVED";
-    const res = await updateReimbursementStatus(bundle!.id, status);
+    const lineItems = bundle!.line_items.map(li => ({
+      line_item_id: li.line_item_id ?? li.document_id,
+      approved_amount: approvals[li.document_id] ?? li.approved_amount,
+    }));
+    const res = await updateReimbursementStatus(bundle!.id, status, user!.user_id, {
+      lineItems,
+      hrNote: note || undefined,
+    });
     setSubmitting(false);
     if (!res.ok) {
       setSubmitError(res.error ?? "Failed to update status.");
@@ -424,10 +433,10 @@ export default function ReviewPage() {
                 </button>
                 <a
                   id={`download-pdf-${bundle.id}`}
-                  href={`/api/v1/reimbursements/${bundle.id}/pdf`}
-                  download
-                  className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border border-outline-variant/20 text-on-surface-variant font-body font-semibold text-sm hover:bg-surface-container transition-colors active:scale-[0.98] cursor-pointer"
-                  aria-label="Download Official Form (PDF)"
+                  href="#"
+                  onClick={(e) => e.preventDefault()}
+                  className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border border-outline-variant/20 text-on-surface-variant font-body font-semibold text-sm hover:bg-surface-container transition-colors active:scale-[0.98] cursor-pointer opacity-50"
+                  aria-label="Download not yet available"
                 >
                   <Download className="w-4 h-4" />
                   <span className="hidden sm:inline">Download PDF</span>

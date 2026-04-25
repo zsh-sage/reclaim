@@ -88,7 +88,7 @@ export default function SettingsLegacyContent() {
                   </div>
                   <div className="space-y-1.5 sm:col-span-2">
                     <label className="font-label text-xs font-bold text-on-surface-variant uppercase tracking-wider">Department</label>
-                    <input type="text" defaultValue={user?.department || "General"} disabled className="w-full bg-surface-variant/30 text-on-surface-variant px-4 py-2.5 rounded-xl border border-transparent cursor-not-allowed" />
+                    <input type="text" defaultValue={user?.department_name || "General"} disabled className="w-full bg-surface-variant/30 text-on-surface-variant px-4 py-2.5 rounded-xl border border-transparent cursor-not-allowed" />
                   </div>
                 </div>
               </div>

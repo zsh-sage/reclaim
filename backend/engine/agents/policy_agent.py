@@ -12,7 +12,8 @@ from langchain_text_splitters import MarkdownTextSplitter
 from langgraph.graph import StateGraph, START, END
 from sqlmodel import Session
 
-from core.models import Policy, PolicySection
+from core.models import Policy, PolicySection, PolicyReimbursableCategory
+from core.enums import PolicyStatus
 from engine.llm import get_chat_llm, get_embeddings
 from engine.prompts.policy_prompts import (
     POLICY_CATEGORY_SUMMARY_PROMPT,
@@ -27,6 +28,7 @@ from engine.prompts.policy_prompts import (
 class PolicyWorkflowState(TypedDict):
     file_paths: List[str]
     alias: str
+    user_id: Optional[str]
     markdown_docs: List[Dict]   # [{file: str, text: str}]
     title: str
     extracted_categories: List[str]
@@ -121,16 +123,26 @@ def save_to_db(state: PolicyWorkflowState, session: Session) -> dict:
     policy = Policy(
         alias=state.get("alias") or state.get("title", "Unknown"),
         title=state.get("title", "Unknown"),
-        reimbursable_category=state.get("extracted_categories", []),
         effective_date=datetime.now(timezone.utc),
         overview_summary=state.get("overview_summary", ""),
         mandatory_conditions=json.dumps(state.get("mandatory_procedures", {})),
         source_file_url=source_url,
-        status="ACTIVE",
+        status=PolicyStatus.ACTIVE,
+        created_by=state.get("user_id"),
     )
     session.add(policy)
     session.commit()
     print(f"Saved policy {policy.policy_id}.")
+
+    # Bulk insert PolicyReimbursableCategory rows
+    for category in state.get("extracted_categories", []):
+        prc = PolicyReimbursableCategory(
+            policy_id=policy.policy_id,
+            category=category,
+        )
+        session.add(prc)
+
+    session.commit()
     return {"policy_id": str(policy.policy_id)}
 
 
@@ -195,6 +207,8 @@ def embed_and_save_sections(state: PolicyWorkflowState, session: Session) -> dic
             section = PolicySection(
                 policy_id=policy_id,
                 content=chunk,
+                section_title=None,
+                section_order=idx,
                 metadata_data={"source_file": file_name, "chunk_index": idx},
                 embedding=vector,
             )
@@ -209,7 +223,7 @@ def embed_and_save_sections(state: PolicyWorkflowState, session: Session) -> dic
 # Graph compilation + entry point
 # ---------------------------------------------------------------------------
 
-def run_policy_workflow(file_paths: List[str], alias: str, session: Session) -> str:
+def run_policy_workflow(file_paths: List[str], alias: str, session: Session, user_id: Optional[str] = None) -> str:
     """Run the policy upload pipeline. Returns the policy_id string."""
     def _save_to_db(state): return save_to_db(state, session)
     def _embed_and_save_sections(state): return embed_and_save_sections(state, session)
@@ -233,6 +247,7 @@ def run_policy_workflow(file_paths: List[str], alias: str, session: Session) -> 
     result = app.invoke({
         "file_paths": file_paths,
         "alias": alias,
+        "user_id": user_id,
         "markdown_docs": [],
         "title": "",
         "extracted_categories": [],

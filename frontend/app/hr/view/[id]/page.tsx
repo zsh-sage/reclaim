@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { ArrowLeft, Clock, ShieldCheck, ShieldX, ChevronDown, ZoomIn, CheckCircle2, FileText, ExternalLink, Download, X, Loader2 } from "lucide-react";
 import { ClaimBundle, MOCK_BUNDLES } from "../../hr_components/mockData";
 import { SuccessModal } from "../../hr_components/SuccessModal";
+import { useAuth } from "@/context/AuthContext";
 import { getHRClaimBundle, updateReimbursementStatus } from "@/lib/actions/hr";
 
 const STATUS_CHIP: Record<string, string> = {
@@ -282,6 +283,7 @@ function ClaimFormModal({
 export default function ViewPage() {
   const { id } = useParams() as { id: string };
   const router = useRouter();
+  const { user } = useAuth();
 
   const [bundle, setBundle] = useState<ClaimBundle | undefined | null>(undefined); // undefined = loading
   const [hrDecision, setHrDecision] = useState<"confirm" | "flag" | null>(null);
@@ -319,8 +321,10 @@ export default function ViewPage() {
     if (!hrDecision) return;
     setSubmitting(true);
     setSubmitError(null);
-    const status = hrDecision === "confirm" ? "APPROVED" : "REJECTED";
-    const res = await updateReimbursementStatus(bundle!.id, status);
+    const status = hrDecision === "confirm" ? "APPROVED" : hrDecision === "flag" ? "REVIEW" : "REJECTED";
+    const res = await updateReimbursementStatus(bundle!.id, status, user!.user_id, {
+      hrNote: note || undefined,
+    });
     setSubmitting(false);
     if (!res.ok) {
       setSubmitError(res.error ?? "Failed to update status.");
@@ -405,10 +409,10 @@ export default function ViewPage() {
                 </button>
                 <a
                   id={`download-pdf-${bundle.id}`}
-                  href={`/api/v1/reimbursements/${bundle.id}/pdf`}
-                  download
-                  className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border border-outline-variant/20 text-on-surface-variant font-body font-semibold text-sm hover:bg-surface-container transition-colors active:scale-[0.98] cursor-pointer"
-                  aria-label="Download Official Form (PDF)"
+                  href="#"
+                  onClick={(e) => e.preventDefault()}
+                  className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border border-outline-variant/20 text-on-surface-variant font-body font-semibold text-sm hover:bg-surface-container transition-colors active:scale-[0.98] cursor-pointer opacity-50"
+                  aria-label="Download not yet available"
                 >
                   <Download className="w-4 h-4" />
                   <span className="hidden sm:inline">Download PDF</span>

@@ -15,14 +15,25 @@ export interface ApiResult<T> {
 
 /** Matches GET /api/v1/auth/me → UserResponse */
 export interface User {
-  id: string;           // UUID mapped from user_id in auth.ts
+  user_id: string;
   user_code?: string | null;
   email: string;
   name: string;
   role: "HR" | "Employee";
-  department?: string;
+  department_id?: string | null;
+  department_name?: string | null;
   rank?: number;
   privilege_level?: string;
+  is_active?: boolean;
+  created_at?: string | null;
+}
+
+// ─── Departments ─────────────────────────────────────────────────────────────
+
+export interface Department {
+  department_id: string;
+  name: string;
+  cost_center_code?: string | null;
 }
 
 // ─── Dashboard & Statistics ──────────────────────────────────────────────────
@@ -57,77 +68,83 @@ export interface ClaimSummary {
   status: ClaimStatus;
 }
 
-/** One line item inside a reimbursement (from compliance agent judgment). */
-export interface ReimbursementLineItem {
-  receipt_name: string;
-  status: string;
-  requested_amount: number;
-  approved_amount: number;
-  deduction_amount: number;
-  audit_notes: string;
+/** One line item inside a reimbursement (from the normalized line_items table). */
+export interface LineItem {
+  line_item_id: string;
+  reim_id: string;
+  document_id?: string | null;
+  description: string;
+  category: string;
+  quantity?: number;
+  unit_price?: number;
+  claimed_amount: number;
+  approved_amount?: number | null;
+  currency: string;
+  expense_date?: string | null;
+  judgment?: "APPROVED" | "REJECTED" | "PARTIAL" | "NEEDS_INFO" | null;
+  rejection_reason?: string | null;
+  policy_section_ref?: string | null;
 }
 
-/** Raw shape returned by the FastAPI `GET /reimbursements/` endpoint. */
+/** Raw shape returned by the FastAPI GET /reimbursements/ and /reimbursements/{id} endpoints. */
 export interface ReimbursementRaw {
   reim_id: string;
   user_id: string;
+  employee_name?: string;
+  department_name?: string;
   policy_id: string | null;
+  policy_name?: string | null;
   settlement_id: string | null;
   main_category: string;
-  sub_category: string[];
-  employee_department?: string | null;
-  employee_rank?: number | null;
   currency: string;
-  totals: {
-    total_requested?: number;
-    net_approved?: number;
-    total_deduction?: number;
-    [key: string]: any;
-  };
-  line_items: ReimbursementLineItem[];
-  judgment: string;
+  total_claimed_amount: number;
+  total_approved_amount: number | null;
+  total_rejected_amount: number | null;
+  line_items?: LineItem[];
+  judgment: "APPROVED" | "REJECTED" | "PARTIAL" | "NEEDS_INFO";
   confidence: number | null;
-  status: string;
+  ai_reasoning: Record<string, unknown>;
+  status: "PENDING" | "REVIEW" | "APPROVED" | "REJECTED" | "APPEALED";
   summary: string;
+  reviewed_by?: string | null;
+  reviewed_at?: string | null;
   created_at: string | null;
-  updated_at: string | null;
+  updated_at?: string | null;
+  sub_categories: string[];
+  receipt_count?: number;
 }
 
 /** Map a backend ReimbursementRaw into the frontend ClaimSummary shape. */
 export function mapReimbursementToClaim(r: ReimbursementRaw): ClaimSummary {
-  // Format currency + amount → "$850.00"
   const currencySymbol: Record<string, string> = { USD: "$", MYR: "RM", EUR: "€", GBP: "£" };
   const symbol = currencySymbol[r.currency] ?? `${r.currency} `;
-  const amountValue = r.totals?.total_requested ?? 0;
+  const amountValue = r.total_claimed_amount ?? 0;
   const formattedAmount = `${symbol}${amountValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-  // Format ISO date → "Oct 24, 2023"
   let displayDate = "";
   if (r.created_at) {
     const d = new Date(r.created_at);
     displayDate = d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   }
 
-  // Normalise status to ClaimStatus union
   const statusMap: Record<string, ClaimStatus> = {
-    Approved: "Approved",
     APPROVED: "Approved",
-    Pending: "Pending",
+    REJECTED: "Rejected",
+    PENDING: "Pending",
     REVIEW: "Pending",
+    APPEALED: "Pending",
     Paid: "Paid",
     PAID: "Paid",
-    Rejected: "Rejected",
-    REJECTED: "Rejected",
   };
 
   return {
     id: r.reim_id,
     date: displayDate,
-    category: r.main_category,
-    subCategory: Array.isArray(r.sub_category) && r.sub_category.length > 0 ? r.sub_category.join(", ") : "General",
-    merchant: r.summary?.split(".")[0] ?? "",   // first sentence of summary
+    category: r.policy_name ?? r.main_category ?? "General",
+    subCategory: `${r.receipt_count ?? 0} receipts`,
+    merchant: r.summary?.split(".")[0] ?? "",
     amount: formattedAmount,
-    amountNumeric: r.totals?.total_requested ?? 0,
+    amountNumeric: amountValue,
     status: statusMap[r.status] ?? "Pending",
   };
 }
@@ -168,12 +185,15 @@ export interface Policy {
   policy_id: string;
   alias: string;
   title: string;
-  reimbursable_category: string[];
+  reimbursable_categories: string[];
   overview_summary: string;
   mandatory_conditions: string;
-  status: string;
+  status: "DRAFT" | "ACTIVE" | "DEPRECATED";
   effective_date: string | null;
+  expiry_date?: string | null;
   source_file_url: string;
+  created_by?: string;
+  created_at?: string | null;
 }
 
 export interface ExtractedData {
@@ -225,7 +245,7 @@ export interface DocumentUploadEmployee {
   name: string;
   id: string;
   user_code: string;
-  department: string;
+  department: string | null;
   rank: number | null;
   destination: string | null;
   departure_date: string | null;
@@ -272,6 +292,7 @@ export interface DocumentUploadResponse {
   all_warnings: string[];
   all_category: string[];
   main_category: string | null;
+  task_id?: string;
 }
 
 // ─── Document Edits ───────────────────────────────────────────────────────────
@@ -294,13 +315,20 @@ export interface EditDocumentRequest {
 export interface EditDocumentResponse {
   document_id: string;
   human_edited: boolean;
-  change_summary: {
-    has_changes: boolean;
-    change_count: number;
-    high_risk_count: number;
-    changes_by_field: Record<string, unknown>;
-    overall_risk: string;
-  };
+  change_count: number;
+  high_risk_count: number;
+}
+
+// ─── Document Change Logs ────────────────────────────────────────────────────
+
+export interface DocumentChangeLogEntry {
+  log_id: string;
+  document_id: string;
+  changed_by: string;
+  field_name: string;
+  old_value?: string | null;
+  new_value?: string | null;
+  changed_at: string;
 }
 
 // ─── Compliance Analysis ──────────────────────────────────────────────────────
@@ -309,28 +337,26 @@ export interface EditDocumentResponse {
 export interface AnalyzeRequest {
   settlement_id: string;
   policy_id: string;
-  all_category: string[];
-  document_ids: string[];
+  document_ids?: string[];
 }
 
 /** Response for POST /api/v1/reimbursements/analyze. */
 export interface AnalyzeResponse {
   reim_id: string;
   settlement_id: string | null;
-  judgment: "APPROVE" | "REJECT" | "PARTIAL_APPROVE" | "MANUAL REVIEW";
+  judgment: "APPROVED" | "REJECTED" | "PARTIAL" | "NEEDS_INFO";
   status: string;
   summary: string;
-  line_items: ReimbursementLineItem[];
-  totals: {
-    total_requested: number;
-    total_deduction: number;
-    net_approved: number;
-  };
+  line_items: LineItem[];
+  total_claimed_amount: number;
+  total_approved_amount: number | null;
+  total_rejected_amount: number | null;
   confidence: number | null;
   currency: string;
   main_category: string;
-  sub_category: string[];
+  sub_categories: string[];
   created_at: string | null;
   cached: boolean;
   message: string;
+  task_id?: string;
 }

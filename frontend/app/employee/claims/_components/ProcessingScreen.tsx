@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { CheckCircle2, ScanLine, FileSearch, DatabaseZap } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -18,6 +19,10 @@ interface ProcessingScreenProps {
   currentStep:  number;
   /** Names of fully-completed receipts (for the log list below the stepper). */
   completedFileNames: string[];
+  /** Current SSE progress stage name. */
+  currentStage?: string;
+  /** Live data payload from the current SSE progress stage. */
+  stageData?: Record<string, unknown>;
 }
 
 // ─── Trail log steps ──────────────────────────────────────────────────────────
@@ -50,10 +55,37 @@ export function ProcessingScreen({
   currentIndex,
   currentStep,
   completedFileNames,
+  currentStage,
+  stageData,
 }: ProcessingScreenProps) {
-  const overallPct = totalFiles > 0
-    ? Math.round((currentIndex / totalFiles) * 100)
-    : 0;
+  const [animPct, setAnimPct] = useState(0);
+  const animRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    animRef.current = setInterval(() => {
+      setAnimPct(prev => {
+        if (prev >= 93) return prev;
+        const bump = 0.3 + Math.random() * 0.8;
+        return Math.min(Math.round(prev + bump), 93);
+      });
+    }, 180);
+
+    return () => {
+      if (animRef.current) clearInterval(animRef.current);
+    };
+  }, []);
+
+  const realPct = stageData?.current != null && stageData?.total != null
+    ? Math.round(((stageData.current as number) / (stageData.total as number)) * 100)
+    : totalFiles > 0
+      ? Math.round((currentIndex / totalFiles) * 100)
+      : 0;
+
+  const overallPct = currentStage === "complete" ? 100 : Math.max(animPct, realPct);
+
+  const stageLabel = currentStage === "saving"
+    ? "Saving to database..."
+    : null;
 
   return (
     <div className="w-full max-w-2xl mx-auto flex flex-col justify-center mt-6 md:mt-12">
@@ -100,8 +132,15 @@ export function ProcessingScreen({
                 />
               </div>
               <p className="text-white/80 text-xs font-body mt-2">
-                Receipt {Math.min(currentIndex + 1, totalFiles)} of {totalFiles}
+                {stageData?.filename
+                  ? String(stageData.filename)
+                  : `Receipt ${Math.min(currentIndex + 1, totalFiles)} of ${totalFiles}`}
               </p>
+              {stageLabel && (
+                <p className="text-white/70 text-xs font-body mt-1">
+                  {stageLabel}
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -115,10 +154,10 @@ export function ProcessingScreen({
               Currently Processing
             </p>
             <h3 className="font-headline text-lg font-semibold text-on-surface leading-tight">
-              Receipt {currentIndex + 1} of {totalFiles}
+              {(stageData?.filename ? String(stageData.filename) : null) || `Receipt ${currentIndex + 1} of ${totalFiles}`}
             </h3>
             <p className="text-on-surface-variant text-sm font-body mt-0.5">
-              Running AI vision extraction…
+              {stageLabel || "Running AI vision extraction…"}
             </p>
           </div>
 

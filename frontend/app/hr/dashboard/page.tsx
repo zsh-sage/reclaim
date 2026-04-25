@@ -18,7 +18,7 @@ import {
 
 type TabKey = "attention" | "approved";
 
-import { AiStatus, Claim, ATTENTION_CLAIMS, APPROVED_CLAIMS } from "../hr_components/mockData";
+import { AiStatus, Claim } from "../hr_components/mockData";
 import { getHRClaims } from "@/lib/actions/hr";
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -581,19 +581,16 @@ function ViewAllModal({
 export default function HRDashboardPage() {
   const [activeTab, setActiveTab] = useState<TabKey>("attention");
   const [modalOpen, setModalOpen] = useState(false);
-  const [attentionClaims, setAttentionClaims] = useState<Claim[]>(ATTENTION_CLAIMS);
-  const [approvedClaims, setApprovedClaims] = useState<Claim[]>(APPROVED_CLAIMS);
+  const [attentionClaims, setAttentionClaims] = useState<Claim[]>([]);
+  const [approvedClaims, setApprovedClaims] = useState<Claim[]>([]);
 
   // Fetch real reimbursements from backend on mount
   useEffect(() => {
     getHRClaims().then(({ attention, approved }) => {
-      if (attention.length > 0 || approved.length > 0) {
-        setAttentionClaims(attention);
-        setApprovedClaims(approved);
-      }
-      // If both empty, keep mock data so the UI is never blank
+      setAttentionClaims(attention);
+      setApprovedClaims(approved);
     }).catch(() => {
-      // Keep mock data on error
+      // Keep empty arrays on error — UI will show empty state
     });
   }, []);
 
