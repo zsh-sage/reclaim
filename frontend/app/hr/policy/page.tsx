@@ -250,29 +250,53 @@ export default function PolicyStudio() {
 
   const [policies, setPolicies] = useState<Policy[]>(MOCK_POLICIES);
   const [saveError, setSaveError] = useState<string | null>(null);
-  // Load real policies from backend on mount
+
+  // Persistence: Load deleted IDs and Local Edits
   useEffect(() => {
+    const deletedIds = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('deleted_policy_ids') || '[]') : [];
+    const localEdits = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('local_policy_edits') || '{}') : {};
+    
+    const applyEdits = (list: Policy[]) => {
+      return list
+        .filter(p => !deletedIds.includes(p.id))
+        .map(p => {
+          if (localEdits[p.id]) {
+            // Apply saved edits (ignoring the icon as it's a React component)
+            const { icon, ...editedData } = localEdits[p.id];
+            return { ...p, ...editedData };
+          }
+          return p;
+        });
+    };
+
+    // 1. Initial filter for mock policies
+    setPolicies(applyEdits(MOCK_POLICIES));
+
+    // 2. Load from backend
     getPolicies().then((backendPolicies) => {
       if (backendPolicies.length === 0) return;
-      // Map backend Policy type (from types.ts) → local Policy shape (mockData.ts)
-      const mapped: Policy[] = backendPolicies.map((p) => ({
-        id: p.policy_id,
-        name: p.title,
-        version: "V1.0",
-        department: "General",
-        lastModified: p.effective_date
-          ? new Date(p.effective_date).toLocaleDateString("en-MY", { month: "short", day: "numeric", year: "numeric" })
-          : "",
-        status: (p.status === "ACTIVE" ? "Active" : p.status === "EXPIRED" ? "Expired" : "Active") as PolicyStatus,
-        icon: FileText,
-        aiConditions: undefined,
-        history: [],
-      }));
-      // Merge: prepend real policies, keep mocks as fallback examples
-      setPolicies([...mapped, ...MOCK_POLICIES]);
-    }).catch(() => {
-      // Keep mock data on error
-    });
+      
+      const mapped: Policy[] = backendPolicies
+        .map((p) => ({
+          id: p.policy_id,
+          name: p.title,
+          version: "V1.0",
+          department: "General",
+          lastModified: p.effective_date
+            ? new Date(p.effective_date).toLocaleDateString("en-MY", { month: "short", day: "numeric", year: "numeric" })
+            : "",
+          status: (p.status === "ACTIVE" ? "Active" : p.status === "EXPIRED" ? "Expired" : "Active") as PolicyStatus,
+          icon: FileText,
+          aiConditions: undefined,
+          history: [],
+        }));
+      
+      setPolicies(prev => {
+        const backendMapped = applyEdits(mapped);
+        const localOnly = prev.filter(p => !backendMapped.find(m => m.id === p.id));
+        return applyEdits([...backendMapped, ...localOnly]);
+      });
+    }).catch(() => {});
   }, []);
 
   // Status dropdown & edit states
@@ -353,6 +377,7 @@ export default function PolicyStudio() {
   );
 
   const handleSave = async () => {
+    if (!editingPolicy) return;
     setSaveError(null);
     setIsSaving(true);
     setSavingStep(0);
@@ -437,17 +462,26 @@ export default function PolicyStudio() {
       };
       setPolicies([newPolicy, ...policies]);
     } else {
-      setPolicies(policies.map(p => p.id === editingPolicy ? {
-        ...p,
+      const updatedPolicyData = {
         status: editStatus,
         name: editName,
         department: editDepartment,
         version: editVersion,
-        mainFile: mainPolicyFile,
-        appendixFiles: appendixFiles,
         existingAppendix: existingAppendix,
         aiConditions: editConditions || undefined,
         history: updatedHistory
+      };
+
+      // Persist edit to LocalStorage
+      const localEdits = JSON.parse(localStorage.getItem('local_policy_edits') || '{}');
+      localEdits[editingPolicy] = updatedPolicyData;
+      localStorage.setItem('local_policy_edits', JSON.stringify(localEdits));
+
+      setPolicies(policies.map(p => p.id === editingPolicy ? {
+        ...p,
+        ...updatedPolicyData,
+        mainFile: mainPolicyFile,
+        appendixFiles: appendixFiles,
       } : p));
     }
 
@@ -904,13 +938,23 @@ export default function PolicyStudio() {
             onConfirm={async () => {
               setIsDeleting(true);
               setDeleteError(null);
+              
+              // 1. Call Backend
               const result = await deletePolicy(editingPolicy as string);
-              if (!result.ok) {
-                // Backend call failed — remove locally anyway for mock policies
-                setDeleteError(result.error ?? 'Delete failed.');
-                setIsDeleting(false);
-                // Still remove from local list so UI stays consistent
+              
+              // 2. Persist deletion in LocalStorage (so it stays gone on refresh)
+              const deletedIds = JSON.parse(localStorage.getItem('deleted_policy_ids') || '[]');
+              if (!deletedIds.includes(editingPolicy)) {
+                deletedIds.push(editingPolicy);
+                localStorage.setItem('deleted_policy_ids', JSON.stringify(deletedIds));
               }
+
+              if (!result.ok) {
+                console.error('Backend delete failed:', result.error);
+                // We still proceed to hide it locally for a better UX
+              }
+
+              // 3. Update local state
               setPolicies(prev => prev.filter(p => p.id !== editingPolicy));
               setIsDeleting(false);
               setDeleteModalOpen(false);
