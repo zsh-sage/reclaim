@@ -9,7 +9,7 @@ from sqlmodel import Session, select
 
 from api import deps
 from api.schemas import PolicyResponse
-from core.models import User, Policy, PolicyReimbursableCategory
+from core.models import User, Policy, PolicyReimbursableCategory, PolicySection
 from core.enums import PolicyStatus, UserRole
 from engine.agents.policy_agent import run_policy_workflow
 
@@ -167,3 +167,51 @@ def deprecate_policy(
         "status": (policy.status.value if policy.status and hasattr(policy.status, "value") else policy.status),
         "expiry_date": policy.expiry_date.isoformat() if policy.expiry_date else None,
     }
+
+
+@router.delete("/{policy_id}")
+def delete_policy(
+    policy_id: str,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_hr_user),
+) -> dict:
+    """Delete a policy and its associated data. HR only."""
+    try:
+        p_uuid = UUID(policy_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid policy_id")
+
+    policy = db.get(Policy, p_uuid)
+    if not policy:
+        raise HTTPException(status_code=404, detail="Policy not found")
+
+    # Delete associated reimbursable categories (no cascade configured)
+    cats = db.exec(
+        select(PolicyReimbursableCategory).where(
+            PolicyReimbursableCategory.policy_id == policy.policy_id
+        )
+    ).all()
+    for cat in cats:
+        db.delete(cat)
+
+    # Delete associated policy sections (no cascade configured)
+    sections = db.exec(
+        select(PolicySection).where(PolicySection.policy_id == policy.policy_id)
+    ).all()
+    for section in sections:
+        db.delete(section)
+
+    # Delete associated file from disk if it exists inside the policies storage dir
+    if policy.source_file_url:
+        try:
+            file_path = Path(policy.source_file_url).resolve()
+            policies_dir = STORAGE_POLICIES_DIR.resolve()
+            if file_path.exists() and str(file_path).startswith(str(policies_dir)):
+                file_path.unlink()
+        except Exception:
+            pass  # Best-effort deletion; don't fail the request if file removal fails
+
+    db.delete(policy)
+    db.commit()
+
+    return {"policy_id": str(policy.policy_id), "deleted": True}

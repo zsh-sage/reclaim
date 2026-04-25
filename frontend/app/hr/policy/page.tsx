@@ -166,6 +166,8 @@ export default function PolicyStudio() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deletingPolicyId, setDeletingPolicyId] = useState<string | null>(null);
+  const [deletingPolicyName, setDeletingPolicyName] = useState<string>("");
 
   // Existing files state (for edit view)
   const [existingMainPolicyDeleted, setExistingMainPolicyDeleted] = useState(false);
@@ -486,6 +488,46 @@ export default function PolicyStudio() {
     setEditingPolicy(null);
   };
 
+  function handleDeleteClick(e: React.MouseEvent, policy: Policy) {
+    e.stopPropagation();
+    setDeletingPolicyId(policy.id);
+    setDeletingPolicyName(policy.name);
+    setDeleteError(null);
+    setDeleteModalOpen(true);
+  }
+
+  async function handleConfirmDelete() {
+    if (!deletingPolicyId) return;
+    setIsDeleting(true);
+    setDeleteError(null);
+    
+    const result = await deletePolicy(deletingPolicyId);
+    
+    if (!result.ok) {
+      setDeleteError(result.error ?? "Failed to delete policy");
+      setIsDeleting(false);
+      return;
+    }
+    
+    // Remove from local state
+    setPolicies(prev => prev.filter(p => p.id !== deletingPolicyId));
+    
+    // Persist deletion in LocalStorage (like the edit-view delete does)
+    const deletedIds = JSON.parse(localStorage.getItem('deleted_policy_ids') || '[]');
+    if (!deletedIds.includes(deletingPolicyId)) {
+      deletedIds.push(deletingPolicyId);
+      localStorage.setItem('deleted_policy_ids', JSON.stringify(deletedIds));
+    }
+    
+    setIsDeleting(false);
+    setDeleteModalOpen(false);
+    if (editingPolicy === deletingPolicyId) {
+      setEditingPolicy(null);
+    }
+    setDeletingPolicyId(null);
+    setDeletingPolicyName("");
+  }
+
   if (editingPolicy) {
     const isNew = editingPolicy === "new";
 
@@ -770,7 +812,7 @@ export default function PolicyStudio() {
                       <p className="font-body text-xs text-on-surface-variant mt-0.5">This action is permanent and cannot be undone.</p>
                     </div>
                     <button
-                      onClick={() => { setDeleteError(null); setDeleteModalOpen(true); }}
+                      onClick={() => { setDeleteError(null); setDeletingPolicyId(editingPolicy); setDeletingPolicyName(editName); setDeleteModalOpen(true); }}
                       className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl border border-[#dc2626]/30 text-[#dc2626] text-sm font-bold font-body hover:bg-[#dc2626]/10 active:scale-95 transition-all cursor-pointer"
                     >
                       <Trash2 size={15} />
@@ -925,40 +967,20 @@ export default function PolicyStudio() {
         )}
 
         {/* Delete Confirmation Modal */}
-        {!isNew && (
-          <DeleteConfirmModal
-            isOpen={deleteModalOpen}
-            onClose={() => setDeleteModalOpen(false)}
-            policyName={editName}
-            isDeleting={isDeleting}
-            deleteError={deleteError}
-            onConfirm={async () => {
-              setIsDeleting(true);
-              setDeleteError(null);
-              
-              // 1. Call Backend
-              const result = await deletePolicy(editingPolicy as string);
-              
-              // 2. Persist deletion in LocalStorage (so it stays gone on refresh)
-              const deletedIds = JSON.parse(localStorage.getItem('deleted_policy_ids') || '[]');
-              if (!deletedIds.includes(editingPolicy)) {
-                deletedIds.push(editingPolicy);
-                localStorage.setItem('deleted_policy_ids', JSON.stringify(deletedIds));
-              }
-
-              if (!result.ok) {
-                console.error('Backend delete failed:', result.error);
-                // We still proceed to hide it locally for a better UX
-              }
-
-              // 3. Update local state
-              setPolicies(prev => prev.filter(p => p.id !== editingPolicy));
-              setIsDeleting(false);
+        <DeleteConfirmModal
+          isOpen={deleteModalOpen}
+          onClose={() => {
+            if (!isDeleting) {
               setDeleteModalOpen(false);
-              setEditingPolicy(null);
-            }}
-          />
-        )}
+              setDeletingPolicyId(null);
+              setDeletingPolicyName("");
+            }
+          }}
+          policyName={deletingPolicyName}
+          isDeleting={isDeleting}
+          deleteError={deleteError}
+          onConfirm={handleConfirmDelete}
+        />
         
         {/* Bottom Action Bar */}
         <div className="shrink-0 bg-surface-bright/80 backdrop-blur-xl border-t border-surface-container-low p-4 z-40">
@@ -1104,12 +1126,21 @@ export default function PolicyStudio() {
                               </span>
                             </td>
                             <td className="py-5 px-6 text-right">
-                              <button 
-                                onClick={(e) => { e.stopPropagation(); setEditingPolicy(policy.id); }} 
-                                className="text-primary font-semibold text-sm group-hover:underline group-hover:translate-x-0.5 transition-all duration-150 active:scale-95 cursor-pointer"
-                              >
-                                Edit
-                              </button>
+                              <div className="flex items-center justify-end gap-3">
+                                <button 
+                                  onClick={(e) => { e.stopPropagation(); setEditingPolicy(policy.id); }} 
+                                  className="text-primary font-semibold text-sm group-hover:underline group-hover:translate-x-0.5 transition-all duration-150 active:scale-95 cursor-pointer"
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={(e) => handleDeleteClick(e, policy)}
+                                  className="text-on-surface-variant hover:text-error p-1.5 rounded-lg hover:bg-error/5 transition-colors active:scale-95 cursor-pointer opacity-0 group-hover:opacity-100"
+                                  aria-label={`Delete ${policy.name}`}
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         ))
@@ -1155,6 +1186,13 @@ export default function PolicyStudio() {
         onEdit={(id) => {
           setModalOpen(false);
           setEditingPolicy(id);
+        }}
+        onDelete={(policy) => {
+          setModalOpen(false);
+          setDeletingPolicyId(policy.id);
+          setDeletingPolicyName(policy.name);
+          setDeleteError(null);
+          setDeleteModalOpen(true);
         }}
       />
     </div>
@@ -1495,12 +1533,14 @@ function ViewAllModal({
   title,
   policies,
   onEdit,
+  onDelete,
 }: {
   isOpen: boolean;
   onClose: () => void;
   title: string;
   policies: Policy[];
   onEdit: (id: string) => void;
+  onDelete: (policy: Policy) => void;
 }) {
   const [modalQuery, setModalQuery] = useState("");
 
@@ -1570,12 +1610,24 @@ function ViewAllModal({
                     </span>
                   </td>
                   <td className="py-4 px-6 text-right">
-                    <button 
-                      onClick={() => onEdit(policy.id)}
-                      className="text-primary font-bold text-xs hover:underline transition-all cursor-pointer"
-                    >
-                      Edit
-                    </button>
+                    <div className="flex items-center justify-end gap-3">
+                      <button 
+                        onClick={() => onEdit(policy.id)}
+                        className="text-primary font-bold text-xs hover:underline transition-all cursor-pointer"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDelete(policy);
+                        }}
+                        className="text-on-surface-variant hover:text-error p-1.5 rounded-lg hover:bg-error/5 transition-colors active:scale-95 cursor-pointer"
+                        aria-label={`Delete ${policy.name}`}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
