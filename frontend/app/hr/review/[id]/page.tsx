@@ -596,9 +596,27 @@ export default function ReviewPage() {
                   <div className="flex items-center bg-surface-container-low rounded-lg ring-1 ring-outline-variant/20 focus-within:ring-primary/40 px-2 py-1.5 w-28 shrink-0 transition-all">
                     <span className="text-[10px] text-on-surface-variant mr-1">MYR</span>
                     <input
-                      type="number" min={0} max={li.requested_amount}
-                      value={approvals[li.document_id] ?? 0}
-                      onChange={e => setApprovals(p => ({ ...p, [li.document_id]: parseFloat(e.target.value) || 0 }))}
+                      type="text"
+                      inputMode="decimal"
+                      value={(approvals[li.document_id] ?? 0) === 0 ? "" : approvals[li.document_id]}
+                      onChange={e => {
+                        const raw = e.target.value;
+                        if (raw === "") {
+                          setApprovals(p => ({ ...p, [li.document_id]: 0 }));
+                          return;
+                        }
+                        // Allow only digits and at most one decimal point
+                        const cleaned = raw.replace(/[^0-9.]/g, "").replace(/\.(?=.*\.)/g, "");
+                        const num = parseFloat(cleaned);
+                        if (!Number.isNaN(num)) {
+                          setApprovals(p => ({ ...p, [li.document_id]: num }));
+                        }
+                      }}
+                      onBlur={() => {
+                        const val = approvals[li.document_id] ?? 0;
+                        const clamped = Math.max(0, Math.min(val, li.requested_amount));
+                        setApprovals(p => ({ ...p, [li.document_id]: clamped }));
+                      }}
                       className="w-full bg-transparent text-xs font-semibold text-on-surface outline-none tabular-nums"
                     />
                   </div>
