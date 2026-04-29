@@ -18,7 +18,7 @@ import {
 
 type TabKey = "attention" | "approved";
 
-import { AiStatus, Claim } from "../hr_components/mockData";
+import type { AiStatus, Claim } from "@/lib/api/types";
 import { getHRClaims } from "@/lib/actions/hr";
 
 // ─── Sub-components ───────────────────────────────────────────────────────────

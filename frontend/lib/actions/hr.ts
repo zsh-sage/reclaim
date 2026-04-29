@@ -7,8 +7,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { apiGet, apiPatch, apiPostMultipart, API_PREFIX } from "@/lib/api/client";
-import type { ReimbursementRaw, LineItem } from "@/lib/api/types";
-import type { Claim, ClaimBundle, AiStatus } from "@/app/hr/hr_components/mockData";
+import type { ReimbursementRaw, LineItem, Claim, ClaimBundle, AiStatus } from "@/lib/api/types";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -66,7 +65,7 @@ function mapToBundle(r: ReimbursementRaw): ClaimBundle {
   const employeeName = r.employee_name ?? "Unknown";
   const deptName = r.department_name ?? "Unknown";
 
-  const lineItems = (r.line_items ?? []).map((li: LineItem) => ({
+  const lineItems = (r.line_items ?? []).map((li) => ({
     document_id: li.document_id ?? `${r.reim_id}-li-unknown`,
     line_item_id: li.line_item_id ?? undefined,
     date: li.expense_date ?? r.created_at?.split("T")[0] ?? "",
@@ -171,19 +170,19 @@ export async function updateReimbursementStatus(
     lineItems?: Array<{ line_item_id: string; approved_amount: number }>;
     hrNote?: string;
   },
-): Promise<{ ok: boolean; error?: string }> {
-  const body: Record<string, unknown> = { status };
+): Promise<{ ok: boolean; data?: ReimbursementRaw; error?: string }> {
+  const body: Record<string, unknown> = { status, reviewed_by: reviewedBy };
   if (options?.lineItems?.length) {
     body.line_items = options.lineItems;
   }
   if (options?.hrNote) {
     body.hr_note = options.hrNote;
   }
-  const result = await apiPatch<void>(`${API_PREFIX}/reimbursements/${reimId}/status`, body);
+  const result = await apiPatch<ReimbursementRaw>(`${API_PREFIX}/reimbursements/${reimId}/status`, body);
   if (result.error) {
     return { ok: false, error: result.error };
   }
-  return { ok: true };
+  return { ok: true, data: result.data ?? undefined };
 }
 
 /** Upload a policy PDF to the backend. */
