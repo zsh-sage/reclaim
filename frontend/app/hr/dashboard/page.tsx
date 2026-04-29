@@ -3,7 +3,6 @@
 import { JSX, useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
-  TrendingUp,
   ChevronRight,
   X,
   Search,
@@ -631,6 +630,13 @@ export default function HRDashboardPage() {
     });
   }, []);
 
+  // Derive KPIs from real claims data (no backend dashboard endpoint needed)
+  const totalClaims = attentionClaims.length + approvedClaims.length;
+  const autoApprovalRate = useMemo(() => {
+    if (totalClaims === 0) return 0;
+    return (approvedClaims.length / totalClaims) * 100;
+  }, [approvedClaims.length, totalClaims]);
+
   const previewClaims =
     activeTab === "attention"
       ? attentionClaims.slice(0, 5)
@@ -706,15 +712,19 @@ export default function HRDashboardPage() {
             </p>
             <div className="flex items-end gap-3">
               <span className="text-4xl font-extrabold font-headline text-on-surface">
-                84.2%
+                {isLoadingClaims ? "—" : `${autoApprovalRate.toFixed(1)}%`}
               </span>
-              <span className="flex items-center gap-1 text-sm font-medium
-                               text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md mb-1">
-                <TrendingUp className="w-3.5 h-3.5" strokeWidth={2.5} />
-                +2.4%
-              </span>
+              {!isLoadingClaims && totalClaims > 0 && (
+                <span className="flex items-center gap-1 text-sm font-medium
+                                 text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md mb-1">
+                  <CheckCircle2 className="w-3.5 h-3.5" strokeWidth={2.5} />
+                  {approvedClaims.length} passed
+                </span>
+              )}
             </div>
-            <p className="text-xs text-on-surface-variant mt-3">vs. last month</p>
+            <p className="text-xs text-on-surface-variant mt-3">
+              {isLoadingClaims ? "Loading…" : `of ${totalClaims} total claims`}
+            </p>
           </div>
           <div className="absolute -bottom-6 -right-6 w-36 h-36 bg-primary/5
                           rounded-full blur-2xl group-hover:bg-primary/15
