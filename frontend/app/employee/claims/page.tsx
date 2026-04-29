@@ -50,7 +50,9 @@ type Stage = "form" | "processing" | "verification";
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const MAX_FILES = 10;
-const ACCEPT = ".pdf,.jpg,.jpeg,.png";
+const ACCEPT = ".pdf,.jpg,.jpeg,.png,.webp";
+const VALID_MIME_TYPES = new Set(["application/pdf", "image/jpeg", "image/png", "image/webp"]);
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -498,6 +500,7 @@ export default function CaptureReceiptPage() {
   const [documentIds, setDocumentIds] = useState<string[]>([]);
   const [employeeData, setEmployeeData] = useState<DbEmployee | null>(null);
   const [analysisResult, setAnalysisResult] = useState<AnalyzeResponse | null>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentStage, setCurrentStage] = useState("");
@@ -524,6 +527,19 @@ export default function CaptureReceiptPage() {
   async function handleAddFiles(rawFiles: File[]) {
     const remaining = MAX_FILES - files.length;
     if (remaining <= 0) return;
+
+    const invalidType = rawFiles.find(f => !VALID_MIME_TYPES.has(f.type));
+    if (invalidType) {
+      setFileError(`Invalid file type "${invalidType.name}". Only JPG, PNG, WebP, and PDF files are accepted.`);
+      return;
+    }
+    const oversized = rawFiles.find(f => f.size > MAX_FILE_SIZE);
+    if (oversized) {
+      setFileError(`File "${oversized.name}" exceeds the 10 MB limit (${(oversized.size / (1024 * 1024)).toFixed(1)} MB).`);
+      return;
+    }
+    setFileError(null);
+
     const list = rawFiles.slice(0, remaining);
     setIsLoading(true);
     const processed = await Promise.all(
@@ -850,6 +866,14 @@ export default function CaptureReceiptPage() {
         {/* ── FORM STAGE ────────────────────────────────────────────────────── */}
         {stage === "form" && (
           <div className="flex flex-col gap-6">
+
+            {fileError && (
+              <div className="flex items-start gap-3 bg-error/10 border border-error/30 text-error rounded-xl px-4 py-3 text-sm font-body">
+                <span className="shrink-0 font-bold">✕</span>
+                <span className="flex-1">{fileError}</span>
+                <button onClick={() => setFileError(null)} className="shrink-0 font-bold hover:opacity-70">✕</button>
+              </div>
+            )}
 
             {/* Category selector — full width, matches the upload area below */}
             <div className="flex flex-col gap-2 relative z-20 w-full">

@@ -94,7 +94,7 @@ export default function RecentClaimsTable() {
             {claims.map((claim) => (
               <tr
                 key={claim.id}
-                onClick={() => router.push("/employee/history")}
+                onClick={() => router.push(`/employee/history?claimId=${claim.id}`)}
                 className="border-t border-outline-variant/5 hover:bg-surface-container-highest/40 transition-colors cursor-pointer group"
               >
                 <td className="p-4 font-medium text-on-surface">{claim.id}</td>
@@ -132,7 +132,7 @@ export default function RecentClaimsTable() {
         {claims.map((claim) => (
           <div
             key={claim.id}
-            onClick={() => router.push("/employee/history")}
+            onClick={() => router.push(`/employee/history?claimId=${claim.id}`)}
             className="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant/10 flex items-center justify-between hover:bg-surface-container-highest/30 transition-colors active:scale-[0.98]"
           >
             {/* Left: icon + meta */}
