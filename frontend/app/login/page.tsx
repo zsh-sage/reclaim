@@ -97,17 +97,38 @@ export default function LoginPage() {
   };
 
   return (
-    <>
-      <LoadingOverlay show={isLoading} />
-      
-      <main className="flex w-full min-h-dvh lg:h-dvh overflow-hidden bg-surface">
-        {/* Left Side: Split Gradient Anchor */}
-        <div className="hidden lg:flex w-1/2 split-gradient relative overflow-hidden items-center justify-center p-12 xl:p-16">
-          <div
-            aria-hidden="true"
-            className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=2070&auto=format&fit=crop')] opacity-10 bg-cover bg-center mix-blend-overlay"
-          />
-          <div className="relative z-10 text-on-primary max-w-xl">
+    <main className="flex w-full min-h-dvh h-dvh overflow-hidden">
+      {/* Left Side: Split Gradient Anchor */}
+      <div className="hidden lg:flex w-1/2 split-gradient relative overflow-hidden items-center justify-center p-12 xl:p-16">
+        {/* Decorative Elements */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 bg-[radial-gradient(circle_at_30%_40%,rgba(147,150,255,0.15),transparent_60%),radial-gradient(circle_at_70%_60%,rgba(158,0,180,0.12),transparent_60%)] opacity-40 mix-blend-overlay"
+        ></div>
+        <div className="relative z-10 text-on-primary max-w-xl">
+          <span className="inline-flex items-center rounded-full border border-white/35 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em]">
+            AI-Assisted Reimbursements
+          </span>
+          <h1 className="font-headline text-5xl xl:text-6xl font-extrabold tracking-tight mt-4 mb-4 leading-tight">
+            Reclaim.
+          </h1>
+          <p className="text-base xl:text-lg opacity-90 font-light leading-relaxed max-w-lg text-justify">
+            An AI expense platform that pairs OCR with an intelligent agent that thinks, evaluates, and proposes decisions for every claim. By enabling HR to operate through "efficiency by exception," the agent auto-clears valid submissions and isolates only policy violations or suspicious edits for final human review, instantly turning scattered receipts into audit-ready data.
+          </p>
+        </div>
+        {/* Floating accent blobs to break rigid template feel */}
+        <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-tertiary rounded-full blur-[120px] opacity-40"></div>
+        <div className="absolute top-1/4 -right-24 w-72 h-72 bg-primary rounded-full blur-[100px] opacity-30"></div>
+        <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(transparent_96%,rgba(255,255,255,0.09)_96%),linear-gradient(90deg,transparent_96%,rgba(255,255,255,0.09)_96%)] bg-[size:26px_26px] opacity-10"></div>
+      </div>
+      {/* Right Side: Interaction Canvas */}
+      <div className="w-full lg:w-1/2 h-full flex items-center justify-center px-5 py-4 sm:px-8 sm:py-6 lg:px-14 lg:py-10 bg-surface overflow-hidden">
+        <div className="w-full max-w-md h-full flex flex-col justify-center">
+          {/* Brand Header (Mobile Only) */}
+          <div className="lg:hidden mb-6 flex flex-col items-center justify-center gap-3 text-center">
+            <h2 className="font-headline text-2xl font-black tracking-tighter text-primary">
+              Reclaim
+            </h2>
             <span className="inline-flex items-center rounded-full border border-white/35 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em]">
               AI-Assisted Reimbursements
             </span>

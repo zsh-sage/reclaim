@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback, Suspense } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { History } from "lucide-react";
 import HistoryFilterBar, { FilterStatus } from "./_components/HistoryFilterBar";
@@ -75,7 +75,7 @@ function mapToHistoryClaim(r: ReimbursementRaw): HistoryClaim {
   };
 }
 
-function HistoryPageContent() {
+export default function HistoryPage() {
   const [currentStatus, setCurrentStatus] = useState<FilterStatus>("All");
   const [selectedClaim, setSelectedClaim] = useState<HistoryClaim | null>(null);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
@@ -189,13 +189,5 @@ function HistoryPageContent() {
         isLoading={isLoadingDetail}
       />
     </main>
-  );
-}
-
-export default function HistoryPage() {
-  return (
-    <Suspense fallback={<div className="min-h-dvh flex items-center justify-center">Loading...</div>}>
-      <HistoryPageContent />
-    </Suspense>
   );
 }

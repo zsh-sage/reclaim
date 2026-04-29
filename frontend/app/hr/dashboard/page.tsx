@@ -1,25 +1,12 @@
 "use client";
 
-import { JSX, useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import {
-  TrendingUp,
-  ChevronRight,
-  X,
-  Search,
-  SlidersHorizontal,
-  CheckCircle2,
-  AlertTriangle,
-  Clock,
-  HelpCircle,
-} from "lucide-react";
-
-// ─── Types ───────────────────────────────────────────────────────────────────
-
-type TabKey = "attention" | "approved";
-
-import { AiStatus, Claim } from "../hr_components/mockData";
+import { TrendingUp, ChevronRight, CheckCircle2 } from "lucide-react";
+import type { Claim } from "@/lib/api/types";
 import { getHRClaims } from "@/lib/actions/hr";
+import { ClaimRow } from "@/components/claims/ClaimRow";
+import { ViewAllModal } from "@/components/claims/ViewAllModal";
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -613,6 +600,7 @@ function ViewAllModal({
 export default function HRDashboardPage() {
   const router = useRouter();
   const handleNavigate = useCallback((path: string) => router.push(path), [router]);
+
   const [activeTab, setActiveTab] = useState<TabKey>("attention");
   const [modalOpen, setModalOpen] = useState(false);
   const [attentionClaims, setAttentionClaims] = useState<Claim[]>([]);
@@ -621,15 +609,25 @@ export default function HRDashboardPage() {
 
   // Fetch real reimbursements from backend on mount
   useEffect(() => {
-    getHRClaims().then(({ attention, approved }) => {
-      setAttentionClaims(attention);
-      setApprovedClaims(approved);
-    }).catch(() => {
-      // Keep empty arrays on error — UI will show empty state
-    }).finally(() => {
-      setIsLoadingClaims(false);
-    });
+    getHRClaims()
+      .then(({ attention, approved }) => {
+        setAttentionClaims(attention);
+        setApprovedClaims(approved);
+      })
+      .catch(() => {
+        // Keep empty arrays on error — UI will show empty state
+      })
+      .finally(() => {
+        setIsLoadingClaims(false);
+      });
   }, []);
+
+  // Derive KPIs from real claims data (no backend dashboard endpoint needed)
+  const totalClaims = attentionClaims.length + approvedClaims.length;
+  const autoApprovalRate = useMemo(() => {
+    if (totalClaims === 0) return 0;
+    return (approvedClaims.length / totalClaims) * 100;
+  }, [approvedClaims.length, totalClaims]);
 
   const previewClaims =
     activeTab === "attention"
@@ -649,31 +647,14 @@ export default function HRDashboardPage() {
 
   return (
     <div className="relative min-h-full p-6 md:p-10 lg:p-12">
-
-      {/* ── Multi-orb gradient anchor ──────────────────────────────────────
-          Three overlapping radial orbs create a painterly, non-geometric
-          ambient glow. Each is offset so they partially "bleed" off the
-          canvas, keeping the decoration subtle and asymmetric.
-      ───────────────────────────────────────────────────────────────────── */}
+      {/* Ambient glow */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-        {/* Primary orb — top-right anchor */}
-        <div
-          className="absolute -top-20 -right-20 w-[480px] h-[480px] rounded-full
-                     bg-primary opacity-[0.07] blur-[80px]"
-        />
-        {/* Tertiary orb — offset down-left for halo depth */}
-        <div
-          className="absolute top-32 right-40 w-[320px] h-[320px] rounded-full
-                     bg-tertiary opacity-[0.06] blur-[64px]"
-        />
-        {/* Accent orb — secondary colour, far right edge */}
-        <div
-          className="absolute -top-8 right-[15%] w-[200px] h-[200px] rounded-full
-                     bg-primary-container opacity-[0.12] blur-[48px]"
-        />
+        <div className="absolute -top-20 -right-20 w-[480px] h-[480px] rounded-full bg-primary opacity-[0.07] blur-[80px]" />
+        <div className="absolute top-32 right-40 w-[320px] h-[320px] rounded-full bg-tertiary opacity-[0.06] blur-[64px]" />
+        <div className="absolute -top-8 right-[15%] w-[200px] h-[200px] rounded-full bg-primary-container opacity-[0.12] blur-[48px]" />
       </div>
 
-      {/* ── Page Header ──────────────────────────────────────────────────── */}
+      {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10 relative z-10">
         <div className="max-w-2xl">
           <h2
@@ -688,50 +669,37 @@ export default function HRDashboardPage() {
         </div>
       </div>
 
-      {/* ── KPI Cards ────────────────────────────────────────────────────── */}
+      {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10 relative z-10">
-
-        {/* KPI 1 – Auto-Approval Rate */}
-        <div
-          className="bg-surface-container-lowest/70 backdrop-blur-2xl rounded-xl p-6
-                     shadow-[0_8px_40px_-12px_rgba(44,47,49,0.06)]
-                     relative overflow-hidden group
-                     hover:shadow-[0_16px_48px_-12px_rgba(70,71,211,0.12)]
-                     hover:-translate-y-0.5 transition-all duration-300"
-        >
+        <div className="bg-surface-container-lowest/70 backdrop-blur-2xl rounded-xl p-6 shadow-[0_8px_40px_-12px_rgba(44,47,49,0.06)] relative overflow-hidden group hover:shadow-[0_16px_48px_-12px_rgba(70,71,211,0.12)] hover:-translate-y-0.5 transition-all duration-300">
           <div className="relative z-10">
-            <p className="text-xs font-semibold font-headline text-on-surface-variant
-                          tracking-widest uppercase mb-2">
+            <p className="text-xs font-semibold font-headline text-on-surface-variant tracking-widest uppercase mb-2">
               Auto-Approval Rate
             </p>
             <div className="flex items-end gap-3">
-              <span className="text-4xl font-extrabold font-headline text-on-surface">
-                84.2%
-              </span>
-              <span className="flex items-center gap-1 text-sm font-medium
-                               text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md mb-1">
+              <span className="text-4xl font-extrabold font-headline text-on-surface">84.2%</span>
+              <span className="flex items-center gap-1 text-sm font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md mb-1">
                 <TrendingUp className="w-3.5 h-3.5" strokeWidth={2.5} />
                 +2.4%
               </span>
+              {!isLoadingClaims && totalClaims > 0 && (
+                <span className="flex items-center gap-1 text-sm font-medium
+                                 text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md mb-1">
+                  <CheckCircle2 className="w-3.5 h-3.5" strokeWidth={2.5} />
+                  {approvedClaims.length} passed
+                </span>
+              )}
             </div>
-            <p className="text-xs text-on-surface-variant mt-3">vs. last month</p>
+            <p className="text-xs text-on-surface-variant mt-3">
+              {isLoadingClaims ? "Loading…" : `of ${totalClaims} total claims`}
+            </p>
           </div>
-          <div className="absolute -bottom-6 -right-6 w-36 h-36 bg-primary/5
-                          rounded-full blur-2xl group-hover:bg-primary/15
-                          group-hover:scale-110 transition-all duration-500" />
+          <div className="absolute -bottom-6 -right-6 w-36 h-36 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/15 group-hover:scale-110 transition-all duration-500" />
         </div>
 
-        {/* KPI 2 – Pending Manual Reviews */}
-        <div
-          className="bg-surface-container-lowest/70 backdrop-blur-2xl rounded-xl p-6
-                     shadow-[0_8px_40px_-12px_rgba(44,47,49,0.06)]
-                     relative overflow-hidden group
-                     hover:shadow-[0_16px_48px_-12px_rgba(180,19,64,0.10)]
-                     hover:-translate-y-0.5 transition-all duration-300"
-        >
+        <div className="bg-surface-container-lowest/70 backdrop-blur-2xl rounded-xl p-6 shadow-[0_8px_40px_-12px_rgba(44,47,49,0.06)] relative overflow-hidden group hover:shadow-[0_16px_48px_-12px_rgba(180,19,64,0.10)] hover:-translate-y-0.5 transition-all duration-300">
           <div className="relative z-10">
-            <p className="text-xs font-semibold font-headline text-on-surface-variant
-                          tracking-widest uppercase mb-2">
+            <p className="text-xs font-semibold font-headline text-on-surface-variant tracking-widest uppercase mb-2">
               Pending Manual Reviews
             </p>
             <div className="flex items-end gap-3">
@@ -744,63 +712,44 @@ export default function HRDashboardPage() {
             </div>
             <p className="text-xs text-on-surface-variant mt-3">requires HR action</p>
           </div>
-          <div className="absolute -bottom-6 -right-6 w-36 h-36 bg-error/5
-                          rounded-full blur-2xl group-hover:bg-error/12
-                          group-hover:scale-110 transition-all duration-500" />
+          <div className="absolute -bottom-6 -right-6 w-36 h-36 bg-error/5 rounded-full blur-2xl group-hover:bg-error/12 group-hover:scale-110 transition-all duration-500" />
         </div>
-
       </div>
 
-      {/* ── Triage Table ──────────────────────────────────────────────────── */}
-      <div
-        className="bg-surface-container-lowest/80 backdrop-blur-xl rounded-xl
-                   shadow-[0_12px_60px_-15px_rgba(44,47,49,0.08)]
-                   overflow-hidden relative z-10"
-      >
+      {/* Triage Table */}
+      <div className="bg-surface-container-lowest/80 backdrop-blur-xl rounded-xl shadow-[0_12px_60px_-15px_rgba(44,47,49,0.08)] overflow-hidden relative z-10">
         {/* Tab strip */}
         <div className="flex border-b border-outline-variant/15 px-6 pt-4 gap-8">
           <button
             id="tab-requires-attention"
             onClick={() => setActiveTab("attention")}
-            className={`pb-3 text-sm font-headline font-bold transition-all duration-300 ease-out flex items-center gap-2
-                        cursor-pointer hover:-translate-y-0.5 active:scale-95 border-b-2
-                        ${
-                          activeTab === "attention"
-                            ? "text-primary border-primary"
-                            : "text-on-surface-variant border-transparent hover:text-on-surface"
-                        }`}
+            className={`pb-3 text-sm font-headline font-bold transition-all duration-300 ease-out flex items-center gap-2 cursor-pointer hover:-translate-y-0.5 active:scale-95 border-b-2 ${
+              activeTab === "attention"
+                ? "text-primary border-primary"
+                : "text-on-surface-variant border-transparent hover:text-on-surface"
+            }`}
           >
             Requires Attention
-            <span
-              className={`text-[10px] px-1.5 py-0.5 rounded-full font-label font-semibold transition-colors duration-300 ${
-                activeTab === "attention"
-                  ? "bg-error/10 text-error-dim"
-                  : "bg-surface-container text-on-surface-variant"
-              }`}
-            >
+            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-label font-semibold transition-colors duration-300 ${
+              activeTab === "attention" ? "bg-error/10 text-error-dim" : "bg-surface-container text-on-surface-variant"
+            }`}>
               {attentionClaims.length}
             </span>
           </button>
-          
+
           <button
             id="tab-passed-ai-review"
             onClick={() => setActiveTab("approved")}
-            className={`pb-3 text-sm font-headline font-bold transition-all duration-300 ease-out flex items-center gap-2
-                        cursor-pointer hover:-translate-y-0.5 active:scale-95 border-b-2
-                        ${
-                          activeTab === "approved"
-                            ? "text-primary border-primary"
-                            : "text-on-surface-variant border-transparent hover:text-on-surface"
-                        }`}
+            className={`pb-3 text-sm font-headline font-bold transition-all duration-300 ease-out flex items-center gap-2 cursor-pointer hover:-translate-y-0.5 active:scale-95 border-b-2 ${
+              activeTab === "approved"
+                ? "text-primary border-primary"
+                : "text-on-surface-variant border-transparent hover:text-on-surface"
+            }`}
           >
             Passed AI Review
-            <span
-              className={`text-[10px] px-1.5 py-0.5 rounded-full font-label font-semibold transition-colors duration-300 ${
-                activeTab === "approved"
-                  ? "bg-emerald-50 text-emerald-700"
-                  : "bg-surface-container text-on-surface-variant"
-              }`}
-            >
+            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-label font-semibold transition-colors duration-300 ${
+              activeTab === "approved" ? "bg-emerald-50 text-emerald-700" : "bg-surface-container text-on-surface-variant"
+            }`}>
               {approvedClaims.length}
             </span>
           </button>
@@ -811,28 +760,22 @@ export default function HRDashboardPage() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-surface-container-low/50">
-                <th className="py-4 px-6 text-xs font-semibold font-headline
-                               text-on-surface-variant uppercase tracking-wider">
+                <th className="py-4 px-6 text-xs font-semibold font-headline text-on-surface-variant uppercase tracking-wider">
                   Employee
                 </th>
-                <th className="py-4 px-6 text-xs font-semibold font-headline
-                               text-on-surface-variant uppercase tracking-wider hidden sm:table-cell">
+                <th className="py-4 px-6 text-xs font-semibold font-headline text-on-surface-variant uppercase tracking-wider hidden sm:table-cell">
                   Date
                 </th>
-                <th className="py-4 px-6 text-xs font-semibold font-headline
-                               text-on-surface-variant uppercase tracking-wider">
+                <th className="py-4 px-6 text-xs font-semibold font-headline text-on-surface-variant uppercase tracking-wider">
                   Amount
                 </th>
-                <th className="py-4 px-6 text-xs font-semibold font-headline
-                               text-on-surface-variant uppercase tracking-wider hidden md:table-cell">
+                <th className="py-4 px-6 text-xs font-semibold font-headline text-on-surface-variant uppercase tracking-wider hidden md:table-cell">
                   Category
                 </th>
-                <th className="py-4 px-6 text-xs font-semibold font-headline
-                               text-on-surface-variant uppercase tracking-wider hidden lg:table-cell">
+                <th className="py-4 px-6 text-xs font-semibold font-headline text-on-surface-variant uppercase tracking-wider hidden lg:table-cell">
                   AI Status
                 </th>
-                <th className="py-4 px-6 text-xs font-semibold font-headline
-                               text-on-surface-variant uppercase tracking-wider text-right">
+                <th className="py-4 px-6 text-xs font-semibold font-headline text-on-surface-variant uppercase tracking-wider text-right">
                   Action
                 </th>
               </tr>
@@ -855,7 +798,6 @@ export default function HRDashboardPage() {
                     key={claim.id}
                     claim={claim}
                     actionLabel={actionLabel}
-                    onNavigate={handleNavigate}
                   />
                 ))
               )}
@@ -868,21 +810,15 @@ export default function HRDashboardPage() {
           <button
             id="view-all-btn"
             onClick={() => setModalOpen(true)}
-            className="inline-flex items-center gap-2 text-sm font-semibold font-headline
-                       text-primary hover:text-primary-dim transition-all duration-200
-                       active:scale-95 group/cta px-4 py-2 rounded-xl
-                       hover:bg-primary/5 cursor-pointer"
+            className="inline-flex items-center gap-2 text-sm font-semibold font-headline text-primary hover:text-primary-dim transition-all duration-200 active:scale-95 group/cta px-4 py-2 rounded-xl hover:bg-primary/5 cursor-pointer"
           >
             {viewAllLabel}
-            <ChevronRight
-              className="w-4 h-4 group-hover/cta:translate-x-0.5 transition-transform duration-150"
-              strokeWidth={2.5}
-            />
+            <ChevronRight className="w-4 h-4 group-hover/cta:translate-x-0.5 transition-transform duration-150" strokeWidth={2.5} />
           </button>
         </div>
       </div>
 
-      {/* ── View All Modal ────────────────────────────────────────────────── */}
+      {/* View All Modal */}
       <ViewAllModal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
@@ -890,7 +826,6 @@ export default function HRDashboardPage() {
         claims={allClaims}
         actionLabel={actionLabel}
       />
-
     </div>
   );
 }

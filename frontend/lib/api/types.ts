@@ -174,6 +174,93 @@ export interface HistorySummary {
   pendingAmount: string;
 }
 
+// ─── Frontend HR Dashboard Types (moved from mockData.ts) ────────────────────
+
+/** Drives which dashboard tab a bundle appears in. */
+export type AiStatus =
+  | "Policy Flagged"
+  | "Awaiting Review"
+  | "Passed AI Review"
+  | "Low Confidence";
+
+/** Per-receipt AI judgment — mirrors backend LineItemStatus. */
+export type LineItemStatus = "APPROVED" | "REJECTED" | "PARTIAL_APPROVE" | "PENDING";
+
+export interface AuditNote {
+  tag: string;
+  message: string;
+}
+
+export interface AuditLogEntry {
+  id: string;
+  timestamp: string;
+  actor: string;
+  action: string;
+}
+
+/** One line item inside a ClaimBundle (frontend shape, not backend DB shape). */
+export interface BundleLineItem {
+  document_id: string;
+  line_item_id?: string;
+  date: string;
+  category: "meals" | "transportation" | "accommodation" | "others";
+  description: string;
+  status: LineItemStatus;
+  requested_amount: number;
+  approved_amount: number;
+  deduction_amount: number;
+  audit_notes: AuditNote[];
+  /** True if the employee manually edited the AI-extracted amount — Fraud Trap. */
+  human_edited?: boolean;
+  /** Original OCR-extracted amount before employee edit. */
+  ocr_amount?: number;
+  /** URL to the uploaded receipt image. */
+  receipt_url?: string;
+}
+
+/** Claim Bundle (top-level — contains all receipts for one claim). */
+export interface ClaimBundle {
+  id: string;
+  employee: {
+    name: string;
+    initials: string;
+    employee_no: string;
+    position: string;
+    department: string;
+    location: string;
+    entity: string;
+    email: string;
+  };
+  submitted_at: string;
+  travel_destination: string;
+  travel_purpose: string;
+  departure_date: string;
+  arrival_date: string;
+  is_overseas: boolean;
+  line_items: BundleLineItem[];
+  totals: {
+    total_requested: number;
+    total_deduction: number;
+    net_approved: number;
+  };
+  overall_judgment: LineItemStatus;
+  confidence: number;
+  summary: string;
+  overall_status: AiStatus;
+  audit_log: AuditLogEntry[];
+}
+
+/** Dashboard list row. */
+export interface Claim {
+  id: string;
+  employee: { name: string; initials: string };
+  date: string;
+  amount: string;
+  category: string;
+  status: AiStatus;
+  note?: string;
+}
+
 // ─── Reimbursement & Policy ──────────────────────────────────────────────────
 
 export interface SubCategoryConfig {

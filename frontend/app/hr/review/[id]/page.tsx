@@ -3,7 +3,8 @@ import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 
 import { ArrowLeft, AlertTriangle, Clock, ShieldCheck, ShieldX, ChevronDown, ZoomIn, Pencil, FileText, ExternalLink, Download, X, Loader2 } from "lucide-react";
-import { ClaimBundle, LineItem, MOCK_BUNDLES } from "../../hr_components/mockData";
+import type { ClaimBundle } from "@/lib/api/types";
+import { MOCK_BUNDLES } from "../../hr_components/mockData";
 import { CheckCircle2, LayoutDashboard } from "lucide-react";
 import { SuccessModal } from "../../hr_components/SuccessModal";
 import { useAuth } from "@/context/AuthContext";

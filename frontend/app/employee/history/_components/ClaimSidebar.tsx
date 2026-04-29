@@ -463,9 +463,13 @@ export default function ClaimSidebar({ claim, onClose, isLoading = false }: Clai
       setIsVisible(true);
       document.body.style.overflow = "hidden";
     } else {
-      setIsVisible(false);
-      setShowFormModal(false);
+      // Let the exit animation finish before unmounting
       document.body.style.overflow = "auto";
+      const timer = setTimeout(() => {
+        setIsVisible(false);
+        setShowFormModal(false);
+      }, 420);
+      return () => clearTimeout(timer);
     }
     return () => { document.body.style.overflow = "auto"; };
   }, [claim]);
@@ -496,7 +500,7 @@ export default function ClaimSidebar({ claim, onClose, isLoading = false }: Clai
     <>
       {/* ── Overlay ── */}
       <div
-        className={`fixed inset-0 bg-surface/40 backdrop-blur-sm z-60 transition-opacity duration-300 ${
+        className={`fixed inset-0 bg-surface/40 backdrop-blur-sm z-60 transition-opacity duration-400 ${
           claim ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
         onClick={onClose}
@@ -505,7 +509,8 @@ export default function ClaimSidebar({ claim, onClose, isLoading = false }: Clai
 
       {/* ── Drawer (max-w-2xl on desktop) ── */}
       <div
-        className={`fixed top-0 right-0 h-dvh w-full md:max-w-2xl bg-surface z-70 shadow-[-8px_0_40px_rgba(0,0,0,0.08)] transform transition-transform duration-300 ease-in-out flex flex-col ${
+        style={{ transitionTimingFunction: claim ? "cubic-bezier(0.32,0.72,0,1)" : "cubic-bezier(0.4,0,1,1)" }}
+        className={`fixed top-0 right-0 h-dvh w-full md:max-w-2xl bg-surface z-70 shadow-[-8px_0_40px_rgba(0,0,0,0.12)] transform transition-transform duration-[420ms] flex flex-col ${
           claim ? "translate-x-0" : "translate-x-full"
         }`}
       >
