@@ -65,26 +65,28 @@ async function safeFetch<T>(input: RequestInfo | URL, init?: RequestInit): Promi
 
 // ─── Public API ──────────────────────────────────────────────────────────────
 
-export async function apiGet<T>(path: string): Promise<ApiResult<T>> {
+export async function apiGet<T>(path: string, init?: RequestInit): Promise<ApiResult<T>> {
   const headers = await getAuthHeaders();
   return safeFetch<T>(`${API_URL}${path}`, {
     method: "GET",
     headers,
     cache: "no-store",
+    ...init,
   });
 }
 
-export async function apiPost<T>(path: string, body?: unknown): Promise<ApiResult<T>> {
+export async function apiPost<T>(path: string, body?: unknown, init?: RequestInit): Promise<ApiResult<T>> {
   const headers = await getAuthHeaders();
   return safeFetch<T>(`${API_URL}${path}`, {
     method: "POST",
     headers,
     body: body !== undefined ? JSON.stringify(body) : undefined,
     cache: "no-store",
+    ...init,
   });
 }
 
-export async function apiPostForm<T>(path: string, formBody: URLSearchParams): Promise<ApiResult<T>> {
+export async function apiPostForm<T>(path: string, formBody: URLSearchParams, init?: RequestInit): Promise<ApiResult<T>> {
   const cookieStore = await cookies();
   const token = cookieStore.get("session")?.value;
   const headers: HeadersInit = {
@@ -97,44 +99,48 @@ export async function apiPostForm<T>(path: string, formBody: URLSearchParams): P
     headers,
     body: formBody.toString(),
     cache: "no-store",
+    ...init,
   });
 }
 
-export async function apiPut<T>(path: string, body: unknown): Promise<ApiResult<T>> {
+export async function apiPut<T>(path: string, body: unknown, init?: RequestInit): Promise<ApiResult<T>> {
   const headers = await getAuthHeaders();
   return safeFetch<T>(`${API_URL}${path}`, {
     method: "PUT",
     headers,
     body: JSON.stringify(body),
     cache: "no-store",
+    ...init,
   });
 }
 
-export async function apiDelete<T>(path: string): Promise<ApiResult<T>> {
+export async function apiDelete<T>(path: string, init?: RequestInit): Promise<ApiResult<T>> {
   const headers = await getAuthHeaders();
   return safeFetch<T>(`${API_URL}${path}`, {
     method: "DELETE",
     headers,
     cache: "no-store",
+    ...init,
   });
 }
 
-export async function apiPatch<T>(path: string, body: unknown): Promise<ApiResult<T>> {
+export async function apiPatch<T>(path: string, body: unknown, init?: RequestInit): Promise<ApiResult<T>> {
   const headers = await getAuthHeaders();
   return safeFetch<T>(`${API_URL}${path}`, {
     method: "PATCH",
     headers,
     body: JSON.stringify(body),
     cache: "no-store",
+    ...init,
   });
 }
 
-export async function apiPostMultipart<T>(path: string, formData: FormData): Promise<ApiResult<T>> {
+export async function apiPostMultipart<T>(path: string, formData: FormData, init?: RequestInit): Promise<ApiResult<T>> {
   const cookieStore = await cookies();
   const token = cookieStore.get("session")?.value;
   const headers: HeadersInit = {
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    // Note: Do NOT set Content-Type. The browser/fetch automatically sets it 
+    // Note: Do NOT set Content-Type. The browser/fetch automatically sets it
     // to multipart/form-data with the correct boundary when body is FormData.
   };
 
@@ -143,5 +149,6 @@ export async function apiPostMultipart<T>(path: string, formData: FormData): Pro
     headers,
     body: formData,
     cache: "no-store",
+    ...init,
   });
 }
