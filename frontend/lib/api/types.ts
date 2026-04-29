@@ -117,7 +117,7 @@ export interface ReimbursementRaw {
 
 /** Map a backend ReimbursementRaw into the frontend ClaimSummary shape. */
 export function mapReimbursementToClaim(r: ReimbursementRaw): ClaimSummary {
-  const currencySymbol: Record<string, string> = { USD: "$", MYR: "RM", EUR: "€", GBP: "£" };
+  const currencySymbol: Record<string, string> = { USD: "$", MYR: "MYR ", EUR: "€", GBP: "£" };
   const symbol = currencySymbol[r.currency] ?? `${r.currency} `;
   const amountValue = r.total_claimed_amount ?? 0;
   const formattedAmount = `${symbol}${amountValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;

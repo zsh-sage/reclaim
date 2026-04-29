@@ -15,14 +15,14 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   const result = await apiGet<ReimbursementRaw[]>(`${API_PREFIX}/reimbursements/`);
   if (!result.data || result.data.length === 0) {
     return {
-      awaitingReview: { amount: "$0.00", count: 0 },
-      reimbursedThisMonth: { amount: "$0.00", count: 0 },
-      alreadyPaid: { amount: "$0.00", count: 0 },
+      awaitingReview: { amount: "MYR 0.00", count: 0 },
+      reimbursedThisMonth: { amount: "MYR 0.00", count: 0 },
+      alreadyPaid: { amount: "MYR 0.00", count: 0 },
     };
   }
 
   const fmt = (n: number) =>
-    `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    `MYR ${n.toLocaleString("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   const bucket = (statuses: string[]) => {
     const items = result.data!.filter((r) => statuses.includes(r.status));

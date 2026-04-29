@@ -27,7 +27,7 @@ export default function TopNav() {
           <button
             id="topnav-notification-btn"
             aria-label="Notifications"
-            className="relative p-2.5 rounded-xl text-on-surface hover:bg-surface-container-low active:scale-95 transition-all"
+            className="relative p-2.5 rounded-xl text-on-surface hover:bg-surface-container-low active:scale-95 transition-all cursor-pointer"
           >
             <Bell className="w-5 h-5" strokeWidth={1.75} />
             {/* Unread badge */}
@@ -37,7 +37,7 @@ export default function TopNav() {
           <button
             id="topnav-help-btn"
             aria-label="Help"
-            className="hidden sm:flex p-2.5 rounded-xl text-on-surface hover:bg-surface-container-low active:scale-95 transition-all"
+            className="hidden sm:flex p-2.5 rounded-xl text-on-surface hover:bg-surface-container-low active:scale-95 transition-all cursor-pointer"
           >
             <HelpCircle className="w-5 h-5" strokeWidth={1.75} />
           </button>

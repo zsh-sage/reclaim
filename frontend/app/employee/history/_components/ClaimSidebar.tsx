@@ -33,7 +33,7 @@ interface ClaimSidebarProps {
 // ─── Currency formatter (MYR) ─────────────────────────────────────────────────
 
 function fmt(v: number) {
-  return `RM ${new Intl.NumberFormat("en-MY", {
+  return `MYR ${new Intl.NumberFormat("en-MY", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(v)}`;
@@ -341,8 +341,8 @@ function ClaimFormModal({
                 <tr className="bg-gray-50 text-gray-500 uppercase text-[10px] tracking-wider">
                   <th className="text-left py-2 px-3 border border-gray-200 font-semibold w-16">Ref</th>
                   <th className="text-left py-2 px-3 border border-gray-200 font-semibold">Category / Audit Notes</th>
-                  <th className="text-right py-2 px-3 border border-gray-200 font-semibold w-28">Requested (RM)</th>
-                  <th className="text-right py-2 px-3 border border-gray-200 font-semibold w-28">Approved (RM)</th>
+                  <th className="text-right py-2 px-3 border border-gray-200 font-semibold w-28">Requested (MYR)</th>
+                  <th className="text-right py-2 px-3 border border-gray-200 font-semibold w-28">Approved (MYR)</th>
                   <th className="text-center py-2 px-3 border border-gray-200 font-semibold w-24">Status</th>
                 </tr>
               </thead>
@@ -570,7 +570,7 @@ export default function ClaimSidebar({ claim, onClose, isLoading = false }: Clai
                     <p className="font-body text-xs text-on-surface-variant uppercase tracking-wider mb-1">
                       Total Approved
                     </p>
-                    <span className="font-headline font-extrabold text-3xl text-error">RM 0.00</span>
+                    <span className="font-headline font-extrabold text-3xl text-error">MYR 0.00</span>
                     <div className="mt-2"><StatusBadge status={effectiveStatus} /></div>
                   </div>
                 </div>

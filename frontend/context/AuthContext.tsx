@@ -61,17 +61,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // 2. Login — calls server action which sets HttpOnly cookie
   const login = useCallback(
     async (email: string, password: string) => {
-      setIsLoading(true);
       try {
         const result = await loginAction(email, password);
 
         if (result.error) {
-          setIsLoading(false);
           throw new Error(result.error);
         }
 
+        // Only show the minimalist loading screen after successful validation
+        setIsLoading(true);
         _sessionCache = { user: result.user, ts: Date.now() };
         setUser(result.user);
+        
+        // Brief artificial delay to show the high-fidelity loading experience
+        await new Promise(resolve => setTimeout(resolve, 1800));
+        
         setIsLoading(false);
 
         // Redirect based on role

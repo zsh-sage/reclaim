@@ -71,21 +71,21 @@ export default function EmployeeDashboardPage() {
       >
         <StatCard
           label="Awaiting Review"
-          value={stats?.awaitingReview.amount ?? "$—"}
+          value={stats?.awaitingReview.amount ?? "MYR —"}
           subtext={`${stats?.awaitingReview.count ?? 0} claims processing`}
           icon={History}
           variant="pending"
         />
         <StatCard
           label="Reimbursed This Month"
-          value={stats?.reimbursedThisMonth.amount ?? "$—"}
+          value={stats?.reimbursedThisMonth.amount ?? "MYR —"}
           subtext={`${stats?.reimbursedThisMonth.count ?? 0} claims settled`}
           icon={CheckCircle2}
           variant="approved"
         />
         <StatCard
           label="Already Paid"
-          value={stats?.alreadyPaid.amount ?? "$—"}
+          value={stats?.alreadyPaid.amount ?? "MYR —"}
           subtext={`${stats?.alreadyPaid.count ?? 0} claims paid`}
           icon={CreditCard}
           variant="paid"
