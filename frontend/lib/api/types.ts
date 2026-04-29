@@ -84,6 +84,7 @@ export interface LineItem {
   judgment?: "APPROVED" | "REJECTED" | "PARTIAL" | "NEEDS_INFO" | null;
   rejection_reason?: string | null;
   policy_section_ref?: string | null;
+  human_edited?: boolean | null;
 }
 
 /** Raw shape returned by the FastAPI GET /reimbursements/ and /reimbursements/{id} endpoints. */
@@ -356,7 +357,6 @@ export interface AnalyzeResponse {
   main_category: string;
   sub_categories: string[];
   created_at: string | null;
-  cached: boolean;
   message: string;
   task_id?: string;
 }

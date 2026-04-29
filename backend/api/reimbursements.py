@@ -24,13 +24,21 @@ from core.models import (
     LineItem, ReimbursementSubCategory, SettlementCategory,
     Department,
 )
-from core.enums import UserRole, ReimbursementStatus, JudgmentResult
+from core.enums import UserRole, ReimbursementStatus, JudgmentResult, PolicyStatus
 from core.database import engine as db_engine
 from engine.agents.compliance_agent import run_compliance_workflow
 from engine.progress import ProgressTracker
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+_executor = concurrent.futures.ThreadPoolExecutor(max_workers=4)
+
+_STATUS_TO_JUDGMENT = {
+    ReimbursementStatus.APPROVED: JudgmentResult.APPROVED,
+    ReimbursementStatus.REJECTED: JudgmentResult.REJECTED,
+    ReimbursementStatus.REVIEW:   JudgmentResult.NEEDS_INFO,
+}
 
 
 def _enum_val(field) -> str:
@@ -46,16 +54,18 @@ def _build_reimbursement_response(
     department_name: Optional[str] = None,
 ) -> dict:
     """Build a response dict for a Reimbursement row, including joined data."""
-    # Fetch line items
-    line_items = db.exec(
-        select(LineItem).where(LineItem.reim_id == r.reim_id)
-    ).all()
-    # Fetch sub categories
-    sub_cats = db.exec(
-        select(ReimbursementSubCategory).where(
-            ReimbursementSubCategory.reim_id == r.reim_id
-        )
-    ).all()
+    if include_line_items:
+        line_items = db.exec(
+            select(LineItem).where(LineItem.reim_id == r.reim_id)
+        ).all()
+        sub_cats = db.exec(
+            select(ReimbursementSubCategory).where(
+                ReimbursementSubCategory.reim_id == r.reim_id
+            )
+        ).all()
+    else:
+        line_items = []
+        sub_cats = []
 
     # Use pre-fetched names if provided, otherwise look up
     if employee_name is None or department_name is None:
@@ -250,13 +260,9 @@ def update_reimbursement_status(
         r.total_rejected_amount = float(r.total_claimed_amount or 0) - approved_sum
 
     r.status = body.status
-    r.reviewed_by = body.reviewed_by
+    r.reviewed_by = current_user.user_id
     r.reviewed_at = datetime.now(timezone.utc)
-    # Update judgment based on HR decision so dashboard tabs reflect correctly
-    if body.status == ReimbursementStatus.REVIEW:
-        r.judgment = JudgmentResult.NEEDS_INFO
-    else:
-        r.judgment = JudgmentResult.APPROVED
+    r.judgment = _STATUS_TO_JUDGMENT.get(body.status, JudgmentResult.NEEDS_INFO)
     # Store HR note if provided
     if body.hr_note:
         reasoning = dict(r.ai_reasoning or {})
@@ -352,6 +358,12 @@ async def analyze_reimbursement(
             detail=f"Policy {request.policy_id} not found",
         )
 
+    if policy.status != PolicyStatus.ACTIVE:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Policy is not active",
+        )
+
     from core.models import PolicyReimbursableCategory
     policy_cats = db.exec(
         select(PolicyReimbursableCategory).where(
@@ -407,8 +419,7 @@ async def analyze_reimbursement(
     task_id = tracker.create_task()
     logger.info("[API_ANALYZE] Created task_id=%s for background compliance", task_id)
 
-    loop = asyncio.get_event_loop()
-    executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+    loop = asyncio.get_running_loop()
 
     def _process_background():
         logger.info("[API_ANALYZE_BG] Starting background compliance for task=%s", task_id)
@@ -448,16 +459,37 @@ async def analyze_reimbursement(
                     tracker.publish(task_id, "error", {"message": f"Failed to format response: {build_err}"})
             except Exception as e:
                 logger.exception("[API_ANALYZE_BG] Compliance workflow failed")
-                tracker.publish(task_id, "error", {"message": str(e)})
+                try:
+                    from decimal import Decimal
+                    fail_reim = Reimbursement(
+                        user_id=UUID(user_id_str),
+                        policy_id=policy_uuid,
+                        settlement_id=settlement_uuid,
+                        main_category=main_category,
+                        currency="MYR",
+                        total_claimed_amount=Decimal("0"),
+                        judgment=JudgmentResult.NEEDS_INFO,
+                        status=ReimbursementStatus.REVIEW,
+                        summary=f"Compliance pipeline failed — manual review required. Error: {str(e)[:500]}",
+                        ai_reasoning={"error": str(e), "pipeline_failure": True},
+                    )
+                    bg_db.add(fail_reim)
+                    bg_db.commit()
+                    bg_db.refresh(fail_reim)
+                    formatted = _build_reimbursement_response(fail_reim, bg_db, include_line_items=False)
+                    tracker.publish(task_id, "complete", formatted)
+                except Exception as fallback_err:
+                    logger.exception("[API_ANALYZE_BG] Failed to write MANUAL_REVIEW record: %s", fallback_err)
+                    tracker.publish(task_id, "error", {"message": str(e)})
 
-    loop.run_in_executor(executor, _process_background)
+    loop.run_in_executor(_executor, _process_background)
 
     logger.info("[API_ANALYZE] Returning task_id=%s", task_id)
     return {"task_id": task_id}
 
 
 @router.get("/analyze/progress/{task_id}")
-async def analyze_progress(task_id: str):
+async def analyze_progress(task_id: str, _current_user: User = Depends(deps.get_current_user)):
     """SSE endpoint: stream progress events for a compliance analysis task."""
     logger.info("[API_SSE] Client connected to reimbursements/analyze/progress/%s", task_id)
     tracker = ProgressTracker()

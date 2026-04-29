@@ -1,6 +1,6 @@
 "use client";
 
-import { JSX, useState, useEffect } from "react";
+import { JSX, useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   TrendingUp,
@@ -65,24 +65,29 @@ function Avatar({ name, initials }: { name: string; initials: string }) {
 function ClaimRow({
   claim,
   actionLabel,
+  onNavigate,
 }: {
   claim: Claim;
   actionLabel: string;
+  onNavigate: (path: string) => void;
 }) {
-  const router = useRouter();
-
   function navigate() {
     const path = actionLabel === "View"
       ? `/hr/view/${claim.id}`
       : `/hr/review/${claim.id}`;
-    router.push(path);
+    onNavigate(path);
   }
 
   return (
     <tr
       onClick={navigate}
+      tabIndex={0}
+      role="button"
+      aria-label={`${actionLabel} claim from ${claim.employee.name}`}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(); } }}
       className="group transition-all duration-200
                  hover:bg-primary/[0.04] hover:shadow-[inset_4px_0_0_0_#4647d3]
+                 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary
                  cursor-pointer"
     >
       {/* Employee */}
@@ -361,15 +366,40 @@ function ViewAllModal({
   claims: Claim[];
   actionLabel: string;
 }) {
+  const router = useRouter();
+  const handleNavigate = useCallback((path: string) => router.push(path), [router]);
+
   const [query, setQuery] = useState("");
   const [filters, setFilters] = useState<FilterState>(EMPTY_FILTERS);
   const [filterOpen, setFilterOpen] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
 
-  // Reset state whenever the modal closes/reopens
+  useEffect(() => {
+    if (!isOpen) return;
+    const focusable = panelRef.current?.querySelector<HTMLElement>(
+      'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    focusable?.focus();
+
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") { onClose(); return; }
+      if (e.key !== "Tab" || !panelRef.current) return;
+      const all = Array.from(panelRef.current.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      ));
+      if (!all.length) return;
+      const first = all[0]; const last = all[all.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [isOpen, onClose]);
+
+  const activeCount = useMemo(() => countActiveFilters(filters), [filters]);
+  const filtered = useMemo(() => applyFilters(claims, query, filters), [claims, query, filters]);
+
   if (!isOpen) return null;
-
-  const activeCount = countActiveFilters(filters);
-  const filtered = applyFilters(claims, query, filters);
 
   return (
     <div
@@ -386,6 +416,7 @@ function ViewAllModal({
 
       {/* Panel */}
       <div
+        ref={panelRef}
         className="relative w-full sm:max-w-4xl max-h-[92dvh] flex flex-col
                    bg-surface-container-lowest rounded-t-3xl sm:rounded-2xl
                    shadow-[0_32px_80px_-8px_rgba(44,47,49,0.22)]
@@ -519,6 +550,7 @@ function ViewAllModal({
                     key={claim.id}
                     claim={claim}
                     actionLabel={actionLabel}
+                    onNavigate={handleNavigate}
                   />
                 ))
               ) : (
@@ -579,10 +611,13 @@ function ViewAllModal({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function HRDashboardPage() {
+  const router = useRouter();
+  const handleNavigate = useCallback((path: string) => router.push(path), [router]);
   const [activeTab, setActiveTab] = useState<TabKey>("attention");
   const [modalOpen, setModalOpen] = useState(false);
   const [attentionClaims, setAttentionClaims] = useState<Claim[]>([]);
   const [approvedClaims, setApprovedClaims] = useState<Claim[]>([]);
+  const [isLoadingClaims, setIsLoadingClaims] = useState(true);
 
   // Fetch real reimbursements from backend on mount
   useEffect(() => {
@@ -591,6 +626,8 @@ export default function HRDashboardPage() {
       setApprovedClaims(approved);
     }).catch(() => {
       // Keep empty arrays on error — UI will show empty state
+    }).finally(() => {
+      setIsLoadingClaims(false);
     });
   }, []);
 
@@ -801,13 +838,27 @@ export default function HRDashboardPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-outline-variant/10">
-              {previewClaims.map((claim) => (
-                <ClaimRow
-                  key={claim.id}
-                  claim={claim}
-                  actionLabel={actionLabel}
-                />
-              ))}
+              {isLoadingClaims ? (
+                Array.from({ length: 3 }).map((_, i) => (
+                  <tr key={i} className="animate-pulse">
+                    <td className="py-5 px-6"><div className="flex items-center gap-3"><div className="w-9 h-9 rounded-full bg-surface-container-high shrink-0" /><div className="space-y-1.5"><div className="h-3 w-28 rounded bg-surface-container-high" /><div className="h-2.5 w-20 rounded bg-surface-container-low" /></div></div></td>
+                    <td className="py-5 px-6 hidden sm:table-cell"><div className="h-3 w-20 rounded bg-surface-container-high" /></td>
+                    <td className="py-5 px-6"><div className="h-3 w-16 rounded bg-surface-container-high" /></td>
+                    <td className="py-5 px-6 hidden md:table-cell"><div className="h-3 w-24 rounded bg-surface-container-high" /></td>
+                    <td className="py-5 px-6 hidden lg:table-cell"><div className="h-6 w-28 rounded-full bg-surface-container-high" /></td>
+                    <td className="py-5 px-6 text-right"><div className="h-3 w-12 rounded bg-surface-container-high ml-auto" /></td>
+                  </tr>
+                ))
+              ) : (
+                previewClaims.map((claim) => (
+                  <ClaimRow
+                    key={claim.id}
+                    claim={claim}
+                    actionLabel={actionLabel}
+                    onNavigate={handleNavigate}
+                  />
+                ))
+              )}
             </tbody>
           </table>
         </div>

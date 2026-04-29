@@ -27,6 +27,7 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 STORAGE_DOCUMENTS_DIR = Path(__file__).parent.parent / "storage" / "documents"
+_executor = concurrent.futures.ThreadPoolExecutor(max_workers=4)
 
 
 @router.get("/health")
@@ -74,8 +75,10 @@ async def upload_documents(
 
     file_infos = []
     for file in files:
-        fname = file.filename or "unnamed_upload"
+        fname = Path(file.filename or "unnamed_upload").name or "unnamed_upload"
         dest = user_dir / fname
+        if not str(dest.resolve()).startswith(str(user_dir.resolve())):
+            raise HTTPException(status_code=400, detail=f"Invalid filename: {file.filename}")
         async with aiofiles.open(dest, "wb") as out:
             content = await file.read()
             await out.write(content)
@@ -94,8 +97,6 @@ async def upload_documents(
     logger.info("[API_UPLOAD] Created task_id=%s", task_id)
 
     employee_name = current_user.name
-
-    executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
 
     def _process_background():
         logger.info("[API_UPLOAD_BG] Starting background processing for task=%s", task_id)
@@ -120,14 +121,14 @@ async def upload_documents(
                 logger.exception("[API_UPLOAD_BG] Background processing failed for task=%s", task_id)
                 tracker.publish(task_id, "error", {"message": str(e)})
 
-    executor.submit(_process_background)
+    _executor.submit(_process_background)
 
     logger.info("[API_UPLOAD] Returning task_id=%s", task_id)
     return {"task_id": task_id}
 
 
 @router.get("/progress/{task_id}")
-async def document_progress(task_id: str):
+async def document_progress(task_id: str, _current_user: User = Depends(deps.get_current_user)):
     """SSE endpoint: stream progress events for a document processing task."""
     logger.info("[API_SSE] Client connected to documents/progress/%s", task_id)
     tracker = ProgressTracker()

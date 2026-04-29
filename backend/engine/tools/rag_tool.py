@@ -6,7 +6,7 @@ Falls back to keyword/ILIKE text search if embeddings are unavailable.
 from typing import List, Optional
 from uuid import UUID
 
-from sqlmodel import Session, select, text
+from sqlmodel import Session, select, text, or_
 
 from core.models import PolicySection
 from engine.llm import get_embeddings
@@ -64,25 +64,24 @@ def search_policy_sections(
         except Exception as e:
             print(f"Vector search failed, falling back to keyword search: {e}")
 
-    # --- Keyword fallback ---
-    all_sections = session.exec(
-        select(PolicySection)
-        .where(PolicySection.policy_id == policy_uuid)
-        .limit(100)
-    ).all()
-
-    if not all_sections:
-        return ""
-
+    # --- Keyword fallback: push filter to DB with ILIKE ---
     if keywords:
         kw_lower = [k.lower() for k in keywords if k]
-        matched = [
-            s for s in all_sections
-            if any(kw in s.content.lower() for kw in kw_lower)
-        ]
-        sections = matched[:limit] if matched else all_sections[:limit]
+        stmt = (
+            select(PolicySection)
+            .where(
+                PolicySection.policy_id == policy_uuid,
+                or_(*[PolicySection.content.ilike(f"%{kw}%") for kw in kw_lower]),
+            )
+            .limit(limit)
+        )
     else:
-        sections = all_sections[:limit]
+        stmt = select(PolicySection).where(PolicySection.policy_id == policy_uuid).limit(limit)
+
+    sections = session.exec(stmt).all()
+
+    if not sections:
+        return ""
 
     parts = []
     for i, s in enumerate(sections, 1):

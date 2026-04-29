@@ -58,6 +58,7 @@ services:
     volumes:
       - ./frontend:/app:z
       - /app/node_modules
+      - next_cache:/app/.next
     ports:
       - "3000:3000"
     user: root
@@ -79,3 +80,4 @@ services:
 
 volumes:
   postgres_data:
+  next_cache:

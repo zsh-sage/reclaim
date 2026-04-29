@@ -16,6 +16,10 @@ import {
 } from "@/lib/actions/auth";
 import type { User } from "@/lib/api/types";
 
+// Module-level cache — survives remounts within the same page lifecycle
+let _sessionCache: { user: User | null; ts: number } | null = null;
+const SESSION_TTL_MS = 30_000;
+
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
@@ -30,14 +34,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const router = useRouter();
 
-  // 1. Verify session on app start via server action
+  // 1. Verify session on app start — skip if a fresh cache entry exists
   useEffect(() => {
     async function verifySession() {
+      const now = Date.now();
+      if (_sessionCache && now - _sessionCache.ts < SESSION_TTL_MS) {
+        setUser(_sessionCache.user);
+        setIsLoading(false);
+        return;
+      }
       try {
         const currentUser = await getCurrentUser();
+        _sessionCache = { user: currentUser, ts: Date.now() };
         setUser(currentUser);
       } catch (error) {
         console.error("Session verification failed:", error);
+        _sessionCache = null;
         setUser(null);
       } finally {
         setIsLoading(false);
@@ -58,6 +70,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           throw new Error(result.error);
         }
 
+        _sessionCache = { user: result.user, ts: Date.now() };
         setUser(result.user);
         setIsLoading(false);
 
@@ -78,6 +91,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // 3. Logout — calls server action which deletes HttpOnly cookie
   const logout = useCallback(async () => {
     await logoutAction();
+    _sessionCache = null;
     setUser(null);
     router.push("/login");
   }, [router]);

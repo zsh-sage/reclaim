@@ -1,8 +1,7 @@
 from datetime import timedelta
-from typing import Any, Optional
+from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
-from pydantic import BaseModel
 from sqlmodel import Session, select
 
 from core import security
@@ -10,14 +9,9 @@ from core.config import settings
 from core.models import User
 from core.enums import UserRole, PrivilegeLevel
 from api import schemas, deps
+from api.schemas import UpdateProfileRequest
 
 router = APIRouter()
-
-
-class UpdateProfileRequest(BaseModel):
-    name: str
-    email: str
-    department_id: Optional[str] = None
 
 @router.post("/login", response_model=schemas.Token)
 def login_access_token(
@@ -74,6 +68,7 @@ def register_user(
         hashed_password=security.get_password_hash(user_in.password),
         name=user_in.name,
         role=user_in.role,
+        # role=UserRole.Employee,  # Production code
         department_id=department_id,
         rank=user_in.rank,
         privilege_level=user_in.privilege_level,

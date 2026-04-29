@@ -259,7 +259,6 @@ class LineItemAdjustment(BaseModel):
 
 class StatusUpdateRequest(BaseModel):
     status: ReimbursementStatus
-    reviewed_by: UUID
     line_items: Optional[List[LineItemAdjustment]] = None
     hr_note: Optional[str] = None
 

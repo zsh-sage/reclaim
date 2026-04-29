@@ -30,7 +30,7 @@ MANDATORY_CONDITIONS = """Daily Trip Allowance (Diem Allowance):
 - Calculated based on duration of trip according to employee entitlement based on job grade
 - Departure time before 12.00 p.m. and/or arrival time after 12.00 p.m. shall be calculated as 1 full day trip
 - Departure time after 12.00 p.m. and/or arrival time before 12.00 p.m. shall be calculated as a half day
-- Employees conducting Business Travel with categorization as half day trip will only be entitled for 50% of the standard daily allowance
+- Employees conducting Business Travel with categorization as half day trip will only be entitled for 50% \of the standard daily allowance
 
 Accommodations:
 - Employees may accept a room upgrade if the upgrade is at no additional cost to Company

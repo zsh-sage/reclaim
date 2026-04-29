@@ -12,7 +12,11 @@ export function subscribeToProgress(
     return { close: () => {} };
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+  if (!baseUrl) {
+    callbacks.onError("NEXT_PUBLIC_API_URL is not configured");
+    return { close: () => {} };
+  }
   const path =
     endpoint === "reimbursements"
       ? `/api/v1/reimbursements/analyze/progress/${taskId}`

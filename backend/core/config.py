@@ -1,4 +1,7 @@
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_DEFAULT_SECRET = "YOUR_SUPER_SECRET_KEY_CHANGE_THIS_IN_PRODUCTION"
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "GLM SMART"
@@ -25,5 +28,11 @@ class Settings(BaseSettings):
     EMBEDDING_MODEL: str = "openai/text-embedding-3-small"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+
+    @model_validator(mode="after")
+    def check_secret_key(self) -> "Settings":
+        if self.SECRET_KEY == _DEFAULT_SECRET:
+            raise ValueError("SECRET_KEY must be set to a secure value in .env")
+        return self
 
 settings = Settings()

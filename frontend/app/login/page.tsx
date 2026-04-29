@@ -70,8 +70,8 @@ export default function LoginPage() {
       <div className="hidden lg:flex w-1/2 split-gradient relative overflow-hidden items-center justify-center p-12 xl:p-16">
         {/* Decorative Elements */}
         <div
+          aria-hidden="true"
           className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=2070&auto=format&fit=crop')] opacity-10 bg-cover bg-center mix-blend-overlay"
-          data-alt="Abstract fluid geometry with soft light interacting with translucent materials, creating a sense of deep, corporate technology structure."
         ></div>
         <div className="relative z-10 text-on-primary max-w-xl">
           <span className="inline-flex items-center rounded-full border border-white/35 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em]">

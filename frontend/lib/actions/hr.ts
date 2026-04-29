@@ -85,7 +85,7 @@ function mapToBundle(r: ReimbursementRaw): ClaimBundle {
     audit_notes: li.rejection_reason
       ? [{ tag: "", message: li.rejection_reason }]
       : [],
-    human_edited: false,
+    human_edited: li.human_edited ?? false,
   }));
 
   return {
@@ -172,7 +172,7 @@ export async function updateReimbursementStatus(
     hrNote?: string;
   },
 ): Promise<{ ok: boolean; error?: string }> {
-  const body: Record<string, unknown> = { status, reviewed_by: reviewedBy };
+  const body: Record<string, unknown> = { status };
   if (options?.lineItems?.length) {
     body.line_items = options.lineItems;
   }
