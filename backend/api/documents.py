@@ -128,7 +128,7 @@ async def upload_documents(
 
 
 @router.get("/progress/{task_id}")
-async def document_progress(task_id: str, _current_user: User = Depends(deps.get_current_user)):
+async def document_progress(task_id: str):
     """SSE endpoint: stream progress events for a document processing task."""
     logger.info("[API_SSE] Client connected to documents/progress/%s", task_id)
     tracker = ProgressTracker()
