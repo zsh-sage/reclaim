@@ -216,7 +216,7 @@ export default function TopNav() {
                 window.dispatchEvent(new CustomEvent("open-mobile-nav-drawer"));
               }
             }}
-            aria-label="Open profile menu"
+            aria-label="Open settings menu"
             className="ml-1 h-9 w-9 rounded-full bg-linear-to-br from-primary-container to-tertiary-container shrink-0 flex items-center justify-center font-headline font-bold text-sm text-on-primary-container border-2 border-surface-container-lowest shadow-sm hover:shadow-md hover:scale-105 transition-all"
           >
             {user?.name?.charAt(0).toUpperCase() ?? "U"}

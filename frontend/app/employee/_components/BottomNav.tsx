@@ -3,16 +3,16 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Upload, History, ClipboardList, User } from "lucide-react";
+import { Home, Upload, History, ClipboardList, Settings } from "lucide-react";
 import { getDraftCount } from "@/lib/actions/claims";
 import MobileNavDrawer from "./MobileNavDrawer";
 
 const NAV_ITEMS = [
-  { href: "/employee/dashboard", label: "Home",         icon: Home         },
-  { href: "/employee/claims",    label: "Upload",       icon: Upload       },
-  { href: "/employee/drafts",    label: "Drafts",       icon: ClipboardList },
-  { href: "/employee/history",   label: "History",      icon: History      },
-  { href: "profile-drawer",      label: "Profile",      icon: User         },
+  { href: "/employee/dashboard", label: "Home",    icon: Home         },
+  { href: "/employee/drafts",    label: "Drafts",  icon: ClipboardList },
+  { href: "/employee/claims",    label: "Upload",  icon: Upload       },
+  { href: "/employee/history",   label: "History", icon: History      },
+  { href: "/employee/settings",  label: "Settings", icon: Settings    },
 ];
 
 export default function BottomNav() {
@@ -48,8 +48,6 @@ export default function BottomNav() {
 
   if (cameraOpen) return null;
 
-  const profileActive = pathname === "/employee/settings" || pathname.startsWith("/employee/settings/");
-
   return (
     <>
       <MobileNavDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
@@ -59,21 +57,19 @@ export default function BottomNav() {
         aria-label="Mobile bottom navigation"
         className="lg:hidden fixed bottom-0 inset-x-0 z-50 bg-white/85 backdrop-blur-2xl border-t border-outline-variant/10 rounded-t-3xl shadow-[0_-8px_32px_rgba(0,0,0,0.06)]"
       >
-        <div className="flex justify-around items-center px-1 py-2 h-16 max-w-lg mx-auto">
+        <div className="flex justify-between items-center px-2 h-16 max-w-lg mx-auto">
           {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
-            const isDrawerTrigger = href === "profile-drawer";
-            const isActive = isDrawerTrigger
-              ? profileActive || drawerOpen
-              : pathname === href || pathname.startsWith(`${href}/`);
+            const isActive = pathname === href || pathname.startsWith(`${href}/`);
             const isDrafts = label === "Drafts";
+            const isUpload = label === "Upload";
 
             const content = (
               <>
                 <Icon
-                  className="w-[22px] h-[22px]"
+                  className={`${isUpload ? "w-7 h-7" : "w-[22px] h-[22px]"} ${isUpload && !isActive ? "text-primary" : ""}`}
                   strokeWidth={isActive ? 2.5 : 1.5}
                 />
-                <span className="text-[10px] font-label font-semibold uppercase tracking-wider whitespace-nowrap max-w-[64px] overflow-hidden text-ellipsis">
+                <span className={`text-[10px] font-label font-semibold uppercase tracking-wider whitespace-nowrap max-w-[64px] overflow-hidden text-ellipsis ${isUpload && !isActive ? "text-primary" : ""}`}>
                   {label}
                 </span>
                 {isDrafts && draftCount > 0 && (
@@ -84,29 +80,12 @@ export default function BottomNav() {
               </>
             );
 
-            if (isDrawerTrigger) {
-              return (
-                <button
-                  key={href}
-                  onClick={() => setDrawerOpen(true)}
-                  className={`relative flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-2xl transition-all duration-200 ${
-                    isActive
-                      ? "text-primary bg-primary/10 scale-110"
-                      : "text-on-surface/50 hover:text-on-surface"
-                  }`}
-                  aria-label="Open profile menu"
-                >
-                  {content}
-                </button>
-              );
-            }
-
             return (
               <Link
                 key={href}
                 href={href}
                 aria-current={isActive ? "page" : undefined}
-                className={`relative flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-2xl transition-all duration-200 ${
+                className={`relative flex-1 flex flex-col items-center justify-center gap-1 px-1 py-2 rounded-2xl transition-all duration-200 ${
                   isActive
                     ? "text-primary bg-primary/10 scale-110"
                     : "text-on-surface/50 hover:text-on-surface"

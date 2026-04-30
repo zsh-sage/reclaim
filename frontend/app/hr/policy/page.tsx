@@ -1136,8 +1136,8 @@ export default function PolicyStudio() {
                   </div>
                 </div>
 
-                {/* Data Table Layout */}
-                <div className="overflow-x-auto">
+                {/* Desktop Table */}
+                <div className="hidden md:block overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="border-b border-surface-container-highest">
@@ -1199,6 +1199,38 @@ export default function PolicyStudio() {
                       )}
                     </tbody>
                   </table>
+                </div>
+
+                {/* Mobile Card List */}
+                <div className="md:hidden flex flex-col gap-2">
+                  {filteredPolicies.length > 0 ? (
+                    filteredPolicies.slice(0, 3).map((policy) => (
+                      <button
+                        key={policy.id}
+                        onClick={() => setEditingPolicy(policy.id)}
+                        className="bg-surface-container-lowest rounded-xl p-4 border border-outline-variant/10 text-left active:scale-[0.98] transition-all flex items-center gap-3"
+                      >
+                        <div className="w-10 h-10 rounded-lg bg-primary-container/20 flex items-center justify-center text-primary shrink-0">
+                          <policy.icon size={20} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-sm text-on-surface truncate">{policy.name}</p>
+                          <p className="text-xs text-on-surface-variant mt-0.5">{policy.version} · {policy.department}</p>
+                          <p className="text-xs text-on-surface-variant/70 mt-0.5">{policy.lastModified}</p>
+                        </div>
+                        <div className="flex flex-col items-end gap-1.5 shrink-0">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${POLICY_STATUS_STYLE[policy.status]}`}>
+                            {policy.status}
+                          </span>
+                          <span className="text-primary font-semibold text-xs">Edit</span>
+                        </div>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="py-12 text-center text-on-surface-variant font-medium text-sm">
+                      No policies found matching your search or filter.
+                    </div>
+                  )}
                 </div>
 
                 {/* View All Button */}

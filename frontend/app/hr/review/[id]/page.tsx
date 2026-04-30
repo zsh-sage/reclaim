@@ -447,7 +447,8 @@ export default function ReviewPage() {
 
           {/* Financial Breakdown */}
           <Card title={<>Financial Breakdown <span className="ml-2 text-xs font-label bg-surface-container text-on-surface-variant px-2 py-0.5 rounded-full">{bundle.line_items.length} receipts</span></>}>
-            <div className="overflow-x-auto">
+            {/* Desktop Table */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left text-sm border-collapse">
                 <thead>
                   <tr className="bg-surface-container-low/60">
@@ -487,6 +488,43 @@ export default function ReviewPage() {
                   ))}
                 </tbody>
               </table>
+            </div>
+
+            {/* Mobile Card List */}
+            <div className="md:hidden flex flex-col gap-2">
+              {bundle.line_items.map((li, idx) => (
+                <div key={li.document_id} className="bg-surface-container-lowest rounded-xl p-4 border border-outline-variant/10">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      {li.receipt_url ? (
+                        <button onClick={() => setLightbox(li.receipt_url!)} className="flex items-center gap-1 text-primary hover:underline text-xs">
+                          <ZoomIn className="w-3 h-3" />{idx + 1}
+                        </button>
+                      ) : (
+                        <span className="text-xs text-on-surface-variant font-semibold">#{idx + 1}</span>
+                      )}
+                      <span className="text-[10px] bg-surface-container px-1.5 py-0.5 rounded-full text-on-surface-variant">{CAT[li.category]}</span>
+                    </div>
+                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${STATUS_CHIP[li.status]}`}>{li.status.replace("_", " ")}</span>
+                  </div>
+                  <p className="text-sm text-on-surface font-medium mt-2 truncate">{li.description}</p>
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="text-xs text-on-surface-variant">{li.date}</span>
+                    <div className="text-right">
+                      <p className="text-xs font-semibold text-emerald-700">{fmt(li.approved_amount)}</p>
+                      {li.deduction_amount > 0 && <p className="text-[10px] text-error-dim">-{fmt(li.deduction_amount)}</p>}
+                    </div>
+                  </div>
+                  {li.human_edited && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded mt-2">
+                      ⚠ EDITED · OCR: {fmt(li.ocr_amount ?? 0)}
+                    </span>
+                  )}
+                  {li.audit_notes.map((n, i) => (
+                    <p key={i} className="text-[10px] font-mono font-bold text-error-dim mt-0.5">{n.tag}</p>
+                  ))}
+                </div>
+              ))}
             </div>
           </Card>
 

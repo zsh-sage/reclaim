@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
@@ -20,11 +20,16 @@ type MobileNavDrawerProps = {
 export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps) {
   const { user, logout } = useAuth();
   const pathname = usePathname();
+  const panelRef = useRef<HTMLElement>(null);
+
+  const [translateX, setTranslateX] = useState(0);
+  const touchStart = useRef<{ x: number; y: number; time: number } | null>(null);
 
   // Body scroll lock
   useEffect(() => {
     if (open) {
       document.body.style.overflow = "hidden";
+      setTranslateX(0);
     } else {
       document.body.style.overflow = "";
     }
@@ -42,6 +47,47 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
   const isSettingsActive = pathname === "/employee/settings" || pathname.startsWith("/employee/settings/");
   const isSupportActive = pathname === "/employee/support" || pathname.startsWith("/employee/support/");
 
+  // Swipe handlers
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const t = e.touches[0];
+    touchStart.current = { x: t.clientX, y: t.clientY, time: Date.now() };
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!touchStart.current || !open) return;
+    const t = e.touches[0];
+    const dx = t.clientX - touchStart.current.x;
+    const dy = t.clientY - touchStart.current.y;
+
+    // Only handle horizontal swipes (moving right = closing from right-side panel)
+    if (Math.abs(dx) > Math.abs(dy) * 1.5 && dx > 0) {
+      setTranslateX(dx);
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!touchStart.current || !open) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - touchStart.current.x;
+    const dy = t.clientY - touchStart.current.y;
+    const dt = Date.now() - touchStart.current.time;
+    const velocity = dx / (dt || 1);
+
+    // Close if swiped right far enough or fast enough
+    const threshold = 80;
+    if ((Math.abs(dx) > Math.abs(dy) * 1.5 && dx > threshold) || velocity > 0.5) {
+      onClose();
+    }
+
+    setTranslateX(0);
+    touchStart.current = null;
+  };
+
+  const panelStyle: React.CSSProperties = {
+    transform: `translate3d(${open ? translateX : 100}%, 0, 0)`,
+    transition: touchStart.current ? "none" : "transform 300ms cubic-bezier(0.16, 1, 0.3, 1)",
+  };
+
   return (
     <div
       className={`fixed inset-0 z-[60] transition-all duration-300 ${open ? "pointer-events-auto" : "pointer-events-none opacity-0"}`}
@@ -55,9 +101,14 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
         onClick={onClose}
       />
 
-      {/* Panel: fullscreen on mobile, slide-out on tablet */}
+      {/* Panel: slides from right */}
       <nav
-        className={`absolute top-0 left-0 bottom-0 w-full md:w-[280px] md:max-w-[80vw] bg-surface-container-low border-r border-outline-variant/10 shadow-[1px_0_20px_rgba(44,47,49,0.04)] flex flex-col h-full p-4 md:p-4 transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${open ? "translate-x-0" : "-translate-x-full"}`}
+        ref={panelRef}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        className="absolute top-0 right-0 bottom-0 w-full md:w-[280px] md:max-w-[80vw] bg-surface-container-low border-l border-outline-variant/10 shadow-[-1px_0_20px_rgba(44,47,49,0.04)] flex flex-col h-full p-4 touch-pan-y"
+        style={panelStyle}
       >
         {/* Close + Brand */}
         <div className="flex items-center justify-between px-4 py-3 mb-2">
