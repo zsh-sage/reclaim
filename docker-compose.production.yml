@@ -15,7 +15,7 @@ services:
       - postgres_data:/var/lib/postgresql/data:Z
       - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql:z
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U admin -d smart_reimburse" ]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -27,9 +27,6 @@ services:
       dockerfile: uv.Dockerfile
     container_name: reclaim_backend
     restart: unless-stopped
-    volumes:
-      - ./backend:/app:z
-      - /app/.venv
     expose:
       - "8000"
     environment:
@@ -63,12 +60,10 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
     container_name: reclaim_frontend
     restart: unless-stopped
-    volumes:
-      - ./frontend:/app:z
-      - /app/node_modules
-      - next_cache:/app/.next
     expose:
       - "3000"
     user: root
@@ -77,12 +72,13 @@ services:
       - INTERNAL_API_URL=${INTERNAL_API_URL}
       - NODE_ENV=production
       - NEXT_TELEMETRY_DISABLED=1
+      - HOSTNAME=0.0.0.0
     depends_on:
       backend:
         condition: service_healthy
     command: npm run start
     healthcheck:
-      test: [ "CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3001/ || exit 1" ]
+      test: [ "CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/ || exit 1" ]
       interval: 10s
       timeout: 5s
       retries: 5
