@@ -6,9 +6,9 @@ services:
     container_name: reclaim_db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: smart_reimburse
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
       - "5432:5432"
     volumes:
@@ -33,7 +33,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - WATCHFILES_FORCE_POLLING=true
+      # - WATCHFILES_FORCE_POLLING=true
       - DATABASE_URL=${DATABASE_URL}
       - SECRET_KEY=${SECRET_KEY}
       - LLM_API_KEY=${LLM_API_KEY}
@@ -50,8 +50,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    # command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-    command: bash -c "python -c 'from core.database import init_db; init_db()' && alembic stamp head && python seed_demo_employees.py && python seed_mock_policy.py && python seed_mock_data.py && exec uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
+    command: bash -c "python -c 'from core.database import init_db; init_db()' && alembic stamp head && exec uvicorn main:app --host 0.0.0.0 --port 8000"
+    # command: bash -c "python -c 'from core.database import init_db; init_db()' && alembic stamp head && python seed_demo_employees.py && python seed_mock_policy.py && python seed_mock_data.py && exec uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
     healthcheck:
       # test: [ "CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" ]
       test: [ "CMD", "/app/.venv/bin/python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" ]
@@ -70,20 +70,19 @@ services:
       - /app/node_modules
       - next_cache:/app/.next
     ports:
-      - "3000:3000"
+      - "3001:3000"
     user: root
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:8000
       - INTERNAL_API_URL=http://backend:8000
-      - NODE_ENV=development
-      - WATCHPACK_POLLING=true
-      - CHOKIDAR_USEPOLLING=true
+      - NODE_ENV=production
+      - NEXT_TELEMETRY_DISABLED=1
     depends_on:
       backend:
         condition: service_healthy
-    command: npm run dev
+    command: npm run start
     healthcheck:
-      test: [ "CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/ || exit 1" ]
+      test: [ "CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3001/ || exit 1" ]
       interval: 10s
       timeout: 5s
       retries: 5

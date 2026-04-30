@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     VISION_MODEL: str = "meta-llama/llama-3.2-11b-vision-instruct"
     EMBEDDING_MODEL: str = "openai/text-embedding-3-small"
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    model_config = SettingsConfigDict(env_file="../.env", env_file_encoding="utf-8", extra="ignore")
 
     @model_validator(mode="after")
     def check_secret_key(self) -> "Settings":
