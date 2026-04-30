@@ -4,22 +4,31 @@ import { LifeBuoy, MessageSquare, FileText, Send, Phone, ChevronDown } from "luc
 
 export default function SupportLegacyContent() {
   return (
-    <main className="min-h-dvh pb-24 md:pb-12 bg-surface">
-      <div className="w-full max-w-7xl mx-auto px-4 md:px-6 pt-6 md:pt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="relative min-h-full p-6 md:p-10 lg:p-12">
+      {/* Ambient glow */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -top-20 -right-20 w-[480px] h-[480px] rounded-full bg-primary opacity-[0.07] blur-[80px]" />
+        <div className="absolute top-32 right-40 w-[320px] h-[320px] rounded-full bg-tertiary opacity-[0.06] blur-[64px]" />
+        <div className="absolute -top-8 right-[15%] w-[200px] h-[200px] rounded-full bg-primary-container opacity-[0.12] blur-[48px]" />
+      </div>
+
+      <div className="relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-7xl mx-auto">
 
         {/* ── Header ── */}
-        <header className="mb-10 text-center md:text-left">
-          <div className="flex items-center justify-center md:justify-start gap-2 text-primary mb-3">
-            <LifeBuoy className="w-6 h-6" />
-            <span className="font-label font-bold tracking-widest uppercase text-sm">Help Center</span>
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
+          <div className="max-w-2xl">
+            
+            <h2
+              className="font-headline font-extrabold text-on-background mb-2 tracking-tight"
+              style={{ fontSize: "2.5rem", letterSpacing: "-0.02em" }}
+            >
+              How can we help?
+            </h2>
+            <p className="text-on-surface-variant text-lg font-body">
+              Browse our frequently asked questions, or contact HR directly if you have issues with your claims.
+            </p>
           </div>
-          <h1 className="font-headline text-4xl md:text-5xl font-extrabold text-on-surface tracking-tight leading-tight">
-            How can we help?
-          </h1>
-          <p className="font-body text-base md:text-lg text-on-surface-variant mt-3 max-w-2xl">
-            Browse our frequently asked questions, or contact HR directly if you have issues with your claims.
-          </p>
-        </header>
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
 
@@ -87,7 +96,7 @@ export default function SupportLegacyContent() {
                   <input type="text" placeholder="Brief description of the problem" className="w-full bg-surface-container text-on-surface px-4 py-3 rounded-xl border border-transparent focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-sm placeholder:text-on-surface-variant/50" />
                 </div>
 
-                <div className="space-y-1.5 h-full">
+                <div className="space-y-1.5">
                   <label className="font-label text-xs font-bold text-on-surface-variant uppercase tracking-wider">Message Details</label>
                   <textarea
                     rows={6}
@@ -96,16 +105,21 @@ export default function SupportLegacyContent() {
                   />
                 </div>
 
-                <button className="w-full flex items-center justify-center gap-2 bg-primary text-on-primary px-5 py-3.5 rounded-xl font-bold text-sm hover:shadow-lg hover:-translate-y-0.5 active:scale-95 transition-all mt-4">
-                  <Send className="w-4 h-4" />
-                  Submit Request
-                </button>
+                <div className="pt-2">
+                  <button 
+                    type="submit"
+                    className="w-full flex items-center justify-center gap-2 bg-primary text-on-primary px-5 py-4 rounded-xl font-bold text-sm hover:shadow-lg hover:-translate-y-0.5 active:scale-95 transition-all shadow-md"
+                  >
+                    <Send className="w-4 h-4" />
+                    Submit Request
+                  </button>
+                </div>
               </form>
 
             </section>
           </div>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

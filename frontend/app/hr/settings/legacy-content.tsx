@@ -1,38 +1,78 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Settings, User, Bell, Shield, Wallet, ChevronRight, Save, LifeBuoy } from "lucide-react";
+import { Settings, User, Bell, Shield, Wallet, ChevronRight, Save, LifeBuoy, Zap, AlertTriangle, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { getBankingDetails } from "@/lib/actions/settings";
 import type { BankingDetails } from "@/lib/api/types";
 
+// Mock API function
+const toggleAutoReimbursementAPI = (enabled: boolean): Promise<boolean> => {
+  return new Promise((resolve) => {
+    setTimeout(() => resolve(true), 1000);
+  });
+};
+
 export default function SettingsLegacyContent() {
   const { user } = useAuth();
   const [banking, setBanking] = useState<BankingDetails | null>(null);
+
+  // Feature State
+  const [isAutoReimburseEnabled, setIsAutoReimburseEnabled] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   // Fetch banking details via server action
   useEffect(() => {
     getBankingDetails().then(setBanking);
   }, []);
 
+  const handleToggleClick = () => {
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirmToggle = async () => {
+    setIsUpdating(true);
+    try {
+      const success = await toggleAutoReimbursementAPI(!isAutoReimburseEnabled);
+      if (success) {
+        setIsAutoReimburseEnabled(!isAutoReimburseEnabled);
+        setShowConfirmModal(false);
+      }
+    } catch (error) {
+      console.error("Failed to update auto-reimbursement setting", error);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   return (
-    <main className="min-h-dvh pb-24 md:pb-12 bg-surface">
-      <div className="w-full max-w-7xl mx-auto px-4 md:px-6 pt-6 md:pt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="relative min-h-full p-6 md:p-10 lg:p-12">
+      {/* Ambient glow */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -top-20 -right-20 w-[480px] h-[480px] rounded-full bg-primary opacity-[0.07] blur-[80px]" />
+        <div className="absolute top-32 right-40 w-[320px] h-[320px] rounded-full bg-tertiary opacity-[0.06] blur-[64px]" />
+        <div className="absolute -top-8 right-[15%] w-[200px] h-[200px] rounded-full bg-primary-container opacity-[0.12] blur-[48px]" />
+      </div>
+
+      <div className="relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-7xl mx-auto">
 
         {/* ── Header ── */}
-        <header className="mb-8">
-          <div className="flex items-center gap-2 text-primary mb-2">
-            <Settings className="w-5 h-5" />
-            <span className="font-label font-bold tracking-widest uppercase text-xs">Preferences</span>
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
+          <div className="max-w-2xl">
+            
+            <h2
+              className="font-headline font-extrabold text-on-background mb-2 tracking-tight"
+              style={{ fontSize: "2.5rem", letterSpacing: "-0.02em" }}
+            >
+              Settings
+            </h2>
+            <p className="text-on-surface-variant text-lg font-body">
+              Manage your account preferences and banking details for reimbursements.
+            </p>
           </div>
-          <h1 className="font-headline text-3xl md:text-4xl font-extrabold text-on-surface tracking-tight">
-            Settings
-          </h1>
-          <p className="font-body text-sm md:text-base text-on-surface-variant mt-2">
-            Manage your account preferences and banking details for reimbursements.
-          </p>
-        </header>
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* ── Left Sidebar (Desktop Nav) ── */}
@@ -61,6 +101,42 @@ export default function SettingsLegacyContent() {
 
           {/* ── Main Content Area ── */}
           <div className="md:col-span-2 space-y-6">
+
+            {/* AI Auto-Reimbursement Section */}
+            <section className="bg-surface-container-lowest border border-outline-variant/10 rounded-2xl overflow-hidden shadow-sm">
+              <div className="p-6 border-b border-outline-variant/10 flex items-center justify-between">
+                <div>
+                  <h2 className="font-headline font-bold text-lg text-on-surface mb-1 flex items-center gap-2">
+                    <Zap className="w-5 h-5 text-amber-500" />
+                    AI Auto-Reimbursement
+                  </h2>
+                  <p className="font-body text-sm text-on-surface-variant max-w-md">
+                    Automatically disburse funds to the employee's account for claims that are 100% approved by the AI.
+                  </p>
+                </div>
+                <button
+                  onClick={handleToggleClick}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ring-offset-2 focus:ring-2 focus:ring-primary/20 ${
+                    isAutoReimburseEnabled ? "bg-primary" : "bg-outline-variant/30"
+                  }`}
+                  role="switch"
+                  aria-checked={isAutoReimburseEnabled}
+                >
+                  <span
+                    aria-hidden="true"
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                      isAutoReimburseEnabled ? "translate-x-5" : "translate-x-0"
+                    }`}
+                  />
+                </button>
+              </div>
+              <div className="p-4 bg-amber-50/50 flex items-start gap-3">
+                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <p className="text-[11px] leading-relaxed text-amber-800 font-medium italic">
+                  Note: Enabling this feature will bypass manual HR review for all claims judged as valid by the AI pipeline. This action affects fund disbursement.
+                </p>
+              </div>
+            </section>
 
             {/* Profile Section */}
             <section className="bg-surface-container-lowest border border-outline-variant/10 rounded-2xl overflow-hidden shadow-sm">
@@ -126,27 +202,68 @@ export default function SettingsLegacyContent() {
               </div>
             </section>
 
-            {/* Mobile Support Link */}
-            <section className="bg-surface-container-lowest border border-outline-variant/10 rounded-2xl overflow-hidden shadow-sm md:hidden block">
-              <div className="p-6">
-                <Link href="/employee/support" className="flex items-center justify-between p-4 border border-outline-variant/20 rounded-xl bg-surface-container-low hover:bg-surface-container cursor-pointer transition-colors group">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 bg-tertiary-container text-on-tertiary-container rounded-lg">
-                      <LifeBuoy className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <p className="font-headline font-bold text-sm text-on-surface">Help & Support</p>
-                      <p className="font-body text-xs text-on-surface-variant">Access FAQs or contact HR</p>
-                    </div>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-on-surface-variant group-hover:translate-x-1 transition-transform" />
-                </Link>
-              </div>
-            </section>
-
           </div>
         </div>
       </div>
-    </main>
+
+      {/* Confirmation Modal */}
+      {showConfirmModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => !isUpdating && setShowConfirmModal(false)}
+          />
+          
+          {/* Modal Card */}
+          <div className="relative w-full max-w-md bg-surface-container-lowest rounded-3xl shadow-[0_32px_128px_-16px_rgba(44,47,49,0.25)] overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="p-8">
+              <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-6 ${
+                isAutoReimburseEnabled ? "bg-red-50 text-red-600" : "bg-primary/10 text-primary"
+              }`}>
+                {isAutoReimburseEnabled ? <AlertTriangle className="w-8 h-8" /> : <Zap className="w-8 h-8" />}
+              </div>
+              
+              <h3 className="text-2xl font-extrabold font-headline text-on-surface mb-3 tracking-tight">
+                {isAutoReimburseEnabled ? "Disable Auto-Reimbursement?" : "Enable Auto-Reimbursement?"}
+              </h3>
+              
+              <p className="text-on-surface-variant font-body leading-relaxed mb-8">
+                {isAutoReimburseEnabled 
+                  ? "Are you sure you want to disable automatic payouts? All future claims will require manual HR review before disbursement."
+                  : "Are you sure? Enabling this means funds will be sent automatically to employee bank accounts without manual HR review for AI-approved claims."
+                }
+              </p>
+              
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  disabled={isUpdating}
+                  onClick={() => setShowConfirmModal(false)}
+                  className="flex-1 px-6 py-3.5 rounded-xl text-sm font-bold text-on-surface-variant bg-surface-container hover:bg-outline-variant/20 transition-all active:scale-95 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  disabled={isUpdating}
+                  onClick={handleConfirmToggle}
+                  className={`flex-1 flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl text-sm font-bold text-white shadow-lg shadow-primary/20 transition-all active:scale-95 disabled:opacity-50 ${
+                    isAutoReimburseEnabled ? "bg-red-600 hover:bg-red-700" : "bg-primary hover:bg-primary-hover"
+                  }`}
+                >
+                  {isUpdating ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Updating…
+                    </>
+                  ) : (
+                    isAutoReimburseEnabled ? "Disable Feature" : "Enable Feature"
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

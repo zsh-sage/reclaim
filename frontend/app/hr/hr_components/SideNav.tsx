@@ -95,11 +95,17 @@ export default function SideNav() {
 
           <Link
             href="/hr/support"
-            className="flex items-center gap-3 px-4 py-3 rounded-xl font-body text-sm font-medium text-on-surface hover:bg-surface-container/50 transition-all hover:translate-x-0.5 active:scale-[0.97]"
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl font-body text-sm transition-all duration-200 hover:translate-x-0.5 active:scale-[0.97] ${
+              pathname.startsWith("/hr/support")
+                ? "bg-surface-container font-bold text-primary"
+                : "font-medium text-on-surface hover:bg-surface-container/50"
+            }`}
           >
             <LifeBuoy
-              className="w-[18px] h-[18px] text-on-surface-variant"
-              strokeWidth={1.75}
+              className={`w-[18px] h-[18px] shrink-0 transition-colors ${
+                pathname.startsWith("/hr/support") ? "text-primary" : "text-on-surface-variant"
+              }`}
+              strokeWidth={pathname.startsWith("/hr/support") ? 2.5 : 1.75}
             />
             Support
           </Link>
