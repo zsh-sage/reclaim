@@ -1233,13 +1233,12 @@ function CaptureReceiptContent() {
               onChange={e => { if (e.target.files) handleAddFiles(Array.from(e.target.files)); e.target.value = ""; }}
             />
 
-            {/* Native camera input — mobile OS handles Retake/Use Photo natively */}
+            {/* Native file picker — shows camera + photo library on mobile */}
             <input
               ref={cameraInputRef}
               id="camera-file-input"
               type="file"
               accept="image/*,application/pdf"
-              capture="environment"
               className="hidden"
               onChange={e => {
                 if (e.target.files?.[0]) handleAddFiles([e.target.files[0]]);
