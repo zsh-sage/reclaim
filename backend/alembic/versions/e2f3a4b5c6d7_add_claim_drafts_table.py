@@ -1,7 +1,7 @@
 """Add claim_drafts table
 
 Revision ID: e2f3a4b5c6d7
-Revises: d1e2f3a4b5c6
+Revises: 1e338ce32d1e
 Create Date: 2026-04-29 19:00:00.000000
 
 Changes:
@@ -16,7 +16,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision: str = 'e2f3a4b5c6d7'
-down_revision: Union[str, None] = 'd1e2f3a4b5c6'
+down_revision: Union[str, None] = '1e338ce32d1e'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
