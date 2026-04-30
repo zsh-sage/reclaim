@@ -1,6 +1,5 @@
 import {
   FilterState,
-  EMPTY_FILTERS,
   uniqueValues,
 } from "@/lib/hooks/useClaimsFilter";
 import { STATUS_ICON, STATUS_STYLE } from "./StatusBadge";

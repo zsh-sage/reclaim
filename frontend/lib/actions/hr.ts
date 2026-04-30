@@ -7,7 +7,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { apiGet, apiPatch, apiPostMultipart, API_PREFIX } from "@/lib/api/client";
-import type { ReimbursementRaw, LineItem, Claim, ClaimBundle, AiStatus } from "@/lib/api/types";
+import type { ReimbursementRaw, Claim, ClaimBundle, AiStatus } from "@/lib/api/types";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
