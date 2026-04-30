@@ -33,7 +33,7 @@ interface ClaimSidebarProps {
 // ─── Currency formatter (MYR) ─────────────────────────────────────────────────
 
 function fmt(v: number) {
-  return `RM ${new Intl.NumberFormat("en-MY", {
+  return `MYR ${new Intl.NumberFormat("en-MY", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(v)}`;
@@ -341,8 +341,8 @@ function ClaimFormModal({
                 <tr className="bg-gray-50 text-gray-500 uppercase text-[10px] tracking-wider">
                   <th className="text-left py-2 px-3 border border-gray-200 font-semibold w-16">Ref</th>
                   <th className="text-left py-2 px-3 border border-gray-200 font-semibold">Category / Audit Notes</th>
-                  <th className="text-right py-2 px-3 border border-gray-200 font-semibold w-28">Requested (RM)</th>
-                  <th className="text-right py-2 px-3 border border-gray-200 font-semibold w-28">Approved (RM)</th>
+                  <th className="text-right py-2 px-3 border border-gray-200 font-semibold w-28">Requested (MYR)</th>
+                  <th className="text-right py-2 px-3 border border-gray-200 font-semibold w-28">Approved (MYR)</th>
                   <th className="text-center py-2 px-3 border border-gray-200 font-semibold w-24">Status</th>
                 </tr>
               </thead>
@@ -463,9 +463,13 @@ export default function ClaimSidebar({ claim, onClose, isLoading = false }: Clai
       setIsVisible(true);
       document.body.style.overflow = "hidden";
     } else {
-      setIsVisible(false);
-      setShowFormModal(false);
+      // Let the exit animation finish before unmounting
       document.body.style.overflow = "auto";
+      const timer = setTimeout(() => {
+        setIsVisible(false);
+        setShowFormModal(false);
+      }, 420);
+      return () => clearTimeout(timer);
     }
     return () => { document.body.style.overflow = "auto"; };
   }, [claim]);
@@ -496,7 +500,7 @@ export default function ClaimSidebar({ claim, onClose, isLoading = false }: Clai
     <>
       {/* ── Overlay ── */}
       <div
-        className={`fixed inset-0 bg-surface/40 backdrop-blur-sm z-60 transition-opacity duration-300 ${
+        className={`fixed inset-0 bg-surface/40 backdrop-blur-sm z-60 transition-opacity duration-400 ${
           claim ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
         onClick={onClose}
@@ -505,7 +509,8 @@ export default function ClaimSidebar({ claim, onClose, isLoading = false }: Clai
 
       {/* ── Drawer (max-w-2xl on desktop) ── */}
       <div
-        className={`fixed top-0 right-0 h-dvh w-full md:max-w-2xl bg-surface z-70 shadow-[-8px_0_40px_rgba(0,0,0,0.08)] transform transition-transform duration-300 ease-in-out flex flex-col ${
+        style={{ transitionTimingFunction: claim ? "cubic-bezier(0.32,0.72,0,1)" : "cubic-bezier(0.4,0,1,1)" }}
+        className={`fixed top-0 right-0 h-dvh w-full md:max-w-2xl bg-surface z-70 shadow-[-8px_0_40px_rgba(0,0,0,0.12)] transform transition-transform duration-[420ms] flex flex-col ${
           claim ? "translate-x-0" : "translate-x-full"
         }`}
       >
@@ -565,7 +570,7 @@ export default function ClaimSidebar({ claim, onClose, isLoading = false }: Clai
                     <p className="font-body text-xs text-on-surface-variant uppercase tracking-wider mb-1">
                       Total Approved
                     </p>
-                    <span className="font-headline font-extrabold text-3xl text-error">RM 0.00</span>
+                    <span className="font-headline font-extrabold text-3xl text-error">MYR 0.00</span>
                     <div className="mt-2"><StatusBadge status={effectiveStatus} /></div>
                   </div>
                 </div>

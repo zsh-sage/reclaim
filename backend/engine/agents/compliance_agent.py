@@ -18,6 +18,7 @@ from langgraph.prebuilt import create_react_agent
 from sqlmodel import Session, select
 from typing_extensions import TypedDict
 
+from core.config import settings
 from core.models import (
     Reimbursement, SupportingDocument, TravelSettlement, User, Policy,
     LineItem, ReimbursementSubCategory, SettlementCategory, SettlementReceipt,
@@ -208,6 +209,18 @@ def load_context(state: ComplianceWorkflowState, session: Session) -> dict:
                 ).all()
                 logger.info("[LOAD_CONTEXT] Found %d SettlementReceipts", len(s_receipts))
 
+                # Bulk-fetch all SupportingDocuments for this settlement in one query
+                doc_ids = [sr.document_id for sr in s_receipts if sr.document_id]
+                if doc_ids:
+                    bulk_docs = session.exec(
+                        select(SupportingDocument).where(
+                            SupportingDocument.document_id.in_(doc_ids)
+                        )
+                    ).all()
+                    doc_by_id = {d.document_id: d for d in bulk_docs}
+                else:
+                    doc_by_id = {}
+
                 # Build receipt dicts from normalized rows
                 receipts = []
                 for sr in s_receipts:
@@ -219,9 +232,8 @@ def load_context(state: ComplianceWorkflowState, session: Session) -> dict:
                         "total_amount": float(sr.claimed_amount) if sr.claimed_amount else 0,
                         "currency": sr.currency or settlement.currency or "MYR",
                     }
-                    # Also fetch extracted_data if available
                     if sr.document_id:
-                        doc = session.get(SupportingDocument, sr.document_id)
+                        doc = doc_by_id.get(sr.document_id)
                         if doc:
                             receipt_dict["extracted_data"] = doc.extracted_data or {}
                     receipts.append(receipt_dict)
@@ -230,7 +242,7 @@ def load_context(state: ComplianceWorkflowState, session: Session) -> dict:
                 currency = settlement.currency or ""
         except Exception:
             logger.exception("[LOAD_CONTEXT] Error loading settlement data")
-            pass
+            raise
 
     # Enrich receipts with human edit context if any documents were edited
     if receipts and state.get("settlement_id"):
@@ -471,7 +483,7 @@ def save_reimbursement(state: ComplianceWorkflowState, session: Session) -> dict
         judgment=judgment_enum,
         confidence=state.get("confidence"),
         ai_reasoning={
-            "model": "ilmu-glm-5.1",
+            "model": settings.CHAT_MODEL,
             "policy_refs": [],
             "reasoning": f"Agent judgment: {judgment_str}",
             "timestamp": datetime.now(timezone.utc).isoformat(),

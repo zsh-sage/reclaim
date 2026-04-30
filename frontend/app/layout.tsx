@@ -15,7 +15,29 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 
 export const metadata: Metadata = {
   title: "Reclaim",
-  description: "Smart Reimbursement Automation System",
+  description: "Every receipt reviewed. Every decision yours. Smart Reimbursement Automation System",
+  icons: {
+    icon: "/images/logo.svg",
+  },
+  openGraph: {
+    title: "Reclaim",
+    description: "Every receipt reviewed. Every decision yours. Smart Reimbursement Automation System",
+    images: [
+      {
+        url: "/images/logo.svg",
+        width: 800,
+        height: 600,
+        alt: "Reclaim Logo",
+      },
+    ],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Reclaim",
+    description: "Every receipt reviewed. Every decision yours. Smart Reimbursement Automation System",
+    images: ["/images/logo.svg"],
+  },
 };
 
 export default function RootLayout({

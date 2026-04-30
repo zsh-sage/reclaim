@@ -157,6 +157,8 @@ export default function PolicyStudio() {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [savingStep, setSavingStep] = useState(0);
+  const [policyFileError, setPolicyFileError] = useState<string | null>(null);
+  const POLICY_MAX_SIZE = 10 * 1024 * 1024; // 10 MB
   const [conditionsModalOpen, setConditionsModalOpen] = useState(false);
   const [editConditions, setEditConditions] = useState<Record<string, any> | null>(null);
   const [editOverviewSummary, setEditOverviewSummary] = useState<string>("");
@@ -653,17 +655,38 @@ export default function PolicyStudio() {
                 </div>
               )}
 
+              {policyFileError && (
+                <div className="flex items-start gap-3 bg-error/10 border border-error/30 text-error rounded-xl px-4 py-3 text-sm font-body">
+                  <span className="shrink-0 font-bold">✕</span>
+                  <span className="flex-1">{policyFileError}</span>
+                  <button onClick={() => setPolicyFileError(null)} className="shrink-0 font-bold hover:opacity-70">✕</button>
+                </div>
+              )}
+
               {/* Main Policy */}
               <div className="flex flex-col gap-4">
                 <h3 className="font-headline text-xl font-semibold text-on-surface shrink-0">Main Policy</h3>
                 <input
                   ref={mainPolicyInputRef}
                   type="file"
-                  accept=".pdf,.docx,.doc,.txt"
+                  accept=".pdf"
                   className="hidden"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
-                    if (file) setMainPolicyFile(file);
+                    if (file) {
+                      if (file.type !== "application/pdf") {
+                        setPolicyFileError("Invalid file type. Only PDF files are accepted for policy documents.");
+                        e.target.value = '';
+                        return;
+                      }
+                      if (file.size > POLICY_MAX_SIZE) {
+                        setPolicyFileError(`File too large. Maximum 10 MB. Your file is ${(file.size / (1024 * 1024)).toFixed(1)} MB.`);
+                        e.target.value = '';
+                        return;
+                      }
+                      setPolicyFileError(null);
+                      setMainPolicyFile(file);
+                    }
                     e.target.value = '';
                   }}
                 />
@@ -731,7 +754,7 @@ export default function PolicyStudio() {
                     </div>
                     <p className="font-body text-base font-medium text-on-surface mb-1">Upload Policy Document</p>
                     <p className="font-body text-xs text-on-surface-variant mb-4">Drag and drop or click to browse</p>
-                    <p className="font-body text-[11px] text-outline-variant">Supports PDF, DOCX, TXT • Max 10 MB</p>
+                    <p className="font-body text-[11px] text-outline-variant">Supports PDF • Max 10 MB</p>
                   </div>
                 )}
               </div>
@@ -742,11 +765,24 @@ export default function PolicyStudio() {
                 <input
                   ref={appendixInputRef}
                   type="file"
-                  accept=".pdf,.docx,.doc,.txt,.xlsx,.xls,.csv"
+                  accept=".pdf"
                   multiple
                   className="hidden"
                   onChange={(e) => {
                     const files = Array.from(e.target.files || []);
+                    const invalid = files.find(f => f.type !== "application/pdf");
+                    if (invalid) {
+                      setPolicyFileError(`Invalid file type "${invalid.name}". Only PDF files are accepted.`);
+                      e.target.value = '';
+                      return;
+                    }
+                    const oversized = files.find(f => f.size > POLICY_MAX_SIZE);
+                    if (oversized) {
+                      setPolicyFileError(`File "${oversized.name}" exceeds the 10 MB limit.`);
+                      e.target.value = '';
+                      return;
+                    }
+                    setPolicyFileError(null);
                     if (files.length) setAppendixFiles(prev => [...prev, ...files]);
                     e.target.value = '';
                   }}

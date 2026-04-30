@@ -1,8 +1,8 @@
+import logging
 from datetime import timedelta
-from typing import Any, Optional
+from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
-from pydantic import BaseModel
 from sqlmodel import Session, select
 
 from core import security
@@ -10,14 +10,9 @@ from core.config import settings
 from core.models import User
 from core.enums import UserRole, PrivilegeLevel
 from api import schemas, deps
+from api.schemas import UpdateProfileRequest
 
 router = APIRouter()
-
-
-class UpdateProfileRequest(BaseModel):
-    name: str
-    email: str
-    department_id: Optional[str] = None
 
 @router.post("/login", response_model=schemas.Token)
 def login_access_token(
@@ -30,7 +25,10 @@ def login_access_token(
     statement = select(User).where(User.email == form_data.username)
     user = db.exec(statement).first()
     
-    if not user or not security.verify_password(form_data.password, user.hashed_password):
+    if not user:
+        logging.warning(f"Login failed: User not found for email {form_data.username}")
+    elif not security.verify_password(form_data.password, user.hashed_password):
+        logging.warning(f"Login failed: Incorrect password for email {form_data.username}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
@@ -74,6 +72,7 @@ def register_user(
         hashed_password=security.get_password_hash(user_in.password),
         name=user_in.name,
         role=user_in.role,
+        # role=UserRole.Employee,  # Production code
         department_id=department_id,
         rank=user_in.rank,
         privilege_level=user_in.privilege_level,

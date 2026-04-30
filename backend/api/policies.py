@@ -29,19 +29,27 @@ def list_policies(
     current_user: User = Depends(deps.get_current_user),
 ) -> List[dict]:
     policies = db.exec(select(Policy)).all()
-    result = []
-    for p in policies:
-        # Fetch reimbursable categories from normalized table
-        cats = db.exec(
+    if policies:
+        policy_ids = [p.policy_id for p in policies]
+        all_cats = db.exec(
             select(PolicyReimbursableCategory).where(
-                PolicyReimbursableCategory.policy_id == p.policy_id
+                PolicyReimbursableCategory.policy_id.in_(policy_ids)
             )
         ).all()
+        cats_by_policy: dict = {}
+        for c in all_cats:
+            cats_by_policy.setdefault(c.policy_id, []).append(c.category)
+    else:
+        cats_by_policy = {}
+
+    result = []
+    for p in policies:
+        cats = cats_by_policy.get(p.policy_id, [])
         result.append({
             "policy_id": str(p.policy_id),
             "alias": p.alias,
             "title": p.title,
-            "reimbursable_categories": [c.category for c in cats],
+            "reimbursable_categories": cats,
             "overview_summary": p.overview_summary,
             "mandatory_conditions": p.mandatory_conditions,
             "status": ((p.status.value if p.status and hasattr(p.status, "value") else p.status) if p.status and hasattr(p.status, "value") else p.status),
@@ -69,7 +77,10 @@ async def upload_policy(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Only PDF files are accepted. Got: {file.filename}",
             )
-        dest = STORAGE_POLICIES_DIR / file.filename
+        safe_name = Path(file.filename).name
+        dest = STORAGE_POLICIES_DIR / safe_name
+        if not str(dest.resolve()).startswith(str(STORAGE_POLICIES_DIR.resolve())):
+            raise HTTPException(status_code=400, detail=f"Invalid filename: {file.filename}")
         async with aiofiles.open(dest, "wb") as out:
             content = await file.read()
             await out.write(content)

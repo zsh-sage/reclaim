@@ -18,6 +18,7 @@ from api.documents import router as documents_router
 from api.notifications import router as notifications_router
 from api.policies import router as policies_router
 from api.reimbursements import router as reimbursements_router
+from api.drafts import router as drafts_router
 from api.departments import router as departments_router
 from api.test_ui import router as test_ui_router
 from api import deps
@@ -50,9 +51,10 @@ app = FastAPI(
 )
 
 # Set all CORS enabled origins
+_frontend_origin = os.environ.get("FRONTEND_URL", "http://localhost:3000")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Update this in production
+    allow_origins=[_frontend_origin],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -64,6 +66,7 @@ app.include_router(notifications_router, prefix=f"{settings.API_V1_STR}/notifica
 app.include_router(policies_router, prefix=f"{settings.API_V1_STR}/policies", tags=["policies"])
 app.include_router(reimbursements_router, prefix=f"{settings.API_V1_STR}/reimbursements", tags=["reimbursements"])
 app.include_router(departments_router, prefix=f"{settings.API_V1_STR}/departments", tags=["departments"])
+app.include_router(drafts_router, prefix=f"{settings.API_V1_STR}/drafts", tags=["drafts"])
 # DISPOSABLE — Remove before production
 app.include_router(test_ui_router, prefix="/test", tags=["test-ui"])
 

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
 import {
   LayoutDashboard,
@@ -11,12 +12,13 @@ import {
   LifeBuoy,
   LogOut,
   Plus,
-  Zap,
+  Users,
 } from "lucide-react";
 
 const NAV_LINKS = [
   { href: "/hr/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/hr/policy",    label: "Policy Studio",  icon: FileSliders         },
+  { href: "/hr/manage_employee", label: "Manage Employee", icon: Users },
   { href: "/hr/history",   label: "History",    icon: History          },
   { href: "/hr/settings",  label: "Settings",   icon: Settings         },
 ];
@@ -35,12 +37,16 @@ export default function SideNav() {
         {/* ── Brand ─────────────────────────────────── */}
         <div className="px-4 py-5 mb-3">
           <div className="flex items-center gap-2.5">
+            <Image src="/images/logo.svg" alt="Reclaim Logo" width={28} height={28} className="w-7 h-7 object-contain" />
             <h1 className="font-headline font-black text-xl text-primary tracking-tight">
               Reclaim
             </h1>
           </div>
-          <p className="font-body text-xs font-medium text-on-surface-variant mt-1.5">
+          <p className="font-body text-xs font-medium text-on-surface-variant mt-1.5 leading-tight">
             HR Portal
+          </p>
+          <p className="font-body text-[10px] text-primary/70 mt-1 font-medium italic">
+            Every receipt reviewed. Every decision yours.
           </p>
         </div>
 
@@ -101,7 +107,7 @@ export default function SideNav() {
           <button
             id="sidenav-logout-btn"
             onClick={logout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-body text-sm font-medium text-on-surface hover:bg-error/10 hover:text-error group transition-all hover:translate-x-0.5 active:scale-[0.97]"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-body text-sm font-medium text-on-surface hover:bg-error/10 hover:text-error group transition-all hover:translate-x-0.5 active:scale-[0.97] cursor-pointer"
           >
             <LogOut
               className="w-[18px] h-[18px] text-on-surface-variant group-hover:text-error transition-colors"

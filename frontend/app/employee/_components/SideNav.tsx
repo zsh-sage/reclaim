@@ -1,27 +1,37 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
 import {
   LayoutDashboard,
   FileText,
   History,
+  ClipboardList,
   Settings,
   LifeBuoy,
   LogOut,
 } from "lucide-react";
+import { getDraftCount } from "@/lib/actions/claims";
 
 const NAV_LINKS = [
   { href: "/employee/dashboard", label: "Dashboard",    icon: LayoutDashboard },
   { href: "/employee/claims",    label: "Upload Claim", icon: FileText         },
   { href: "/employee/history",   label: "History",      icon: History          },
+  { href: "/employee/drafts",    label: "Drafts",       icon: ClipboardList    },
   { href: "/employee/settings",  label: "Settings",     icon: Settings         },
 ];
 
 export default function SideNav() {
   const { user, logout } = useAuth();
   const pathname = usePathname();
+  const [draftCount, setDraftCount] = useState(0);
+
+  useEffect(() => {
+    getDraftCount().then(count => setDraftCount(count));
+  }, [pathname]); // refresh on navigation
 
   return (
     <nav
@@ -33,12 +43,16 @@ export default function SideNav() {
         {/* ── Brand ─────────────────────────────────── */}
         <div className="px-4 py-5 mb-3">
           <div className="flex items-center gap-2.5">
+            <Image src="/images/logo.svg" alt="Reclaim Logo" width={28} height={28} className="w-7 h-7 object-contain" />
             <h1 className="font-headline font-black text-xl text-primary tracking-tight">
               Reclaim
             </h1>
           </div>
-          <p className="font-body text-xs font-medium text-on-surface-variant mt-1.5">
+          <p className="font-body text-xs font-medium text-on-surface-variant mt-1.5 leading-tight">
             Employee Portal
+          </p>
+          <p className="font-body text-[10px] text-primary/70 mt-1 font-medium italic">
+            Every receipt reviewed. Every decision yours.
           </p>
         </div>
 
@@ -46,6 +60,7 @@ export default function SideNav() {
         <div className="flex-1 flex flex-col gap-0.5 overflow-y-auto">
           {NAV_LINKS.map(({ href, label, icon: Icon }) => {
             const isActive = pathname === href || pathname.startsWith(`${href}/`);
+            const isDrafts = label === "Drafts";
             return (
               <Link
                 key={href}
@@ -63,6 +78,11 @@ export default function SideNav() {
                   strokeWidth={isActive ? 2.5 : 1.75}
                 />
                 {label}
+                {isDrafts && draftCount > 0 && (
+                  <span className="ml-auto bg-primary text-on-primary text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center shadow-sm">
+                    {draftCount > 9 ? "9+" : draftCount}
+                  </span>
+                )}
               </Link>
             );
           })}

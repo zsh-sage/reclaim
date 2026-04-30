@@ -63,6 +63,7 @@ agent_workflow_plans.md
 
 # agent
 .claude/
+# CLAUDE.md
 
 # documents
 backend/storage/documents/*

@@ -35,7 +35,7 @@ def check_glm_health() -> None:
     #     )
 
 
-# @lru_cache(maxsize=1)
+@lru_cache(maxsize=1)
 def get_chat_llm() -> ChatOpenAI:
     """JSON-mode LLM for text tasks (policy extraction, compliance)."""
     if _use_fallback:
@@ -55,7 +55,7 @@ def get_chat_llm() -> ChatOpenAI:
     )
 
 
-# @lru_cache(maxsize=1)
+@lru_cache(maxsize=1)
 def get_vision_llm() -> ChatOpenAI:
     """Vision LLM for receipt OCR — no JSON mode."""
     return ChatOpenAI(
@@ -67,7 +67,7 @@ def get_vision_llm() -> ChatOpenAI:
     )
 
 
-# @lru_cache(maxsize=1)
+@lru_cache(maxsize=1)
 def get_agent_llm() -> ChatOpenAI:
     """LLM for tool-calling agent — no JSON mode (required for bind_tools)."""
     if _use_fallback:
@@ -85,7 +85,7 @@ def get_agent_llm() -> ChatOpenAI:
     )
 
 
-# @lru_cache(maxsize=1)
+@lru_cache(maxsize=1)
 def get_text_llm() -> ChatOpenAI:
     """Text LLM for PDF receipt extraction — JSON mode enabled."""
     if _use_fallback:
@@ -105,7 +105,7 @@ def get_text_llm() -> ChatOpenAI:
     )
 
 
-# @lru_cache(maxsize=1)
+@lru_cache(maxsize=1)
 def get_embeddings() -> OpenAIEmbeddings:
     """Text embeddings via OpenRouter (openai/text-embedding-3-small, 1536 dims)."""
     return OpenAIEmbeddings(

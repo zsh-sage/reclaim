@@ -40,7 +40,7 @@ def get_employees(db: Session = Depends(deps.get_db)) -> List[dict]:
             "email": u.email,
             "name": u.name,
             "role": u.role,
-            "department": u.department,
+            "department": str(u.department_id) if u.department_id else None,
             "rank": u.rank,
             "privilege_level": u.privilege_level,
         }

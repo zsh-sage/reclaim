@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { History } from "lucide-react";
 import HistoryFilterBar, { FilterStatus } from "./_components/HistoryFilterBar";
 import HistoryList from "./_components/HistoryList";
@@ -74,13 +75,14 @@ function mapToHistoryClaim(r: ReimbursementRaw): HistoryClaim {
   };
 }
 
-export default function HistoryPage() {
+function HistoryPageContent() {
   const [currentStatus, setCurrentStatus] = useState<FilterStatus>("All");
   const [selectedClaim, setSelectedClaim] = useState<HistoryClaim | null>(null);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [dateRange, setDateRange] = useState("All Time");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [claims, setClaims] = useState<HistoryClaim[]>([]);
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     getRawReimbursements().then((raw) => {
@@ -88,7 +90,7 @@ export default function HistoryPage() {
     });
   }, []);
 
-  async function handleSelectClaim(claim: HistoryClaim) {
+  const handleSelectClaim = useCallback(async (claim: HistoryClaim) => {
     setIsLoadingDetail(true);
     try {
       const raw = await getRawReimbursement(claim.id);
@@ -100,7 +102,14 @@ export default function HistoryPage() {
       setIsLoadingDetail(false);
     }
     setSelectedClaim(claim);
-  }
+  }, []);
+
+  useEffect(() => {
+    const claimId = searchParams.get("claimId");
+    if (!claimId || claims.length === 0) return;
+    const match = claims.find((c) => c.id === claimId);
+    if (match) handleSelectClaim(match);
+  }, [claims, searchParams, handleSelectClaim]);
 
   // Filter claims based on the selected filters
   const filteredClaims = useMemo(() => {
@@ -180,5 +189,13 @@ export default function HistoryPage() {
         isLoading={isLoadingDetail}
       />
     </main>
+  );
+}
+
+export default function HistoryPage() {
+  return (
+    <Suspense fallback={<div className="min-h-dvh flex items-center justify-center">Loading...</div>}>
+      <HistoryPageContent />
+    </Suspense>
   );
 }

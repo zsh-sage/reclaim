@@ -1,9 +1,10 @@
 "use client";
 import { useParams, useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 import { ArrowLeft, AlertTriangle, Clock, ShieldCheck, ShieldX, ChevronDown, ZoomIn, Pencil, FileText, ExternalLink, Download, X, Loader2 } from "lucide-react";
-import { ClaimBundle, LineItem, MOCK_BUNDLES } from "../../hr_components/mockData";
+import type { ClaimBundle } from "@/lib/api/types";
+import { MOCK_BUNDLES } from "../../hr_components/mockData";
 import { CheckCircle2, LayoutDashboard } from "lucide-react";
 import { SuccessModal } from "../../hr_components/SuccessModal";
 import { useAuth } from "@/context/AuthContext";
@@ -187,8 +188,8 @@ function ClaimFormModal({
                 <tr className="bg-gray-50 text-gray-500 uppercase text-[10px] tracking-wider">
                   <th className="text-left py-2 px-3 border border-gray-200 font-semibold w-16">Ref</th>
                   <th className="text-left py-2 px-3 border border-gray-200 font-semibold">Category / Audit Notes</th>
-                  <th className="text-right py-2 px-3 border border-gray-200 font-semibold w-28">Requested (RM)</th>
-                  <th className="text-right py-2 px-3 border border-gray-200 font-semibold w-28">Approved (RM)</th>
+                  <th className="text-right py-2 px-3 border border-gray-200 font-semibold w-28">Requested (MYR)</th>
+                  <th className="text-right py-2 px-3 border border-gray-200 font-semibold w-28">Approved (MYR)</th>
                   <th className="text-center py-2 px-3 border border-gray-200 font-semibold w-24">Status</th>
                 </tr>
               </thead>
@@ -291,7 +292,7 @@ export default function ReviewPage() {
   const { user } = useAuth();
 
   const [bundle, setBundle] = useState<ClaimBundle | undefined | null>(undefined); // undefined = loading
-  const [approvals, setApprovals] = useState<Record<string, number>>({});
+  const [approvals, setApprovals] = useState<Record<string, string>>({});
   const [decision, setDecision] = useState<Decision>(null);
   const [note, setNote] = useState("");
   const [auditOpen, setAuditOpen] = useState(false);
@@ -301,27 +302,26 @@ export default function ReviewPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
+  const didInitRef = useRef(false);
+
   useEffect(() => {
     const fallback = MOCK_BUNDLES[id];
     getHRClaimBundle(id)
       .then((b) => {
-        const resolved = b ?? fallback ?? null;
-        setBundle(resolved);
-        if (resolved) {
-          setApprovals(Object.fromEntries(
-            resolved.line_items.map(li => [li.document_id, li.approved_amount])
-          ));
-        }
+        setBundle(b ?? fallback ?? null);
       })
       .catch(() => {
         setBundle(fallback ?? null);
-        if (fallback) {
-          setApprovals(Object.fromEntries(
-            fallback.line_items.map(li => [li.document_id, li.approved_amount])
-          ));
-        }
       });
   }, [id]);
+
+  useEffect(() => {
+    if (!bundle || didInitRef.current) return;
+    didInitRef.current = true;
+    setApprovals(Object.fromEntries(
+      bundle.line_items.map(li => [li.document_id, String(li.approved_amount ?? 0)])
+    ));
+  }, [bundle]);
 
   if (bundle === undefined) return (
     <div className="flex items-center justify-center min-h-[60vh] gap-3 text-on-surface-variant">
@@ -338,13 +338,13 @@ export default function ReviewPage() {
   );
 
   const pct = Math.round(bundle.confidence * 100);
-  const netHR = Object.values(approvals).reduce((a, b) => a + b, 0);
+  const netHR = Object.values(approvals).reduce((sum, s) => sum + (parseFloat(s) || 0), 0);
   const allFlags = bundle.line_items.flatMap(li => li.audit_notes.map(n => ({ ...n, receipt: li.description })));
 
   function preset(mode: "full" | "ai" | "zero") {
     setApprovals(Object.fromEntries(bundle!.line_items.map(li => [
       li.document_id,
-      mode === "full" ? li.requested_amount : mode === "ai" ? li.approved_amount : 0,
+      String(mode === "full" ? li.requested_amount : mode === "ai" ? li.approved_amount : 0),
     ])));
   }
 
@@ -355,7 +355,7 @@ export default function ReviewPage() {
     const status = decision === "reject" ? "REJECTED" : "APPROVED";
     const lineItems = bundle!.line_items.map(li => ({
       line_item_id: li.line_item_id ?? li.document_id,
-      approved_amount: approvals[li.document_id] ?? li.approved_amount,
+      approved_amount: parseFloat(approvals[li.document_id] || "0"),
     }));
     const res = await updateReimbursementStatus(bundle!.id, status, user!.user_id, {
       lineItems,
@@ -596,9 +596,24 @@ export default function ReviewPage() {
                   <div className="flex items-center bg-surface-container-low rounded-lg ring-1 ring-outline-variant/20 focus-within:ring-primary/40 px-2 py-1.5 w-28 shrink-0 transition-all">
                     <span className="text-[10px] text-on-surface-variant mr-1">MYR</span>
                     <input
-                      type="number" min={0} max={li.requested_amount}
-                      value={approvals[li.document_id] ?? 0}
-                      onChange={e => setApprovals(p => ({ ...p, [li.document_id]: parseFloat(e.target.value) || 0 }))}
+                      type="text"
+                      inputMode="decimal"
+                      value={approvals[li.document_id] ?? ""}
+                      onChange={e => {
+                        const raw = e.target.value;
+                        if (raw === "") {
+                          setApprovals(p => ({ ...p, [li.document_id]: "" }));
+                          return;
+                        }
+                        // Allow only digits and at most one decimal point
+                        const cleaned = raw.replace(/[^0-9.]/g, "").replace(/\.(?=.*\.)/g, "");
+                        setApprovals(p => ({ ...p, [li.document_id]: cleaned }));
+                      }}
+                      onBlur={() => {
+                        const raw = approvals[li.document_id] ?? "";
+                        const num = raw === "" ? 0 : parseFloat(raw) || 0;
+                        setApprovals(p => ({ ...p, [li.document_id]: String(Math.max(0, num)) }));
+                      }}
                       className="w-full bg-transparent text-xs font-semibold text-on-surface outline-none tabular-nums"
                     />
                   </div>

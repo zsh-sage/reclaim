@@ -2,10 +2,14 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
 import { getNotifications, markAllNotificationsRead } from "@/lib/actions/notifications";
 import type { Notification } from "@/lib/api/types";
-import { Search, Upload, Bell, HelpCircle, CheckCircle2, AlertCircle, Info, FileText } from "lucide-react";
+import { Search, Upload, Bell, HelpCircle, CheckCircle2, AlertCircle, Info } from "lucide-react";
+
+let _notifCache: { data: Notification[]; ts: number } | null = null;
+const NOTIF_TTL_MS = 15_000;
 
 /* ─── Icon map for notification types ────────────────── */
 const NOTIF_ICON_MAP: Record<Notification["type"], { icon: typeof CheckCircle2; bg: string; text: string }> = {
@@ -27,9 +31,17 @@ export default function TopNav() {
   // Click outside ref for notifications
   const notifRef = useRef<HTMLDivElement>(null);
 
-  // Fetch notifications via server action
+  // Fetch notifications — skip if cache is still fresh
   useEffect(() => {
-    getNotifications().then(setNotifications);
+    const now = Date.now();
+    if (_notifCache && now - _notifCache.ts < NOTIF_TTL_MS) {
+      setNotifications(_notifCache.data);
+      return;
+    }
+    getNotifications().then((data) => {
+      _notifCache = { data, ts: Date.now() };
+      setNotifications(data);
+    });
   }, []);
 
   useEffect(() => {
@@ -46,7 +58,11 @@ export default function TopNav() {
 
   async function handleMarkAllRead() {
     await markAllNotificationsRead();
-    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    setNotifications((prev) => {
+      const updated = prev.map((n) => ({ ...n, isRead: true }));
+      _notifCache = { data: updated, ts: Date.now() };
+      return updated;
+    });
     setShowNotifications(false);
   }
 
@@ -58,9 +74,12 @@ export default function TopNav() {
       <div className="flex items-center justify-between px-4 md:px-6 py-3 md:py-4 w-full max-w-screen-2xl mx-auto gap-3">
 
         {/* ── Left: Brand (mobile) ─────────────────── */}
-        <span className="lg:hidden text-xl font-extrabold bg-linear-to-r from-primary to-tertiary bg-clip-text text-transparent font-headline tracking-tight">
-          Reclaim
-        </span>
+        <div className="lg:hidden flex items-center gap-2">
+          <Image src="/images/logo.svg" alt="Reclaim Logo" width={24} height={24} className="w-6 h-6 object-contain" />
+          <span className="text-xl font-extrabold bg-linear-to-r from-primary to-tertiary bg-clip-text text-transparent font-headline tracking-tight">
+            Reclaim
+          </span>
+        </div>
 
         {/* ── Center: Search bar (md+) ──────────────── */}
         <div className="flex-1 max-w-sm hidden md:block relative z-60">
@@ -82,30 +101,17 @@ export default function TopNav() {
               className="w-full bg-surface-container-lowest/70 backdrop-blur-sm border border-outline-variant/30 text-on-surface text-sm rounded-xl py-2.5 pl-10 pr-4 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all placeholder:text-on-surface-variant/50"
             />
             
-            {/* Mock Search Dropdown */}
+            {/* Search hint */}
             {searchFocused && searchQuery.length > 0 && (
               <div className="absolute top-full mt-2 w-full bg-surface border border-outline-variant/20 rounded-xl shadow-lg overflow-hidden animate-in fade-in slide-in-from-top-2">
-                <div className="p-2 border-b border-outline-variant/10">
-                  <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider px-2">Top Results</p>
-                </div>
-                <Link href="/employee/history" className="flex items-center gap-3 p-3 hover:bg-surface-container-low transition-colors" onClick={() => setSearchQuery("")}>
-                  <div className="p-2 bg-surface-variant rounded-lg"><FileText className="w-4 h-4 text-on-surface-variant" /></div>
-                  <div>
-                    <h4 className="text-sm font-bold text-on-surface">Claim #RC-8892</h4>
-                    <p className="text-xs text-on-surface-variant">Travel • Flight</p>
-                  </div>
-                </Link>
-                <Link href="/employee/history" className="flex items-center gap-3 p-3 hover:bg-surface-container-low transition-colors border-t border-outline-variant/5" onClick={() => setSearchQuery("")}>
-                  <div className="p-2 bg-surface-variant rounded-lg"><FileText className="w-4 h-4 text-on-surface-variant" /></div>
-                  <div>
-                    <h4 className="text-sm font-bold text-on-surface">Claim #RC-8885</h4>
-                    <p className="text-xs text-on-surface-variant">Equipment • Laptop</p>
-                  </div>
-                </Link>
-                <div className="p-3 bg-surface-container-lowest border-t border-outline-variant/10 text-center">
-                  <Link href="/employee/history" className="text-xs font-bold text-primary hover:underline" onClick={() => setSearchQuery("")}>
-                    See all results for &quot;{searchQuery}&quot;
-                  </Link>
+                <div className="p-4 text-center">
+                  <Search className="w-5 h-5 text-on-surface-variant/40 mx-auto mb-1.5" />
+                  <p className="text-[10px] font-bold text-primary uppercase tracking-wider mb-1">
+                    Every receipt reviewed. Every decision yours.
+                  </p>
+                  <p className="text-xs text-on-surface-variant">
+                    Press Enter to search your claims history
+                  </p>
                 </div>
               </div>
             )}
@@ -155,9 +161,11 @@ export default function TopNav() {
                     const iconConfig = NOTIF_ICON_MAP[notif.type];
                     const IconComponent = iconConfig.icon;
                     return (
-                      <div
+                      <button
                         key={notif.id}
-                        className={`flex gap-3 p-4 border-b border-outline-variant/5 hover:bg-surface-container-lowest transition-colors cursor-pointer ${
+                        type="button"
+                        role="menuitem"
+                        className={`w-full text-left flex gap-3 p-4 border-b border-outline-variant/5 hover:bg-surface-container-lowest transition-colors cursor-pointer ${
                           !notif.isRead ? "bg-tertiary/5 hover:bg-tertiary/10" : ""
                         }`}
                         onClick={() => setShowNotifications(false)}
@@ -175,7 +183,7 @@ export default function TopNav() {
                           <p className="text-xs text-on-surface-variant mt-0.5 leading-relaxed">{notif.message}</p>
                           <span className="text-[10px] font-bold text-on-surface-variant/50 mt-1 block">{notif.timestamp}</span>
                         </div>
-                      </div>
+                      </button>
                     );
                   })}
                 </div>

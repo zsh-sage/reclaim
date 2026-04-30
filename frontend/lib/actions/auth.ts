@@ -9,6 +9,21 @@ import { cookies } from "next/headers";
 import { apiGet, apiPostForm, API_PREFIX } from "@/lib/api/client";
 import type { User } from "@/lib/api/types";
 
+function mapUser(raw: Record<string, unknown>): User {
+  return {
+    user_id: raw.user_id as string,
+    email: raw.email as string,
+    name: raw.name as string,
+    role: raw.role as "HR" | "Employee",
+    department_id: (raw.department_id as string) ?? null,
+    department_name: (raw.department_name as string) ?? null,
+    user_code: (raw.user_code as string) ?? null,
+    rank: (raw.rank as number) ?? 0,
+    privilege_level: raw.privilege_level as string | undefined,
+    is_active: (raw.is_active as boolean) ?? true,
+  };
+}
+
 const API_URL = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 /**
@@ -49,19 +64,7 @@ export async function login(
 
     const raw = userResult.data;
     if (!raw.user_id) return { user: null, error: "Malformed user profile response" };
-    const user: User = {
-      user_id: raw.user_id,
-      email: raw.email,
-      name: raw.name,
-      role: raw.role,
-      department_id: raw.department_id ?? null,
-      department_name: raw.department_name ?? null, // backend returns department name from joined query
-      user_code: raw.user_code ?? null,
-      rank: raw.rank ?? 0,
-      privilege_level: raw.privilege_level,
-      is_active: raw.is_active ?? true,
-    };
-    return { user, error: null };
+    return { user: mapUser(raw), error: null };
   } catch (err) {
     const message = err instanceof Error ? err.message : "An unexpected error occurred";
     return { user: null, error: message };
@@ -92,18 +95,7 @@ export async function getCurrentUser(): Promise<User | null> {
 
     const raw = result.data;
     if (!raw.user_id) return null;
-    return {
-      user_id: raw.user_id,
-      email: raw.email,
-      name: raw.name,
-      role: raw.role,
-      department_id: raw.department_id ?? null,
-      department_name: raw.department_name ?? null,
-      user_code: raw.user_code ?? null,
-      rank: raw.rank ?? 0,
-      privilege_level: raw.privilege_level,
-      is_active: raw.is_active ?? true,
-    };
+    return mapUser(raw);
   } catch {
     return null;
   }

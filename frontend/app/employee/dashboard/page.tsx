@@ -53,6 +53,9 @@ export default function EmployeeDashboardPage() {
             <h2 className="font-headline text-3xl md:text-4xl font-extrabold text-on-surface tracking-tight mb-1.5">
               Welcome back, {firstName}.
             </h2>
+            <p className="text-on-surface-variant font-body text-sm font-medium italic opacity-80">
+              Every receipt reviewed. Every decision yours.
+            </p>
           </div>
 
           {/* Current date pill — visible on md+ */}
@@ -71,21 +74,21 @@ export default function EmployeeDashboardPage() {
       >
         <StatCard
           label="Awaiting Review"
-          value={stats?.awaitingReview.amount ?? "$—"}
+          value={stats?.awaitingReview.amount ?? "MYR —"}
           subtext={`${stats?.awaitingReview.count ?? 0} claims processing`}
           icon={History}
           variant="pending"
         />
         <StatCard
           label="Reimbursed This Month"
-          value={stats?.reimbursedThisMonth.amount ?? "$—"}
+          value={stats?.reimbursedThisMonth.amount ?? "MYR —"}
           subtext={`${stats?.reimbursedThisMonth.count ?? 0} claims settled`}
           icon={CheckCircle2}
           variant="approved"
         />
         <StatCard
           label="Already Paid"
-          value={stats?.alreadyPaid.amount ?? "$—"}
+          value={stats?.alreadyPaid.amount ?? "MYR —"}
           subtext={`${stats?.alreadyPaid.count ?? 0} claims paid`}
           icon={CreditCard}
           variant="paid"
