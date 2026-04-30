@@ -123,7 +123,7 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 
 ## Key Design Constraints
 
-- **Human-in-the-loop required:** No claim reaches `APPROVED`/`REJECTED` status without an explicit HR action. The AI produces a `judgment` field; the `status` field reflects the final HR decision.
+- **Human-in-the-loop required:** No claim reaches `APPROVED`/`REJECTED` status without an explicit HR action, **EXCEPT** when the HR "Auto-Reimbursement" setting is enabled, in which case 100% AI-approved claims automatically bypass manual review and resolve to `APPROVED`. Otherwise, the AI produces a `judgment` field, and the `status` field reflects the final HR decision.
 - **Fraud trap is immutable:** When an employee edits an AI-extracted field, `human_edited=True` and the `change_summary` JSONB are written once and never overwritten. Do not add update paths for these fields.
 - **Pipeline failures default to MANUAL_REVIEW:** Any unhandled exception in the Compliance Agent must resolve to `MANUAL_REVIEW`, not a dropped claim. This is enforced in the final `save_reimbursement` node.
 - **GLM-5.1 is deactivated:** The `check_glm_health()` call in `main.py` and ILMU API references remain in the codebase but are bypassed. Do not remove the dead code — it may be re-enabled when upstream stabilizes.

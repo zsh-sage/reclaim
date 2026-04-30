@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { 
   Users, 
   Search, 
@@ -85,11 +86,16 @@ function EmployeeModal({
   onClose: () => void;
   employee?: Employee | null;
 }) {
-  if (!isOpen) return null;
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!isOpen || !mounted) return null;
 
   const isEdit = !!employee;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 sm:p-6">
       {/* Overlay */}
       <div 
@@ -102,7 +108,7 @@ function EmployeeModal({
         <div className="px-8 py-6 border-b border-outline-variant/10 flex items-center justify-between bg-surface-container-low/50">
           <div>
             <h3 className="font-headline font-bold text-xl text-on-surface">
-              {isEdit ? "Edit Employee" : "Create New Employee"}
+              {isEdit ? "Edit Employee" : "Add Employee"}
             </h3>
             <p className="text-xs text-on-surface-variant mt-1">
               {isEdit ? `Modifying details for ${employee.name}` : "Fill in the details to register a new member."}
@@ -212,12 +218,13 @@ function EmployeeModal({
               type="submit"
               className="flex-2 px-10 py-3.5 bg-primary text-on-primary rounded-xl font-headline font-bold text-sm hover:bg-primary-dim transition-all shadow-[0_8px_24px_rgba(70,71,211,0.25)] cursor-pointer"
             >
-              {isEdit ? "Save Changes" : "Create Employee"}
+              {isEdit ? "Save Changes" : "Add Employee"}
             </button>
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -275,7 +282,7 @@ export default function ManageEmployeePage() {
             className="flex items-center justify-center gap-2 rounded-xl h-12 px-6 bg-gradient-to-r from-primary to-primary-dim text-on-primary font-body text-base font-semibold transition-all hover:shadow-[0_8px_30px_rgba(70,71,211,0.4)] hover:scale-[0.98] active:scale-95 cursor-pointer"
           >
             <Plus className="w-5 h-5" />
-            Create New Employee
+            Add Employee
           </button>
         </div>
 
