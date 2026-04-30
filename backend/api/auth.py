@@ -1,3 +1,4 @@
+import logging
 from datetime import timedelta
 from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -24,7 +25,10 @@ def login_access_token(
     statement = select(User).where(User.email == form_data.username)
     user = db.exec(statement).first()
     
-    if not user or not security.verify_password(form_data.password, user.hashed_password):
+    if not user:
+        logging.warning(f"Login failed: User not found for email {form_data.username}")
+    elif not security.verify_password(form_data.password, user.hashed_password):
+        logging.warning(f"Login failed: Incorrect password for email {form_data.username}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",

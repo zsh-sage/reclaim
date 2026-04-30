@@ -3,17 +3,20 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Upload, History, User } from "lucide-react";
+import { Home, Upload, History, ClipboardList, User } from "lucide-react";
+import { getDraftCount } from "@/lib/actions/claims";
 
 const NAV_ITEMS = [
-  { href: "/employee/dashboard", label: "Home",         icon: Home    },
-  { href: "/employee/claims",    label: "Upload Claim", icon: Upload  },
-  { href: "/employee/history",   label: "History",      icon: History },
-  { href: "/employee/settings",   label: "Profile",      icon: User    },
+  { href: "/employee/dashboard", label: "Home",         icon: Home         },
+  { href: "/employee/claims",    label: "Upload Claim", icon: Upload       },
+  { href: "/employee/drafts",    label: "Drafts",       icon: ClipboardList },
+  { href: "/employee/history",   label: "History",      icon: History      },
+  { href: "/employee/settings",  label: "Profile",      icon: User         },
 ];
 
 export default function BottomNav() {
   const pathname = usePathname();
+  const [draftCount, setDraftCount] = useState(0);
 
   // Hide while the camera modal is open (CameraModal adds/removes this class)
   const [cameraOpen, setCameraOpen] = useState(false);
@@ -24,6 +27,11 @@ export default function BottomNav() {
     observer.observe(document.body, { attributes: true, attributeFilter: ["class"] });
     return () => observer.disconnect();
   }, []);
+
+  // Fetch draft count
+  useEffect(() => {
+    getDraftCount().then(count => setDraftCount(count));
+  }, [pathname]);
 
   if (cameraOpen) return null;
 
@@ -36,12 +44,13 @@ export default function BottomNav() {
       <div className="flex justify-around items-center px-2 py-3 h-16 max-w-lg mx-auto">
         {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
           const isActive = pathname === href || pathname.startsWith(`${href}/`);
+          const isDrafts = label === "Drafts";
           return (
             <Link
               key={href}
               href={href}
               aria-current={isActive ? "page" : undefined}
-              className={`flex flex-col items-center justify-center gap-1 px-5 py-2 rounded-2xl transition-all duration-200 ${
+              className={`relative flex flex-col items-center justify-center gap-1 px-5 py-2 rounded-2xl transition-all duration-200 ${
                 isActive
                   ? "text-primary bg-primary/10 scale-110"
                   : "text-on-surface/50 hover:text-on-surface"
@@ -54,6 +63,11 @@ export default function BottomNav() {
               <span className="text-[10px] font-label font-semibold uppercase tracking-wider">
                 {label}
               </span>
+              {isDrafts && draftCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 bg-primary text-on-primary text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center shadow-sm">
+                  {draftCount > 9 ? "9+" : draftCount}
+                </span>
+              )}
             </Link>
           );
         })}

@@ -447,3 +447,38 @@ export interface AnalyzeResponse {
   message: string;
   task_id?: string;
 }
+
+// ─── Claim Drafts ─────────────────────────────────────────────────────────────
+
+/** Lightweight draft summary (for list views / sidebar). */
+export interface DraftSummary {
+  draft_id: string;
+  user_id: string;
+  title: string | null;
+  main_category: string | null;
+  receipt_count: number;
+  failed_receipt_count: number;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+/** Full draft data (for loading/resuming a claim). */
+export interface DraftFull extends DraftSummary {
+  settlement_id: string | null;
+  draft_data: Record<string, unknown>;
+}
+
+/** Request body for POST /api/v1/drafts/ */
+export interface DraftSaveRequest {
+  title?: string | null;
+  main_category?: string | null;
+  settlement_id?: string | null;
+  draft_data: Record<string, unknown>;
+  receipt_count: number;
+  failed_receipt_count: number;
+}
+
+/** Response for GET /api/v1/drafts/count */
+export interface DraftCountResponse {
+  count: number;
+}

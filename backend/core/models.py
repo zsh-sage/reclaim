@@ -558,3 +558,52 @@ class DocumentChangeLog(SQLModel, table=True):
         default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(DateTime(timezone=True))
     )
+
+
+# ---------------------------------------------------------------------------
+# 14. claim_drafts
+# ---------------------------------------------------------------------------
+
+class ClaimDraft(SQLModel, table=True):
+    __tablename__ = "claim_drafts"
+
+    draft_id: UUID = Field(
+        default_factory=uuid4,
+        primary_key=True
+    )
+    user_id: UUID = Field(
+        foreign_key="employees.user_id",
+        index=True
+    )
+    title: Optional[str] = Field(
+        default=None,
+        sa_column=Column(String)
+    )
+    main_category: Optional[str] = Field(
+        default=None,
+        sa_column=Column(String)
+    )
+    settlement_id: Optional[UUID] = Field(
+        default=None,
+        foreign_key="travel_settlements.settlement_id"
+    )
+    draft_data: dict = Field(
+        default={},
+        sa_column=Column(JSONB)
+    )
+    receipt_count: int = Field(
+        default=0,
+        sa_column=Column(Integer, nullable=False)
+    )
+    failed_receipt_count: int = Field(
+        default=0,
+        sa_column=Column(Integer, nullable=False)
+    )
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(DateTime(timezone=True))
+    )
+    updated_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(DateTime(timezone=True))
+    )

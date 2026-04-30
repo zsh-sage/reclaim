@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import {
   ChevronDown,
   FileText,
@@ -16,6 +17,7 @@ import {
   Pencil,
   Check,
   X,
+  AlertTriangle,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -37,7 +39,7 @@ import { SuccessModal, type SuccessType } from "./_components/SuccessModal";
 
 // ─── Server Actions ───────────────────────────────────────────────────────────
 import { getPolicies } from "@/lib/actions/policies";
-import { uploadDocuments, editDocument, analyzeCompliance } from "@/lib/actions/claims";
+import { uploadDocuments, editDocument, analyzeCompliance, saveDraft, updateDraft, loadDraft } from "@/lib/actions/claims";
 import type { Policy, SubCategoryConfig, AnalyzeResponse, DocumentUploadResponse } from "@/lib/api/types";
 
 // ─── SSE ─────────────────────────────────────────────────────────────────────
@@ -456,7 +458,10 @@ function BatchDropzone({ isFull, isLoading, onAdd, inputRef, cameraRef }: BatchD
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
-export default function CaptureReceiptPage() {
+function CaptureReceiptContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
   // ── Stage ──────────────────────────────────────────────────────────────────
   const [stage, setStage] = useState<Stage>("form");
 
@@ -513,15 +518,79 @@ export default function CaptureReceiptPage() {
   }, []);
 
   // ── Success modal ──────────────────────────────────────────────────────────
-
-  // ── Success modal ──────────────────────────────────────────────────────────
   const [showSuccess, setShowSuccess] = useState(false);
+
+  // ── Draft state ────────────────────────────────────────────────────────────
+  const [isSavingDraft, setIsSavingDraft]         = useState(false);
+  const [draftSaved, setDraftSaved]               = useState(false);
+  const [loadedDraftId, setLoadedDraftId]         = useState<string | null>(null);
+  /**
+   * Ref mirror of loadedDraftId — written synchronously so click handlers
+   * can never read a stale null due to React batching or render timing.
+   */
+  const loadedDraftIdRef                           = useRef<string | null>(null);
+  /** Always call this instead of setLoadedDraftId directly. */
+  function setDraftId(id: string | null) {
+    loadedDraftIdRef.current = id; // synchronous — safe to read in any handler
+    setLoadedDraftId(id);
+  }
+  /**
+   * Explicit dirty flag — true only after the USER makes a change.
+   * Computed state caused bugs: loading a draft immediately triggered the guard,
+   * and saving could never clear it.
+   */
+  const [isDirty, setIsDirty]                     = useState(false);
+
+  // ── Unsaved-changes guard state ────────────────────────────────────────────
+  const [showLeaveModal, setShowLeaveModal]       = useState(false);
+  const [leaveModalStep, setLeaveModalStep]       = useState<"confirm" | "name">("confirm");
+  /**
+   * "leaving"  → triggered by nav interception; after save, navigate to pendingNavHref.
+   * "saving"   → triggered by the explicit Save Draft button; after save, just close.
+   */
+  const [leaveModalMode, setLeaveModalMode]       = useState<"leaving" | "saving">("leaving");
+  const [pendingNavHref, setPendingNavHref]       = useState<string | null>(null);
+  const [pendingDraftTitle, setPendingDraftTitle] = useState("");
+  const [isSavingLeave, setIsSavingLeave]         = useState(false);
+  /** Names of original File objects (can't serialise blobs — shown in resume banner) */
+  const [restoredFileNames, setRestoredFileNames] = useState<string[]>([]);
 
   // ── Derived ────────────────────────────────────────────────────────────────
   const selectedMain = policyData.find(d => d.title === mainCategory);
   const canProcess = files.length > 0 && mainCategory !== "";
   const isFull = files.length >= MAX_FILES;
   const activeFile = files.find(f => f.id === activeDocId) ?? null;
+
+  // ── Browser refresh / tab-close guard ─────────────────────────────────────
+  useEffect(() => {
+    if (!isDirty) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [isDirty]);
+
+  // ── In-app navigation intercept (captures <a> clicks in sidebar / bottom nav)
+  useEffect(() => {
+    if (!isDirty) return;
+    const handleClick = (e: MouseEvent) => {
+      const anchor = (e.target as HTMLElement).closest("a");
+      if (!anchor) return;
+      const href = anchor.getAttribute("href");
+      // Ignore same-page links or fragment/query links
+      if (!href || href === "/employee/claims" || href.startsWith("#") || href.startsWith("?")) return;
+      e.preventDefault();
+      e.stopPropagation();
+      setPendingNavHref(href);
+      setLeaveModalStep("confirm");
+      setPendingDraftTitle("");
+      setShowLeaveModal(true);
+    };
+    document.addEventListener("click", handleClick, true); // capture phase
+    return () => document.removeEventListener("click", handleClick, true);
+  }, [isDirty]);
 
   // ── File handlers ──────────────────────────────────────────────────────────
   async function handleAddFiles(rawFiles: File[]) {
@@ -552,15 +621,14 @@ export default function CaptureReceiptPage() {
       previewUrl: URL.createObjectURL(f),
       type: f.type,
     }));
-    // Store actual File objects for later upload
     processed.forEach((f, idx) => fileMapRef.current.set(added[idx].id, f));
     setFiles(prev => {
       const next = [...prev, ...added].slice(0, MAX_FILES);
-      // auto-select the first newly uploaded file
       if (added.length > 0) setActiveDocId(added[0].id);
       return next;
     });
     setIsLoading(false);
+    setIsDirty(true); // user added files
   }
 
   function handleRemoveFile(id: string) {
@@ -569,13 +637,13 @@ export default function CaptureReceiptPage() {
       const target = prev.find(f => f.id === id);
       if (target?.previewUrl) URL.revokeObjectURL(target.previewUrl);
       const next = prev.filter(f => f.id !== id);
-      // If we removed the active doc, select the previous one (or null)
       if (activeDocId === id) {
         const idx = prev.findIndex(f => f.id === id);
         setActiveDocId(next[Math.max(0, idx - 1)]?.id ?? null);
       }
       return next;
     });
+    setIsDirty(true); // user removed a file
   }
 
   function handleRenameFile(id: string, newName: string) {
@@ -585,15 +653,14 @@ export default function CaptureReceiptPage() {
   // ── Real OCR via backend upload (with SSE live progress) ───────────────────
   function handleProcessResult(result: any, fileNames: string[]) {
     setSettlementId(result.settlement_id);
-    setDocumentIds((result.receipts as any[])?.map((r: any) => r.document_id) || []);
     setCompletedNames(fileNames);
     setProcessingIndex(fileNames.length - 1);
     setProcessingStep(3);
 
-    // Map backend receipts → OcrReceiptData
-    const mappedReceipts: OcrReceiptData[] = ((result.receipts as any[]) || []).map((r: any, idx: number) => ({
+    // Map successful receipts
+    const successReceipts: OcrReceiptData[] = ((result.receipts as any[]) || []).map((r: any, idx: number) => ({
       receiptIndex: idx,
-      success: (r.warnings || []).length === 0,
+      success: true,
       expenseDate: r.date ?? "",
       merchant: (r.extracted_data?.merchant_name as string) ?? r.description ?? "",
       transport: r.transportation ?? 0,
@@ -602,6 +669,27 @@ export default function CaptureReceiptPage() {
       others: r.others ?? 0,
       notes: r.description ?? "",
     }));
+
+    // Map failed/skipped receipts — these were previously dropped entirely
+    const skippedReceipts: OcrReceiptData[] = ((result.skipped_receipts as any[]) || []).map((r: any, idx: number) => ({
+      receiptIndex: successReceipts.length + idx,
+      success: false,
+      expenseDate: r.date ?? "",
+      merchant: (r.extracted_data?.merchant_name as string) ?? r.description ?? "",
+      transport: r.transportation ?? 0,
+      accommodation: r.accommodation ?? 0,
+      meals: r.meals ?? 0,
+      others: r.others ?? 0,
+      notes: r.description ?? "",
+    }));
+
+    // Merge both — successful first, then failed (for display order)
+    const mappedReceipts = [...successReceipts, ...skippedReceipts];
+
+    // Collect document IDs from both successful and skipped receipts
+    const successIds = ((result.receipts as any[]) || []).map((r: any) => r.document_id).filter(Boolean);
+    const skippedIds = ((result.skipped_receipts as any[]) || []).map((r: any) => r.document_id).filter(Boolean);
+    setDocumentIds([...successIds, ...skippedIds]);
 
     originalOcrRef.current = mappedReceipts.map(r => ({ ...r }));
     setOcrReceipts(mappedReceipts);
@@ -784,12 +872,162 @@ export default function CaptureReceiptPage() {
     setCompletedNames([]);
     setCurrentStage("");
     setStageData(undefined);
+    setDraftId(null);
+    setDraftSaved(false);
+    setRestoredFileNames([]);
+    setIsDirty(false); // reset guard — form is now clean
   }
 
   function handleSubmitAnother() {
     setShowSuccess(false);
     resetAll();
     setStage("form");
+  }
+
+  // ── Draft: Save / Update ────────────────────────────────────────────────────
+  /**
+   * Persists the current form state as a draft.
+   * - If `loadedDraftId` is set  → PUT (update existing, no title change needed).
+   * - Otherwise                  → POST (create new, `customTitle` required).
+   * Returns true on success, false on error.
+   */
+  async function handleSaveDraft(customTitle?: string): Promise<boolean> {
+    setIsSavingDraft(true);
+    setDraftSaved(false);
+
+    const fileNames = files.map(f => f.name);
+    const draftData: Record<string, unknown> = {
+      ocrReceipts, claimContext, settlementId,
+      documentIds, employeeData, mainCategory, stage, fileNames,
+    };
+    const failedCount = ocrReceipts.filter(r => !r.success).length;
+    const payload = {
+      main_category: mainCategory || null,
+      settlement_id: settlementId || null,
+      draft_data: draftData,
+      receipt_count: ocrReceipts.length,
+      failed_receipt_count: failedCount,
+    };
+
+    let result;
+    const currentDraftId = loadedDraftIdRef.current; // read ref — always current
+    if (currentDraftId) {
+      // Scenario C — updating an existing draft silently
+      result = await updateDraft(currentDraftId, payload);
+    } else {
+      // New draft — needs a title
+      const today = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      result = await saveDraft({ ...payload, title: customTitle?.trim() || `Draft — ${today}` });
+    }
+
+    setIsSavingDraft(false);
+
+    if ("error" in result) {
+      setSubmitError(result.error);
+      return false;
+    }
+    setDraftSaved(true);
+    setIsDirty(false);
+    if (!currentDraftId) setDraftId((result as any).draft_id);
+    setTimeout(() => setDraftSaved(false), 3000);
+    return true;
+  }
+
+  /**
+   * Called by the explicit "Save Draft" button.
+   * - Existing draft → silent update (no name prompt).
+   * - New draft      → open naming dialog.
+   */
+  function handleSaveDraftButton() {
+    const currentDraftId = loadedDraftIdRef.current;
+    console.log('[Draft] Save button clicked. Current draft ID:', currentDraftId);
+    if (currentDraftId) {
+      // Existing draft — silent update, no name prompt
+      handleSaveDraft();
+    } else {
+      // New draft — ask for a name
+      setLeaveModalMode("saving");
+      setLeaveModalStep("name");
+      setPendingDraftTitle("");
+      setPendingNavHref(null);
+      setShowLeaveModal(true);
+    }
+  }
+
+  // ── Draft: Load from query param ────────────────────────────────────────────
+  const handleLoadDraft = useCallback(async (draftId: string) => {
+    const result = await loadDraft(draftId);
+    if ("error" in result) {
+      setSubmitError(result.error);
+      return;
+    }
+
+    const data = result.draft_data as Record<string, unknown>;
+    setDraftId(result.draft_id);
+
+    if (result.main_category) setMainCategory(result.main_category);
+    if (result.settlement_id) setSettlementId(result.settlement_id);
+    if (data.documentIds) setDocumentIds(data.documentIds as string[]);
+    if (data.claimContext) setClaimContext(data.claimContext as ClaimContext);
+    if (data.employeeData) setEmployeeData(data.employeeData as DbEmployee);
+
+    console.log('[Draft] Loaded draft ID:', result.draft_id, '— loadedDraftIdRef:', loadedDraftIdRef.current);
+
+    // Store original file names so we can show a re-upload banner
+    if (data.fileNames) setRestoredFileNames(data.fileNames as string[]);
+
+    if (data.ocrReceipts) {
+      const receipts = data.ocrReceipts as OcrReceiptData[];
+      setOcrReceipts(receipts);
+      originalOcrRef.current = receipts.map(r => ({ ...r }));
+    }
+
+    // Restore to the saved stage (verification if OCR was done)
+    const savedStage = data.stage as Stage | undefined;
+    if (savedStage === "verification" && data.ocrReceipts) {
+      setStage("verification");
+    } else {
+      setStage("form");
+    }
+    setIsDirty(false); // loading a draft → start clean, guard only fires after user edits
+
+    // Strip the ?draft_id= query param so the URL is clean and this effect
+    // doesn't re-fire on every subsequent re-render (which would reset loadedDraftId).
+    if (typeof window !== "undefined") {
+      const clean = window.location.pathname;
+      window.history.replaceState(null, "", clean);
+    }
+  }, []);
+
+  useEffect(() => {
+    const draftId = searchParams.get("draft_id");
+    if (draftId) {
+      handleLoadDraft(draftId);
+    }
+  }, [searchParams, handleLoadDraft]);
+
+  // ── Leave / Save modal handlers ────────────────────────────────────────────
+  async function handleSaveAndLeave() {
+    // Existing draft: no title input needed — ref holds the ID synchronously.
+    // New draft: title must have been entered in the name step.
+    if (!loadedDraftIdRef.current && !pendingDraftTitle.trim()) return;
+    setIsSavingLeave(true);
+    const ok = await handleSaveDraft(pendingDraftTitle || undefined);
+    setIsSavingLeave(false);
+    if (!ok) return;
+    setShowLeaveModal(false);
+    if (leaveModalMode === "leaving" && pendingNavHref) {
+      resetAll();
+      router.push(pendingNavHref);
+    }
+    // "saving" mode → just close, stay on page
+  }
+
+  function handleDiscardAndLeave() {
+    setShowLeaveModal(false);
+    const href = pendingNavHref;
+    resetAll();
+    if (href) router.push(href);
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -821,6 +1059,22 @@ export default function CaptureReceiptPage() {
           </div>
         )}
 
+        {/* ── Re-upload banner (shown when resuming a form-stage draft) ───────── */}
+        {loadedDraftId && stage === "form" && restoredFileNames.length > 0 && files.length === 0 && (
+          <div className="rounded-2xl border border-amber-200/70 bg-amber-50/80 px-4 py-3.5 flex items-start gap-3">
+            <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" strokeWidth={1.75} />
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-amber-800 font-headline">
+                Receipt files need to be re-added
+              </p>
+              <p className="text-xs text-amber-700 font-body mt-0.5 leading-relaxed">
+                Draft restored — but uploaded files can’t be stored in a draft.
+                Please re-add: <span className="font-semibold">{restoredFileNames.join(", ")}</span>
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* ── Stage Router ──────────────────────────────────────────────────── */}
 
         {stage === "processing" && (
@@ -848,8 +1102,8 @@ export default function CaptureReceiptPage() {
               mainCategory={mainCategory}
               ocrReceipts={ocrReceipts}
               claimContext={claimContext}
-              onClaimContextChange={setClaimContext}
-              onReceiptsChange={setOcrReceipts}
+              onClaimContextChange={ctx => { setClaimContext(ctx); setIsDirty(true); }}
+              onReceiptsChange={receipts => { setOcrReceipts(receipts); setIsDirty(true); }}
               onBack={() => setStage("form")}
               onSubmit={handleSubmit}
               isSubmitting={isSubmitting}
@@ -883,7 +1137,7 @@ export default function CaptureReceiptPage() {
               <CustomSelect
                 options={policyData.map(d => d.title)}
                 value={mainCategory}
-                onChange={v => { setMainCategory(v); setFiles([]); setActiveDocId(null); }}
+                onChange={v => { setMainCategory(v); setFiles([]); setActiveDocId(null); setIsDirty(true); }}
                 placeholder="Select a category…"
               />
               {selectedMain && (
@@ -997,9 +1251,17 @@ export default function CaptureReceiptPage() {
             <div className="flex flex-row items-center gap-3 pt-4 border-t border-outline-variant/15 w-full max-w-2xl lg:max-w-none">
               <button
                 id="save-draft-btn"
-                className="flex-1 px-6 py-3 rounded-xl font-semibold text-on-surface-variant bg-surface-container hover:bg-surface-container-high active:scale-[0.97] transition-all duration-200 font-body text-sm text-center"
+                onClick={handleSaveDraftButton}
+                disabled={isSavingDraft || (!mainCategory && files.length === 0 && ocrReceipts.length === 0)}
+                className={`flex-1 px-6 py-3 rounded-xl font-semibold text-sm font-body text-center transition-all duration-200 ${
+                  draftSaved
+                    ? "bg-green-100 text-green-700 border border-green-300"
+                    : isSavingDraft
+                    ? "bg-surface-container text-on-surface-variant/50 cursor-wait"
+                    : "text-on-surface-variant bg-surface-container hover:bg-surface-container-high active:scale-[0.97]"
+                }`}
               >
-                Save Draft
+                {isSavingDraft ? "Saving…" : draftSaved ? "✓ Draft Saved!" : "Save Draft"}
               </button>
               <button
                 id="process-receipts-btn"
@@ -1024,6 +1286,141 @@ export default function CaptureReceiptPage() {
       {showSuccess && (
         <SuccessModal type={"claim" as SuccessType} onSubmitAnother={handleSubmitAnother} />
       )}
+
+      {/* ── Leave / Unsaved-Changes Modal ───────────────────────────────────── */}
+      {showLeaveModal && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+          style={{ backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", background: "rgba(15,15,25,0.45)" }}
+        >
+          <div className="w-full max-w-sm bg-surface-container-lowest rounded-3xl shadow-[0_32px_80px_-16px_rgba(0,0,0,0.35)] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+
+            {leaveModalStep === "confirm" ? (
+              /* Step 1 — confirm save or discard */
+              <div className="flex flex-col">
+                {/* Icon header */}
+                <div className="flex flex-col items-center pt-8 pb-5 px-6">
+                  <div className="w-14 h-14 rounded-2xl bg-amber-100 flex items-center justify-center mb-4">
+                    <AlertTriangle className="w-7 h-7 text-amber-500" strokeWidth={1.75} />
+                  </div>
+                  <h3 className="text-lg font-bold text-on-surface font-headline text-center">
+                    You have unsaved changes
+                  </h3>
+                  <p className="text-sm text-on-surface-variant font-body text-center mt-1.5 leading-relaxed">
+                    Do you want to save this as a draft before leaving? You can resume it later from the Drafts tab.
+                  </p>
+                </div>
+
+                {/* Divider */}
+                <div className="h-px bg-outline-variant/10 mx-6" />
+
+                {/* Actions */}
+                <div className="flex flex-col gap-2.5 p-5">
+                  <button
+                    id="leave-modal-save-btn"
+                    onClick={() => {
+                      setLeaveModalMode("leaving");
+                      if (loadedDraftIdRef.current) {
+                        // Existing draft — save silently without asking for a name
+                        handleSaveAndLeave();
+                      } else {
+                        // New draft — must enter a name first
+                        setLeaveModalStep("name");
+                      }
+                    }}
+                    className="w-full py-3.5 rounded-2xl bg-primary text-on-primary font-semibold text-sm font-body shadow-[0_4px_16px_rgba(70,71,211,0.3)] hover:shadow-[0_6px_24px_rgba(70,71,211,0.4)] hover:scale-[1.02] active:scale-[0.97] transition-all duration-200"
+                  >
+                    Save Draft
+                  </button>
+                  <button
+                    id="leave-modal-discard-btn"
+                    onClick={handleDiscardAndLeave}
+                    className="w-full py-3 rounded-2xl text-error font-semibold text-sm font-body hover:bg-error/8 active:scale-[0.97] transition-all duration-200"
+                  >
+                    Discard & Leave
+                  </button>
+                  <button
+                    id="leave-modal-cancel-btn"
+                    onClick={() => setShowLeaveModal(false)}
+                    className="w-full py-2.5 rounded-2xl text-on-surface-variant font-medium text-sm font-body hover:bg-surface-container active:scale-[0.97] transition-all duration-200"
+                  >
+                    Stay on this page
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* Step 2 — name input (new draft) or hidden (existing draft auto-saves) */
+              <div className="flex flex-col">
+                <div className="flex flex-col pt-8 pb-5 px-6">
+                  {leaveModalMode === "leaving" && (
+                    <button
+                      onClick={() => setLeaveModalStep("confirm")}
+                      className="self-start text-xs font-semibold text-on-surface-variant hover:text-on-surface mb-4 flex items-center gap-1 active:scale-95 transition-all"
+                    >
+                      ← Back
+                    </button>
+                  )}
+                  <h3 className="text-lg font-bold text-on-surface font-headline">
+                    Name your draft
+                  </h3>
+                  <p className="text-sm text-on-surface-variant font-body mt-1 mb-5 leading-relaxed">
+                    Give it a meaningful name so you can find it easily later.
+                  </p>
+
+                  <input
+                    id="draft-title-input"
+                    type="text"
+                    autoFocus
+                    value={pendingDraftTitle}
+                    onChange={e => setPendingDraftTitle(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter" && pendingDraftTitle.trim()) handleSaveAndLeave(); }}
+                    placeholder="e.g. Kuching Trip — April 2026"
+                    className="w-full bg-surface-container-low border border-outline-variant/30 rounded-2xl px-4 py-3 text-sm text-on-surface font-body focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 transition-all placeholder:text-on-surface-variant/40"
+                  />
+                </div>
+
+                <div className="h-px bg-outline-variant/10 mx-6" />
+
+                <div className="flex gap-2.5 p-5">
+                  <button
+                    onClick={() => setShowLeaveModal(false)}
+                    className="flex-1 py-3 rounded-2xl bg-surface-container text-on-surface-variant font-semibold text-sm font-body hover:bg-surface-container-high active:scale-[0.97] transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    id="draft-save-confirm-btn"
+                    onClick={handleSaveAndLeave}
+                    disabled={(!loadedDraftId && !pendingDraftTitle.trim()) || isSavingLeave}
+                    className={`flex-1 py-3 rounded-2xl font-semibold text-sm font-body transition-all duration-200 ${
+                      (loadedDraftId || pendingDraftTitle.trim()) && !isSavingLeave
+                        ? "bg-primary text-on-primary shadow-[0_4px_16px_rgba(70,71,211,0.3)] hover:scale-[1.02] active:scale-[0.97]"
+                        : "bg-primary/30 text-on-primary/60 cursor-not-allowed"
+                    }`}
+                  >
+                    {isSavingLeave ? "Saving…" : leaveModalMode === "saving" ? "Save Draft" : "Save & Leave"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
+  );
+}
+
+export default function CaptureReceiptPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen bg-surface-container-lowest">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-10 h-10 text-primary animate-spin" />
+          <p className="text-sm font-medium text-on-surface-variant font-body">Loading Capture Receipts...</p>
+        </div>
+      </div>
+    }>
+      <CaptureReceiptContent />
+    </Suspense>
   );
 }

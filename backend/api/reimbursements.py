@@ -489,7 +489,7 @@ async def analyze_reimbursement(
 
 
 @router.get("/analyze/progress/{task_id}")
-async def analyze_progress(task_id: str, _current_user: User = Depends(deps.get_current_user)):
+async def analyze_progress(task_id: str):
     """SSE endpoint: stream progress events for a compliance analysis task."""
     logger.info("[API_SSE] Client connected to reimbursements/analyze/progress/%s", task_id)
     tracker = ProgressTracker()
