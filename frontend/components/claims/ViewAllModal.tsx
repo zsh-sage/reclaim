@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { X, Search, SlidersHorizontal } from "lucide-react";
 import type { Claim } from "@/lib/api/types";
 import { ClaimRow } from "./ClaimRow";
@@ -26,8 +25,6 @@ export function ViewAllModal({
   claims: Claim[];
   actionLabel: string;
 }) {
-  const router = useRouter();
-
   const [query, setQuery] = useState("");
   const [filters, setFilters] = useState<FilterState>(EMPTY_FILTERS);
   const [filterOpen, setFilterOpen] = useState(false);

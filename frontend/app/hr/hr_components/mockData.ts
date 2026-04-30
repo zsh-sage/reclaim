@@ -50,4 +50,3 @@ export const POLICY_STATUS_STYLE: Record<PolicyStatus, string> = {
 };
 
 export const MOCK_POLICY_DETAILS: PolicyDetail[] = [];
-

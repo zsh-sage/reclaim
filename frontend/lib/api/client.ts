@@ -32,7 +32,6 @@ async function getAuthHeaders(): Promise<HeadersInit> {
 /** Convert a fetch Response into an ApiResult. */
 async function handleResponse<T>(res: Response): Promise<ApiResult<T>> {
   if (!res.ok) {
-    // Attempt to extract a message from the JSON body
     let message = `${res.status}: ${res.statusText}`;
     try {
       const body = await res.json();
@@ -43,7 +42,6 @@ async function handleResponse<T>(res: Response): Promise<ApiResult<T>> {
     return { data: null, error: message };
   }
 
-  // 204 No Content — success with no body
   if (res.status === 204) {
     return { data: null as unknown as T, error: null };
   }
@@ -140,8 +138,6 @@ export async function apiPostMultipart<T>(path: string, formData: FormData, init
   const token = cookieStore.get("session")?.value;
   const headers: HeadersInit = {
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    // Note: Do NOT set Content-Type. The browser/fetch automatically sets it
-    // to multipart/form-data with the correct boundary when body is FormData.
   };
 
   return safeFetch<T>(`${API_URL}${path}`, {

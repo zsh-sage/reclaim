@@ -1,4 +1,5 @@
 import type { AiStatus, Claim } from "@/lib/api/types";
+
 /** Derive the unique set of values for a given key across a claim list. */
 export function uniqueValues<K extends keyof Claim>(claims: Claim[], key: K): string[] {
   return Array.from(new Set(claims.map((c) => String(c[key])))).sort();
