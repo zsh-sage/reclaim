@@ -5,18 +5,20 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Upload, History, ClipboardList, User } from "lucide-react";
 import { getDraftCount } from "@/lib/actions/claims";
+import MobileNavDrawer from "./MobileNavDrawer";
 
 const NAV_ITEMS = [
   { href: "/employee/dashboard", label: "Home",         icon: Home         },
-  { href: "/employee/claims",    label: "Upload Claim", icon: Upload       },
+  { href: "/employee/claims",    label: "Upload",       icon: Upload       },
   { href: "/employee/drafts",    label: "Drafts",       icon: ClipboardList },
   { href: "/employee/history",   label: "History",      icon: History      },
-  { href: "/employee/settings",  label: "Profile",      icon: User         },
+  { href: "profile-drawer",      label: "Profile",      icon: User         },
 ];
 
 export default function BottomNav() {
   const pathname = usePathname();
   const [draftCount, setDraftCount] = useState(0);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   // Hide while the camera modal is open (CameraModal adds/removes this class)
   const [cameraOpen, setCameraOpen] = useState(false);
@@ -33,45 +35,89 @@ export default function BottomNav() {
     getDraftCount().then(count => setDraftCount(count));
   }, [pathname]);
 
+  // Listen for TopNav avatar click (mobile only)
+  useEffect(() => {
+    const handler = () => {
+      if (typeof window !== "undefined" && window.innerWidth < 1024) {
+        setDrawerOpen(true);
+      }
+    };
+    window.addEventListener("open-mobile-nav-drawer", handler);
+    return () => window.removeEventListener("open-mobile-nav-drawer", handler);
+  }, []);
+
   if (cameraOpen) return null;
 
+  const profileActive = pathname === "/employee/settings" || pathname.startsWith("/employee/settings/");
+
   return (
-    /* FAB exception: `fixed` is allowed here per layout constraints */
-    <nav
-      aria-label="Mobile bottom navigation"
-      className="lg:hidden fixed bottom-0 inset-x-0 z-50 bg-white/85 backdrop-blur-2xl border-t border-outline-variant/10 rounded-t-3xl shadow-[0_-8px_32px_rgba(0,0,0,0.06)]"
-    >
-      <div className="flex justify-around items-center px-2 py-3 h-16 max-w-lg mx-auto">
-        {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
-          const isActive = pathname === href || pathname.startsWith(`${href}/`);
-          const isDrafts = label === "Drafts";
-          return (
-            <Link
-              key={href}
-              href={href}
-              aria-current={isActive ? "page" : undefined}
-              className={`relative flex flex-col items-center justify-center gap-1 px-5 py-2 rounded-2xl transition-all duration-200 ${
-                isActive
-                  ? "text-primary bg-primary/10 scale-110"
-                  : "text-on-surface/50 hover:text-on-surface"
-              }`}
-            >
-              <Icon
-                className="w-[22px] h-[22px]"
-                strokeWidth={isActive ? 2.5 : 1.5}
-              />
-              <span className="text-[10px] font-label font-semibold uppercase tracking-wider">
-                {label}
-              </span>
-              {isDrafts && draftCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 bg-primary text-on-primary text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center shadow-sm">
-                  {draftCount > 9 ? "9+" : draftCount}
+    <>
+      <MobileNavDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
+
+      {/* FAB exception: `fixed` is allowed here per layout constraints */}
+      <nav
+        aria-label="Mobile bottom navigation"
+        className="lg:hidden fixed bottom-0 inset-x-0 z-50 bg-white/85 backdrop-blur-2xl border-t border-outline-variant/10 rounded-t-3xl shadow-[0_-8px_32px_rgba(0,0,0,0.06)]"
+      >
+        <div className="flex justify-around items-center px-1 py-2 h-16 max-w-lg mx-auto">
+          {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+            const isDrawerTrigger = href === "profile-drawer";
+            const isActive = isDrawerTrigger
+              ? profileActive || drawerOpen
+              : pathname === href || pathname.startsWith(`${href}/`);
+            const isDrafts = label === "Drafts";
+
+            const content = (
+              <>
+                <Icon
+                  className="w-[22px] h-[22px]"
+                  strokeWidth={isActive ? 2.5 : 1.5}
+                />
+                <span className="text-[10px] font-label font-semibold uppercase tracking-wider whitespace-nowrap max-w-[64px] overflow-hidden text-ellipsis">
+                  {label}
                 </span>
-              )}
-            </Link>
-          );
-        })}
-      </div>
-    </nav>
+                {isDrafts && draftCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 bg-primary text-on-primary text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center shadow-sm">
+                    {draftCount > 9 ? "9+" : draftCount}
+                  </span>
+                )}
+              </>
+            );
+
+            if (isDrawerTrigger) {
+              return (
+                <button
+                  key={href}
+                  onClick={() => setDrawerOpen(true)}
+                  className={`relative flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-2xl transition-all duration-200 ${
+                    isActive
+                      ? "text-primary bg-primary/10 scale-110"
+                      : "text-on-surface/50 hover:text-on-surface"
+                  }`}
+                  aria-label="Open profile menu"
+                >
+                  {content}
+                </button>
+              );
+            }
+
+            return (
+              <Link
+                key={href}
+                href={href}
+                aria-current={isActive ? "page" : undefined}
+                className={`relative flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-2xl transition-all duration-200 ${
+                  isActive
+                    ? "text-primary bg-primary/10 scale-110"
+                    : "text-on-surface/50 hover:text-on-surface"
+                }`}
+              >
+                {content}
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
+    </>
   );
 }

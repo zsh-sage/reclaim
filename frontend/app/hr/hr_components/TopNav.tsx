@@ -46,15 +46,19 @@ export default function TopNav() {
             <HelpCircle className="w-5 h-5" strokeWidth={1.75} />
           </button>
 
-          {/* Avatar */}
-          <div
-            role="button"
-            tabIndex={0}
-            aria-label="Open profile"
+          {/* Avatar: opens mobile drawer on <lg */}
+          <button
+            id="topnav-profile-btn"
+            onClick={() => {
+              if (typeof window !== "undefined" && window.innerWidth < 1024) {
+                window.dispatchEvent(new CustomEvent("open-mobile-nav-drawer"));
+              }
+            }}
+            aria-label="Open profile menu"
             className="ml-1 h-9 w-9 rounded-full bg-linear-to-br from-primary-container to-tertiary-container shrink-0 flex items-center justify-center font-headline font-bold text-sm text-on-primary-container border-2 border-surface-container-lowest shadow-sm cursor-pointer hover:shadow-md hover:scale-105 transition-all"
           >
             {user?.name?.charAt(0).toUpperCase() ?? "U"}
-          </div>
+          </button>
         </div>
 
       </div>
