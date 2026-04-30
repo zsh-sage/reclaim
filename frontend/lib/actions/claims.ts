@@ -4,7 +4,7 @@
 // Handles fetching claims list, claim details, OCR processing, and submission.
 // ──────────────────────────────────────────────────────────────────────────────
 
-import { apiGet, apiPost, apiPostMultipart, API_PREFIX } from "@/lib/api/client";
+import { apiGet, apiPost, apiPut, apiDelete, apiPostMultipart, API_PREFIX } from "@/lib/api/client";
 import type {
   ClaimSummary,
   DetailedClaim,
@@ -14,6 +14,10 @@ import type {
   EditDocumentResponse,
   AnalyzeRequest,
   AnalyzeResponse,
+  DraftSummary,
+  DraftFull,
+  DraftSaveRequest,
+  DraftCountResponse,
 } from "@/lib/api/types";
 import { mapReimbursementToClaim } from "@/lib/api/types";
 
@@ -94,3 +98,70 @@ export async function analyzeCompliance(
     return { error: err instanceof Error ? err.message : "Analysis failed" };
   }
 }
+
+// ─── Draft Actions ───────────────────────────────────────────────────────────
+
+/** Get the number of drafts for the current user (sidebar badge). */
+export async function getDraftCount(): Promise<number> {
+  try {
+    const result = await apiGet<DraftCountResponse>(`${API_PREFIX}/drafts/count`);
+    return result.data?.count ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
+/** List all drafts for the current user (summary only, no full data). */
+export async function listDrafts(): Promise<DraftSummary[]> {
+  try {
+    const result = await apiGet<DraftSummary[]>(`${API_PREFIX}/drafts/`);
+    return result.data ?? [];
+  } catch {
+    return [];
+  }
+}
+
+/** Load a specific draft with full data (for resuming a claim). */
+export async function loadDraft(draftId: string): Promise<DraftFull | { error: string }> {
+  try {
+    const result = await apiGet<DraftFull>(`${API_PREFIX}/drafts/${draftId}`);
+    if (result.error) return { error: result.error };
+    return result.data!;
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to load draft" };
+  }
+}
+
+/** Save a new draft. */
+export async function saveDraft(data: DraftSaveRequest): Promise<DraftFull | { error: string }> {
+  try {
+    const result = await apiPost<DraftFull>(`${API_PREFIX}/drafts/`, data);
+    if (result.error) return { error: result.error };
+    return result.data!;
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to save draft" };
+  }
+}
+
+/** Update an existing draft. */
+export async function updateDraft(draftId: string, data: Partial<DraftSaveRequest>): Promise<DraftFull | { error: string }> {
+  try {
+    const result = await apiPut<DraftFull>(`${API_PREFIX}/drafts/${draftId}`, data);
+    if (result.error) return { error: result.error };
+    return result.data!;
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to update draft" };
+  }
+}
+
+/** Delete a draft. */
+export async function deleteDraft(draftId: string): Promise<{ error?: string }> {
+  try {
+    const result = await apiDelete<void>(`${API_PREFIX}/drafts/${draftId}`);
+    if (result.error) return { error: result.error };
+    return {};
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to delete draft" };
+  }
+}
+

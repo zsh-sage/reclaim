@@ -305,3 +305,47 @@ class SupportingDocumentListItem(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# =============================================================================
+# Claim Draft Schemas
+# =============================================================================
+
+class ClaimDraftCreate(BaseModel):
+    title: Optional[str] = None
+    main_category: Optional[str] = None
+    settlement_id: Optional[str] = None
+    draft_data: dict = {}
+    receipt_count: int = 0
+    failed_receipt_count: int = 0
+
+
+class ClaimDraftUpdate(BaseModel):
+    title: Optional[str] = None
+    main_category: Optional[str] = None
+    settlement_id: Optional[str] = None
+    draft_data: Optional[dict] = None
+    receipt_count: Optional[int] = None
+    failed_receipt_count: Optional[int] = None
+
+
+class ClaimDraftSummary(BaseModel):
+    draft_id: UUID
+    user_id: UUID
+    title: Optional[str] = None
+    main_category: Optional[str] = None
+    receipt_count: int = 0
+    failed_receipt_count: int = 0
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class ClaimDraftFull(ClaimDraftSummary):
+    settlement_id: Optional[UUID] = None
+    draft_data: dict = {}
+
+    class Config:
+        from_attributes = True
