@@ -1,15 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
+  Inbox,
+  Search,
   ClipboardList,
   AlertCircle,
   Trash2,
   ArrowRight,
   FileText,
   Loader2,
-  Inbox,
 } from "lucide-react";
 import { listDrafts, deleteDraft } from "@/lib/actions/claims";
 import type { DraftSummary } from "@/lib/api/types";
@@ -19,6 +20,7 @@ export default function DraftsPage() {
   const [drafts, setDrafts] = useState<DraftSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     listDrafts().then((d) => {
@@ -26,6 +28,16 @@ export default function DraftsPage() {
       setLoading(false);
     });
   }, []);
+
+  const filteredDrafts = useMemo(() => {
+    if (!searchQuery.trim()) return drafts;
+    const q = searchQuery.toLowerCase();
+    return drafts.filter(
+      (d) =>
+        d.title?.toLowerCase().includes(q) ||
+        d.main_category?.toLowerCase().includes(q)
+    );
+  }, [drafts, searchQuery]);
 
   async function handleDelete(draftId: string) {
     setDeletingId(draftId);
@@ -53,21 +65,41 @@ export default function DraftsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 max-w-3xl mx-auto w-full px-4 lg:px-0 pt-8">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-          <ClipboardList className="w-5 h-5 text-primary" strokeWidth={1.75} />
-        </div>
-        <div>
-          <h2 className="text-xl font-bold text-on-surface font-headline tracking-tight">
+    <div className="px-4 pt-6 pb-24 md:px-8 md:pt-8 md:pb-12 lg:px-12 lg:pt-10 lg:pb-10 max-w-screen-xl mx-auto w-full">
+      {/* Ambient gradient blob */}
+      <div
+        aria-hidden
+        className="pointer-events-none fixed -top-24 -left-24 w-96 h-96 rounded-full bg-linear-to-br from-primary/15 to-tertiary/10 blur-3xl z-0"
+      />
+
+      <div className="relative z-10 flex flex-col gap-6 w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
+        {/* Header */}
+        <div className="flex flex-col gap-1">
+          <h2
+            className="font-headline font-extrabold text-3xl md:text-4xl text-on-surface tracking-tight"
+            style={{ letterSpacing: "-0.02em" }}
+          >
             Saved Drafts
           </h2>
-          <p className="text-sm text-on-surface-variant font-body">
+          <p className="text-base text-on-surface-variant font-body leading-relaxed">
             Resume incomplete claim submissions.
           </p>
         </div>
-      </div>
+
+        {/* ── Localized Search Bar ── */}
+        <div className="relative max-w-md w-full">
+          <Search
+            className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant/50"
+            strokeWidth={2}
+          />
+          <input
+            type="search"
+            placeholder="Search drafts by title or policy…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-surface-container-lowest border border-outline-variant/30 text-on-surface text-sm rounded-xl py-2.5 pl-10 pr-4 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all placeholder:text-on-surface-variant/40 shadow-sm"
+          />
+        </div>
 
       {/* Loading */}
       {loading && (
@@ -101,7 +133,7 @@ export default function DraftsPage() {
       {/* Draft list */}
       {!loading && drafts.length > 0 && (
         <div className="flex flex-col gap-3">
-          {drafts.map((draft) => {
+          {filteredDrafts.map((draft) => {
             const isDeleting = deletingId === draft.draft_id;
             const hasFailed = draft.failed_receipt_count > 0;
 
@@ -126,9 +158,9 @@ export default function DraftsPage() {
                     <FileText className="w-5 h-5" strokeWidth={1.75} />
                   </div>
 
-                  {/* Content */}
+                  {/* Left Content Container: Title & Policy */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
+                    <div className="flex items-center gap-2 mb-1">
                       <p className="text-sm font-semibold text-on-surface font-headline truncate">
                         {draft.title || "Untitled Draft"}
                       </p>
@@ -139,47 +171,49 @@ export default function DraftsPage() {
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center text-xs text-on-surface-variant font-body w-full">
-                      {draft.main_category && (
-                        <span className="bg-surface-container px-2 py-0.5 rounded-md font-medium truncate min-w-0 mr-3">
+                    {draft.main_category && (
+                      <div className="flex">
+                        <span className="bg-surface-container-low px-2 py-0.5 rounded-md text-[11px] font-medium text-on-surface-variant truncate max-w-[360px]">
                           {draft.main_category}
                         </span>
-                      )}
-                      <div className="flex items-center shrink-0">
-                        <span className="whitespace-nowrap">
-                          {draft.receipt_count} receipt
-                          {draft.receipt_count !== 1 ? "s" : ""}
-                        </span>
-                        <span className="mx-2">&bull;</span>
-                        <span className="whitespace-nowrap">{formatDate(draft.updated_at)}</span>
                       </div>
-                    </div>
+                    )}
                   </div>
 
-                  {/* Actions */}
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button
-                      onClick={() => handleDelete(draft.draft_id)}
-                      disabled={isDeleting}
-                      className="w-9 h-9 rounded-xl flex items-center justify-center text-on-surface-variant hover:bg-error/10 hover:text-error active:scale-90 transition-all"
-                      aria-label="Delete draft"
-                    >
-                      {isDeleting ? (
-                        <Loader2
-                          className="w-4 h-4 animate-spin"
-                          strokeWidth={2}
-                        />
-                      ) : (
-                        <Trash2 className="w-4 h-4" strokeWidth={1.75} />
-                      )}
-                    </button>
-                    <button
-                      onClick={() => handleResume(draft.draft_id)}
-                      className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-on-primary text-sm font-semibold font-body shadow-[0_2px_8px_rgba(70,71,211,0.2)] hover:shadow-[0_4px_16px_rgba(70,71,211,0.3)] hover:scale-[1.02] active:scale-[0.97] transition-all"
-                    >
-                      Resume
-                      <ArrowRight className="w-3.5 h-3.5" strokeWidth={2} />
-                    </button>
+                  {/* Right Content: Metadata & Actions */}
+                  <div className="flex items-center gap-6 shrink-0">
+                    <div className="hidden sm:flex items-center text-xs text-on-surface-variant font-body">
+                      <span className="whitespace-nowrap">
+                        {draft.receipt_count} receipt{draft.receipt_count !== 1 ? "s" : ""}
+                      </span>
+                      <span className="mx-2 opacity-30">&bull;</span>
+                      <span className="whitespace-nowrap">{formatDate(draft.updated_at)}</span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleDelete(draft.draft_id)}
+                        disabled={isDeleting}
+                        className="w-9 h-9 rounded-xl flex items-center justify-center text-on-surface-variant hover:bg-error/10 hover:text-error active:scale-90 transition-all"
+                        aria-label="Delete draft"
+                      >
+                        {isDeleting ? (
+                          <Loader2
+                            className="w-4 h-4 animate-spin"
+                            strokeWidth={2}
+                          />
+                        ) : (
+                          <Trash2 className="w-4 h-4" strokeWidth={1.75} />
+                        )}
+                      </button>
+                      <button
+                        onClick={() => handleResume(draft.draft_id)}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-on-primary text-sm font-semibold font-body shadow-[0_2px_8px_rgba(70,71,211,0.2)] hover:shadow-[0_4px_16px_rgba(70,71,211,0.3)] hover:scale-[1.02] active:scale-[0.97] transition-all"
+                      >
+                        Resume
+                        <ArrowRight className="w-3.5 h-3.5" strokeWidth={2} />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -187,6 +221,7 @@ export default function DraftsPage() {
           })}
         </div>
       )}
+      </div>
     </div>
   );
 }

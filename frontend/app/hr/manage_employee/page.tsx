@@ -247,25 +247,24 @@ export default function ManageEmployeePage() {
   };
 
   return (
-    <div className="min-h-full p-6 md:p-10 lg:p-12">
-      {/* Background Decorative Orbs */}
+    <div className="relative min-h-full p-6 md:p-10 lg:p-12">
+      {/* Ambient glow */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-primary opacity-[0.05] blur-[100px]" />
-        <div className="absolute top-1/2 -left-24 w-72 h-72 rounded-full bg-tertiary opacity-[0.04] blur-[80px]" />
+        <div className="absolute -top-20 -right-20 w-[480px] h-[480px] rounded-full bg-primary opacity-[0.07] blur-[80px]" />
+        <div className="absolute top-32 right-40 w-[320px] h-[320px] rounded-full bg-tertiary opacity-[0.06] blur-[64px]" />
+        <div className="absolute -top-8 right-[15%] w-[200px] h-[200px] rounded-full bg-primary-container opacity-[0.12] blur-[48px]" />
       </div>
 
-      <div className="">
+      <div className="relative z-10">
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-primary/10 rounded-lg">
-                <Users className="w-6 h-6 text-primary" />
-              </div>
-              <h2 className="font-headline font-extrabold text-on-background tracking-tight text-4xl">
-                Manage Employees
-              </h2>
-            </div>
+          <div className="max-w-2xl">
+            <h2 
+              className="font-headline font-extrabold text-on-background mb-2 tracking-tight"
+              style={{ fontSize: "2.5rem", letterSpacing: "-0.02em" }}
+            >
+              Manage Employees
+            </h2>
             <p className="text-on-surface-variant text-lg font-body">
               View, edit, and manage employee access and profiles.
             </p>
@@ -273,7 +272,7 @@ export default function ManageEmployeePage() {
 
           <button 
             onClick={handleCreate}
-            className="flex items-center justify-center gap-2 px-6 py-3.5 bg-primary text-on-primary rounded-xl font-headline font-bold text-sm hover:bg-primary-dim active:scale-[0.98] transition-all shadow-[0_8px_24px_rgba(70,71,211,0.25)] cursor-pointer"
+            className="flex items-center justify-center gap-2 rounded-xl h-12 px-6 bg-gradient-to-r from-primary to-primary-dim text-on-primary font-body text-base font-semibold transition-all hover:shadow-[0_8px_30px_rgba(70,71,211,0.4)] hover:scale-[0.98] active:scale-95 cursor-pointer"
           >
             <Plus className="w-5 h-5" />
             Create New Employee
@@ -283,17 +282,24 @@ export default function ManageEmployeePage() {
         {/* Stats Summary */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
           {[
-            { label: "Total Employees", value: MOCK_EMPLOYEES.length, icon: Users, color: "text-primary", bg: "bg-primary/10" },
-            { label: "HR Admins", value: MOCK_EMPLOYEES.filter(e => e.role === "HR").length, icon: Building2, color: "text-amber-600", bg: "bg-amber-50" },
+            { label: "Total Employees", value: MOCK_EMPLOYEES.length, color: "text-primary", bg: "bg-primary/5", hoverBg: "group-hover:bg-primary/15", hoverShadow: "hover:shadow-[0_16px_48px_-12px_rgba(70,71,211,0.12)]" },
+            { label: "HR Admins", value: MOCK_EMPLOYEES.filter(e => e.role === "HR").length, color: "text-amber-600", bg: "bg-amber-500/5", hoverBg: "group-hover:bg-amber-500/15", hoverShadow: "hover:shadow-[0_16px_48px_-12px_rgba(245,158,11,0.12)]" },
           ].map((stat, i) => (
-            <div key={i} className="bg-surface-container-lowest border border-outline-variant/10 rounded-2xl p-5 flex items-center gap-4 shadow-sm">
-              <div className={`p-3 ${stat.bg} ${stat.color} rounded-xl`}>
-                <stat.icon className="w-5 h-5" />
+            <div key={i} className={`bg-surface-container-lowest/70 backdrop-blur-2xl rounded-xl p-6 shadow-[0_8px_40px_-12px_rgba(44,47,49,0.06)] relative overflow-hidden group ${stat.hoverShadow} hover:-translate-y-0.5 transition-all duration-300`}>
+              <div className="relative z-10">
+                <p className="text-xs font-semibold font-headline text-on-surface-variant tracking-widest uppercase mb-2">
+                  {stat.label}
+                </p>
+                <div className="flex items-end gap-3">
+                  <span className="text-4xl font-extrabold font-headline text-on-surface">
+                    {stat.value}
+                  </span>
+                  <span className="text-sm text-on-surface-variant font-medium mb-1">
+                    active members
+                  </span>
+                </div>
               </div>
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant mb-0.5">{stat.label}</p>
-                <p className="text-2xl font-black text-on-surface">{stat.value}</p>
-              </div>
+              <div className={`absolute -bottom-6 -right-6 w-36 h-36 ${stat.bg} rounded-full blur-2xl ${stat.hoverBg} group-hover:scale-110 transition-all duration-500`} />
             </div>
           ))}
         </div>
@@ -328,16 +334,16 @@ export default function ManageEmployeePage() {
         </div>
 
         {/* Employee Table */}
-        <div className="bg-surface-container-lowest border border-outline-variant/10 rounded-2xl overflow-hidden shadow-ambient-lg">
+        <div className="bg-surface-container-lowest/80 backdrop-blur-xl rounded-xl shadow-[0_12px_60px_-15px_rgba(44,47,49,0.08)] overflow-hidden relative z-10">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-surface-container-low/40 border-b border-outline-variant/10">
-                  <th className="py-4 px-6 text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Employee</th>
-                  <th className="py-4 px-6 text-[11px] font-bold uppercase tracking-wider text-on-surface-variant hidden md:table-cell">Department</th>
-                  <th className="py-4 px-6 text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Role</th>
-                  <th className="py-4 px-6 text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Status</th>
-                  <th className="py-4 px-6 text-[11px] font-bold uppercase tracking-wider text-on-surface-variant text-right">Action</th>
+                <tr className="bg-surface-container-low/50">
+                  <th className="py-4 px-6 text-xs font-semibold font-headline text-on-surface-variant uppercase tracking-wider">Employee</th>
+                  <th className="py-4 px-6 text-xs font-semibold font-headline text-on-surface-variant uppercase tracking-wider hidden md:table-cell">Department</th>
+                  <th className="py-4 px-6 text-xs font-semibold font-headline text-on-surface-variant uppercase tracking-wider">Role</th>
+                  <th className="py-4 px-6 text-xs font-semibold font-headline text-on-surface-variant uppercase tracking-wider">Status</th>
+                  <th className="py-4 px-6 text-xs font-semibold font-headline text-on-surface-variant uppercase tracking-wider text-right">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/5">

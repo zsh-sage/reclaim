@@ -23,8 +23,6 @@ export default function TopNav() {
   const { user } = useAuth();
   
   // States for search and dropdowns
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchFocused, setSearchFocused] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
@@ -81,42 +79,8 @@ export default function TopNav() {
           </span>
         </div>
 
-        {/* ── Center: Search bar (md+) ──────────────── */}
-        <div className="flex-1 max-w-sm hidden md:block relative z-60">
-          <div className={`relative group transition-all duration-300 ${searchFocused ? "max-w-md" : ""}`}>
-            <Search
-              className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors duration-200 ${
-                searchFocused ? "text-primary" : "text-outline-variant"
-              }`}
-              strokeWidth={1.75}
-            />
-            <input
-              id="topnav-search-input"
-              type="search"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onFocus={() => setSearchFocused(true)}
-              onBlur={() => setTimeout(() => setSearchFocused(false), 200)} // Delay so click registers
-              placeholder="Search claims, IDs, categories…"
-              className="w-full bg-surface-container-lowest/70 backdrop-blur-sm border border-outline-variant/30 text-on-surface text-sm rounded-xl py-2.5 pl-10 pr-4 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all placeholder:text-on-surface-variant/50"
-            />
-            
-            {/* Search hint */}
-            {searchFocused && searchQuery.length > 0 && (
-              <div className="absolute top-full mt-2 w-full bg-surface border border-outline-variant/20 rounded-xl shadow-lg overflow-hidden animate-in fade-in slide-in-from-top-2">
-                <div className="p-4 text-center">
-                  <Search className="w-5 h-5 text-on-surface-variant/40 mx-auto mb-1.5" />
-                  <p className="text-[10px] font-bold text-primary uppercase tracking-wider mb-1">
-                    Every receipt reviewed. Every decision yours.
-                  </p>
-                  <p className="text-xs text-on-surface-variant">
-                    Press Enter to search your claims history
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+        {/* ── Center: Spacer ─────────────────── */}
+        <div className="flex-1 hidden md:block"></div>
 
         {/* ── Right: Actions + Avatar ───────────────── */}
         <div className="flex items-center gap-1 md:gap-2">
@@ -124,7 +88,7 @@ export default function TopNav() {
           <Link
             id="topnav-upload-claim-btn"
             href="/employee/claims"
-            className="hidden md:flex items-center gap-2 text-primary font-body font-bold text-sm bg-primary/10 px-4 py-2.5 rounded-xl hover:bg-primary/15 active:scale-95 transition-all"
+            className="hidden md:flex items-center gap-2 text-primary font-body font-bold text-sm bg-primary/10 px-4 py-2.5 rounded-xl hover:bg-primary/15 active:scale-95 transition-all mr-1"
           >
             <Upload className="w-4 h-4" strokeWidth={2} />
             Upload Claim
@@ -136,7 +100,7 @@ export default function TopNav() {
               id="topnav-notification-btn"
               aria-label="Notifications"
               onClick={() => setShowNotifications(!showNotifications)}
-              className={`relative p-2.5 rounded-xl transition-all active:scale-95 ${
+              className={`relative p-2.5 rounded-xl transition-all active:scale-95 cursor-pointer ${
                 showNotifications ? "bg-surface-container-high text-primary" : "text-on-surface hover:bg-surface-container-low"
               }`}
             >
@@ -201,7 +165,7 @@ export default function TopNav() {
             id="topnav-help-btn"
             href="/employee/support"
             aria-label="Help"
-            className="hidden sm:flex p-2.5 rounded-xl text-on-surface hover:bg-surface-container-low active:scale-95 transition-all"
+            className="hidden sm:flex p-2.5 rounded-xl text-on-surface hover:bg-surface-container-low active:scale-95 transition-all cursor-pointer"
           >
             <HelpCircle className="w-5 h-5" strokeWidth={1.75} />
           </Link>
@@ -211,7 +175,7 @@ export default function TopNav() {
             id="topnav-profile-btn"
             href="/employee/settings"
             aria-label="Open profile settings"
-            className="ml-1 h-9 w-9 rounded-full bg-linear-to-br from-primary-container to-tertiary-container shrink-0 flex items-center justify-center font-headline font-bold text-sm text-on-primary-container border-2 border-surface-container-lowest shadow-sm hover:shadow-md hover:scale-105 transition-all"
+            className="ml-1 h-9 w-9 rounded-full bg-linear-to-br from-primary-container to-tertiary-container shrink-0 flex items-center justify-center font-headline font-bold text-sm text-on-primary-container border-2 border-surface-container-lowest shadow-sm hover:shadow-md hover:scale-105 transition-all cursor-pointer"
           >
             {user?.name?.charAt(0).toUpperCase() ?? "U"}
           </Link>
