@@ -1,5 +1,4 @@
 import type { NextConfig } from "next";
-import withBundleAnalyzer from "@next/bundle-analyzer";
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
@@ -22,4 +21,16 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withBundleAnalyzer({ enabled: process.env.ANALYZE === "true" })(nextConfig);
+/** Optionally wrap with bundle analyzer — silently skip if package is missing. */
+function wrapBundleAnalyzer(config: NextConfig): NextConfig {
+  if (process.env.ANALYZE !== "true") return config;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { default: withBundleAnalyzer } = require("@next/bundle-analyzer");
+    return withBundleAnalyzer({ enabled: true })(config) as unknown as NextConfig;
+  } catch {
+    return config;
+  }
+}
+
+export default wrapBundleAnalyzer(nextConfig);
