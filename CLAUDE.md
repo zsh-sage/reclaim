@@ -1,7 +1,3 @@
-# CLAUDE.md
-
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
 ## Project Overview
 
 **Reclaim** is an AI-native expense reimbursement platform built for UM Hackathon 2026. It uses three LangGraph agentic pipelines to automate compliance evaluation of expense claims. Two user-facing portals: Employee (submit claims) and HR (policy management, triage, and decisions).
