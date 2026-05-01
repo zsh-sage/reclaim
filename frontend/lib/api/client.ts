@@ -35,11 +35,13 @@ async function handleResponse<T>(res: Response): Promise<ApiResult<T>> {
     let message = `${res.status}: ${res.statusText}`;
     try {
       const body = await res.json();
+      // FastAPI errors use `detail`; slowapi rate limit errors use `error`
       if (body?.detail) message = typeof body.detail === "string" ? body.detail : JSON.stringify(body.detail);
+      else if (body?.error) message = body.error;
     } catch {
       // body wasn't JSON — keep the status text
     }
-    return { data: null, error: message };
+    return { data: null, error: message, status: res.status };
   }
 
   if (res.status === 204) {
