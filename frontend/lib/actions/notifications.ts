@@ -2,7 +2,7 @@
 
 // ─── Notifications Server Actions ─────────────────────────────────────────────
 // Provides notification data for the TopNav bell dropdown.
-// Falls back to mock data until the backend endpoint is built.
+// Falls back to mock data on network error.
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { apiGet, apiPost, API_PREFIX } from "@/lib/api/client";
