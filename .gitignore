@@ -68,3 +68,4 @@ agent_workflow_plans.md
 # documents
 backend/storage/documents/*
 backend/storage/policies/*
+AGENTS.md
