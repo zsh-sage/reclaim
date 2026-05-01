@@ -9,6 +9,8 @@
 export interface ApiResult<T> {
   data: T | null;
   error: string | null;
+  /** HTTP status code, present on error responses. Use to distinguish 429 (rate limit) from 401/403/500. */
+  status?: number;
 }
 
 // ─── Auth ────────────────────────────────────────────────────────────────────

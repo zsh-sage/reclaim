@@ -47,7 +47,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    command: bash -c "python -c 'from core.database import init_db; init_db()' && alembic stamp head && exec uvicorn main:app --host 0.0.0.0 --port 8000"
+    command: bash -c "python -c 'from core.database import init_db; init_db()' && alembic upgrade head && exec uvicorn main:app --host 0.0.0.0 --port 8000"
     # command: bash -c "python -c 'from core.database import init_db; init_db()' && alembic stamp head && python seed_demo_employees.py && python seed_mock_policy.py && python seed_mock_data.py && exec uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
     healthcheck:
       # test: [ "CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" ]
