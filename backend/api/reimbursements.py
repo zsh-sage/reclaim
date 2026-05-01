@@ -9,10 +9,12 @@ import concurrent.futures
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
+from starlette.requests import Request
 from sqlalchemy.orm import joinedload
 from sqlmodel import Session, select
 
 from api import deps
+from api.rate_limit import limiter
 from api.schemas import (
     ReimbursementResponse,
     StatusUpdateRequest,
@@ -320,18 +322,20 @@ def get_reimbursement_line_items(
 
 
 @router.post("/analyze")
+@limiter.limit("5/minute")
 async def analyze_reimbursement(
-    request: AnalyzeReimbursementRequest,
+    request: Request,
+    body: AnalyzeReimbursementRequest,
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_user),
 ) -> dict:
     """Run basket compliance analysis on a TravelSettlement against a policy."""
-    logger.info("[API_ANALYZE] Called with settlement=%s policy=%s docs=%s user=%s", request.settlement_id, request.policy_id, request.document_ids, current_user.user_id)
+    logger.info("[API_ANALYZE] Called with settlement=%s policy=%s docs=%s user=%s", body.settlement_id, body.policy_id, body.document_ids, current_user.user_id)
 
     # === Validation ===
     try:
-        settlement_uuid = UUID(request.settlement_id)
-        policy_uuid = UUID(request.policy_id)
+        settlement_uuid = UUID(body.settlement_id)
+        policy_uuid = UUID(body.policy_id)
     except ValueError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -342,7 +346,7 @@ async def analyze_reimbursement(
     if not settlement:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Settlement {request.settlement_id} not found",
+            detail=f"Settlement {body.settlement_id} not found",
         )
 
     if settlement.user_id != current_user.user_id:
@@ -355,7 +359,7 @@ async def analyze_reimbursement(
     if not policy:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Policy {request.policy_id} not found",
+            detail=f"Policy {body.policy_id} not found",
         )
 
     if policy.status != PolicyStatus.ACTIVE:
@@ -430,13 +434,13 @@ async def analyze_reimbursement(
 
             try:
                 result = run_compliance_workflow(
-                    settlement_id=request.settlement_id,
-                    policy_id=request.policy_id,
+                    settlement_id=body.settlement_id,
+                    policy_id=body.policy_id,
                     main_category=main_category,
                     user_id=user_id_str,
                     all_category=all_category,
                     session=bg_db,
-                    document_ids=request.document_ids,
+                    document_ids=body.document_ids,
                     progress_callback=progress_callback,
                 )
                 logger.info("[API_ANALYZE_BG] Workflow returned reimbursement_id=%s", result.get("reimbursement_id"))

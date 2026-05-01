@@ -5,9 +5,11 @@ from typing import List, Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from starlette.requests import Request
 from sqlmodel import Session, select
 
 from api import deps
+from api.rate_limit import limiter
 from api.schemas import PolicyResponse
 from core.models import User, Policy, PolicyReimbursableCategory, PolicySection
 from core.enums import PolicyStatus, UserRole
@@ -61,7 +63,9 @@ def list_policies(
 
 
 @router.post("/upload")
+@limiter.limit("3/minute")
 async def upload_policy(
+    request: Request,
     alias: str = Form(...),
     files: List[UploadFile] = File(...),
     db: Session = Depends(deps.get_db),
