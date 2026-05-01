@@ -5,8 +5,16 @@ export function proxy(request: NextRequest) {
   const token = request.cookies.get('session')?.value;
   const { pathname } = request.nextUrl;
 
-  // Allow access to login page and API routes without authentication
-  if (pathname.startsWith('/login') || pathname.startsWith('/api/')) {
+  // Public paths — landing, login, API, and static assets bypass the auth gate
+  if (
+    pathname === '/' ||
+    pathname.startsWith('/login') ||
+    pathname.startsWith('/api/') ||
+    pathname.startsWith('/images/') ||
+    pathname.startsWith('/icons/') ||
+    pathname === '/manifest.json' ||
+    pathname === '/sw.js'
+  ) {
     return NextResponse.next();
   }
 
