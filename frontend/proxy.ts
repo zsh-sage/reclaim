@@ -5,8 +5,14 @@ export function proxy(request: NextRequest) {
   const token = request.cookies.get('session')?.value;
   const { pathname } = request.nextUrl;
 
-  // Allow access to login page and API routes without authentication
-  if (pathname.startsWith('/login') || pathname.startsWith('/api/')) {
+  // Allow access to login page, API routes, and PWA assets without authentication
+  if (
+    pathname.startsWith('/login') ||
+    pathname.startsWith('/api/') ||
+    pathname === '/manifest.json' ||
+    pathname === '/sw.js' ||
+    pathname.startsWith('/icons/')
+  ) {
     return NextResponse.next();
   }
 
@@ -21,5 +27,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|login).*)'],
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|manifest.json|sw.js|icons|login).*)'],
 };

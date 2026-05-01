@@ -18,21 +18,28 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY pyproject.toml uv.lock ./
 
 # Sync dependencies
+
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-install-project --no-dev
 
 COPY . .
 
 # Final sync to include project
+
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev
 
 # Create a non-root user and set permissions
+
 RUN adduser --system --group --home /home/appuser appuser && chown -R appuser:appuser /app
+
 USER appuser
 
+
 # Ensure the virtual environment is used
+
 ENV PATH="/app/.venv/bin:$PATH"
+
 
 EXPOSE 8000
 

@@ -35,7 +35,7 @@ export default function BottomNav() {
       {/* FAB exception: `fixed` is allowed here per layout constraints */}
       <nav
         aria-label="Mobile bottom navigation"
-        className="lg:hidden fixed bottom-0 inset-x-0 z-50 bg-white/85 backdrop-blur-2xl border-t border-outline-variant/10 rounded-t-3xl shadow-[0_-8px_32px_rgba(0,0,0,0.06)]"
+        className="lg:hidden fixed bottom-0 inset-x-0 z-50 bg-white/85 backdrop-blur-2xl border-t border-outline-variant/10 rounded-t-3xl shadow-[0_-8px_32px_rgba(0,0,0,0.06)] pb-safe"
       >
         <div className="flex justify-between items-center px-2 h-16 max-w-lg mx-auto">
           {NAV_ITEMS.map(({ href, label, icon: Icon }) => {

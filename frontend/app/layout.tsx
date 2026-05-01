@@ -1,7 +1,8 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Plus_Jakarta_Sans } from "next/font/google"; // Import fonts
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext"; // Import AuthProvider
+import ServiceWorkerRegistration from "./_components/ServiceWorkerRegistration";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -13,11 +14,26 @@ const plusJakartaSans = Plus_Jakarta_Sans({
   variable: "--font-headline", // Assign to --font-headline
 });
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  interactiveWidget: "resizes-visual",
+};
+
 export const metadata: Metadata = {
   title: "Reclaim",
   description: "Every receipt reviewed. Every decision yours. Smart Reimbursement Automation System",
+  manifest: "/manifest.json",
+  themeColor: "#4647d3",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Reclaim",
+  },
   icons: {
     icon: "/images/logo.svg",
+    apple: "/icons/apple-touch-icon.png",
   },
   openGraph: {
     title: "Reclaim",
@@ -51,7 +67,10 @@ export default function RootLayout({
       className={`${inter.variable} ${plusJakartaSans.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          {children}
+          <ServiceWorkerRegistration />
+        </AuthProvider>
       </body>
     </html>
   );

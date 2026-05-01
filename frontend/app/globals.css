@@ -95,3 +95,22 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-primary-fixed-dim);
 }
+
+/* Prevent iOS Safari auto-zoom on input focus */
+@layer base {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+/* Safe area inset — pushes content above browser chrome / home indicator */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Bottom nav safe padding: 64px nav + iOS home indicator */
+.pb-nav-safe {
+  padding-bottom: calc(4rem + env(safe-area-inset-bottom, 0px));
+}
