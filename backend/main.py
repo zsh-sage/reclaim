@@ -8,11 +8,14 @@ load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 from sqlmodel import Session, select
 
 from core.config import settings
 from core.database import engine, init_db
 from engine.llm import check_glm_health
+from api.rate_limit import limiter
 from api.auth import router as auth_router
 from api.documents import router as documents_router
 from api.notifications import router as notifications_router
@@ -49,6 +52,9 @@ app = FastAPI(
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
     lifespan=lifespan,
 )
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Set all CORS enabled origins
 _frontend_origin = os.environ.get("FRONTEND_URL", "http://localhost:3000")

@@ -4,7 +4,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 _DEFAULT_SECRET = "YOUR_SUPER_SECRET_KEY_CHANGE_THIS_IN_PRODUCTION"
 
 class Settings(BaseSettings):
-    PROJECT_NAME: str = "GLM SMART"
+    PROJECT_NAME: str = "RECLAIM"
     API_V1_STR: str = "/api/v1"
 
     # Security

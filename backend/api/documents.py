@@ -9,11 +9,13 @@ from uuid import UUID
 import aiofiles
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from fastapi.responses import HTMLResponse, StreamingResponse
+from starlette.requests import Request
 from sqlmodel import Session, select
 
 from engine.progress import ProgressTracker
 
 from api import deps
+from api.rate_limit import limiter
 from api.schemas import DocumentChangeLogResponse, DocumentFieldEditRequest, SupportingDocumentListItem
 from core.models import (
     User, SupportingDocument, TravelSettlement, SettlementReceipt,
@@ -62,7 +64,9 @@ def list_documents(
 
 
 @router.post("/upload")
+@limiter.limit("10/minute")
 async def upload_documents(
+    request: Request,
     files: List[UploadFile] = File(...),
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_user),
@@ -262,7 +266,9 @@ def _build_aggregated_from_settlement(
 
 
 @router.post("/generate-template", response_class=HTMLResponse)
+@limiter.limit("10/minute")
 async def generate_template(
+    request: Request,
     document_ids: List[str] = Form(...),
     settlement_id: Optional[str] = Form(None),
     db: Session = Depends(deps.get_db),

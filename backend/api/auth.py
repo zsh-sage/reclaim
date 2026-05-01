@@ -3,6 +3,7 @@ from datetime import timedelta
 from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
+from starlette.requests import Request
 from sqlmodel import Session, select
 
 from core import security
@@ -11,11 +12,14 @@ from core.models import User
 from core.enums import UserRole, PrivilegeLevel
 from api import schemas, deps
 from api.schemas import UpdateProfileRequest
+from api.rate_limit import limiter
 
 router = APIRouter()
 
 @router.post("/login", response_model=schemas.Token)
+@limiter.limit("10/minute")
 def login_access_token(
+    request: Request,
     db: Session = Depends(deps.get_db),
     form_data: OAuth2PasswordRequestForm = Depends()
 ) -> Any:
@@ -43,7 +47,9 @@ def login_access_token(
     }
 
 @router.post("/register", response_model=schemas.UserResponse)
+@limiter.limit("10/minute")
 def register_user(
+    request: Request,
     user_in: schemas.UserCreate,
     db: Session = Depends(deps.get_db)
 ) -> Any:
