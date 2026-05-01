@@ -26,7 +26,7 @@ export default function Hero({ user }: { user: User | null }) {
       />
 
       <div className="relative mx-auto max-w-7xl px-5 sm:px-8 lg:px-12 pt-16 pb-24 lg:pt-28 lg:pb-36">
-        <div className="grid lg:grid-cols-[1fr_auto] gap-12 lg:gap-16 items-center">
+        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           <div className="max-w-3xl text-on-primary">
             <span className="inline-flex items-center gap-2 rounded-full border border-white/35 bg-white/10 px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] backdrop-blur-sm shadow-sm">
               <Sparkles className="w-3.5 h-3.5" />
@@ -85,7 +85,7 @@ export default function Hero({ user }: { user: User | null }) {
             </div>
           </div>
 
-          <div className="hidden lg:block flex-shrink-0">
+          <div className="hidden lg:flex justify-center flex-shrink-0">
             <Image
               src="/images/example.png"
               alt="Reclaim platform preview"
