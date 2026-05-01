@@ -17,22 +17,34 @@ export default function SettingsLegacyContent() {
   }, []);
 
   return (
-    <main className="min-h-dvh pb-24 md:pb-12 bg-surface">
-      <div className="w-full max-w-7xl mx-auto px-4 md:px-6 pt-6 md:pt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="relative min-h-full p-6 md:p-10 lg:p-12">
+      {/* Ambient glow */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -top-20 -right-20 w-[480px] h-[480px] rounded-full bg-primary opacity-[0.07] blur-[80px]" />
+        <div className="absolute top-32 right-40 w-[320px] h-[320px] rounded-full bg-tertiary opacity-[0.06] blur-[64px]" />
+        <div className="absolute -top-8 right-[15%] w-[200px] h-[200px] rounded-full bg-primary-container opacity-[0.12] blur-[48px]" />
+      </div>
+
+      <div className="relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-7xl mx-auto">
 
         {/* ── Header ── */}
-        <header className="mb-8">
-          <div className="flex items-center gap-2 text-primary mb-2">
-            <Settings className="w-5 h-5" />
-            <span className="font-label font-bold tracking-widest uppercase text-xs">Preferences</span>
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
+          <div className="max-w-2xl">
+            <div className="flex items-center gap-2 text-primary mb-2">
+              <Settings className="w-5 h-5" />
+              <span className="font-label font-bold tracking-widest uppercase text-xs">Preferences</span>
+            </div>
+            <h2
+              className="font-headline font-extrabold text-on-background mb-2 tracking-tight"
+              style={{ fontSize: "2.5rem", letterSpacing: "-0.02em" }}
+            >
+              Settings
+            </h2>
+            <p className="text-on-surface-variant text-lg font-body">
+              Manage your account preferences and banking details for reimbursements.
+            </p>
           </div>
-          <h1 className="font-headline text-3xl md:text-4xl font-extrabold text-on-surface tracking-tight">
-            Settings
-          </h1>
-          <p className="font-body text-sm md:text-base text-on-surface-variant mt-2">
-            Manage your account preferences and banking details for reimbursements.
-          </p>
-        </header>
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* ── Left Sidebar (Desktop Nav) ── */}
@@ -147,6 +159,6 @@ export default function SettingsLegacyContent() {
           </div>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

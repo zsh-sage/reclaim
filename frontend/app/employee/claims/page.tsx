@@ -814,10 +814,12 @@ function CaptureReceiptContent() {
     }
 
     // Run compliance analysis
+    const isAutoReimburseEnabled = localStorage.getItem("reclaim_auto_reimburse") === "true";
     const analyzeResult = await analyzeCompliance({
       settlement_id: settlementId,
       policy_id: policy.policy_id,
       document_ids: documentIds,
+      is_auto_reimburse_enabled: isAutoReimburseEnabled,
     });
 
     if ("error" in analyzeResult) {

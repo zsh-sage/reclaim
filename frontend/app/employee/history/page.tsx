@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { History } from "lucide-react";
+import { History, Search } from "lucide-react";
 import HistoryFilterBar, { FilterStatus } from "./_components/HistoryFilterBar";
 import HistoryList from "./_components/HistoryList";
 import ClaimSidebar from "./_components/ClaimSidebar";
@@ -82,6 +82,7 @@ function HistoryPageContent() {
   const [dateRange, setDateRange] = useState("All Time");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [claims, setClaims] = useState<HistoryClaim[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -127,8 +128,19 @@ function HistoryPageContent() {
         return diff <= days && diff >= 0;
       });
     }
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(
+        (c) =>
+          c.merchant.toLowerCase().includes(q) ||
+          c.category.toLowerCase().includes(q) ||
+          c.id.toLowerCase().includes(q)
+      );
+    }
+
     return result;
-  }, [currentStatus, selectedCategory, dateRange, claims]);
+  }, [currentStatus, selectedCategory, dateRange, claims, searchQuery]);
 
   // KPI summary
   const summary = useMemo(() => {
@@ -139,29 +151,47 @@ function HistoryPageContent() {
   }, [claims]);
 
   return (
-    <main className="min-h-dvh pb-24 md:pb-12 bg-surface">
-      <div className="w-full max-w-screen-2xl mx-auto px-4 md:px-6 pt-6 md:pt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="px-4 pt-6 pb-24 md:px-8 md:pt-8 md:pb-12 lg:px-12 lg:pt-10 lg:pb-10 max-w-screen-xl mx-auto w-full">
+      {/* Ambient gradient blob */}
+      <div
+        aria-hidden
+        className="pointer-events-none fixed -top-24 -left-24 w-96 h-96 rounded-full bg-linear-to-br from-primary/15 to-tertiary/10 blur-3xl z-0"
+      />
+
+      <div className="relative z-10 flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
         {/* ── Header ── */}
-        <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
-          <div>
-            <div className="flex items-center gap-2 text-primary mb-2">
-              <History className="w-5 h-5" />
-              <span className="font-label font-bold tracking-widest uppercase text-xs">Claims Ledger</span>
-            </div>
-            <h1 className="font-headline text-3xl md:text-4xl font-extrabold text-on-surface tracking-tight mb-2">
-              History
-            </h1>
-            <p className="font-body text-sm md:text-base text-on-surface-variant flex items-center gap-2">
-              <span className="font-semibold text-on-surface">Total Reimbursed: {summary.total}</span>
-              <span className="text-outline-variant">•</span>
-              <span>Pending: {summary.pending}</span>
-            </p>
-          </div>
-        </header>
+        <div className="flex flex-col gap-1">
+          <h2
+            className="font-headline font-extrabold text-3xl md:text-4xl text-on-surface tracking-tight"
+            style={{ letterSpacing: "-0.02em" }}
+          >
+            History
+          </h2>
+          <p className="text-base text-on-surface-variant font-body leading-relaxed flex items-center gap-2">
+            <span className="font-semibold text-on-surface">Total Reimbursed: {summary.total}</span>
+            <span className="text-outline-variant">•</span>
+            <span>Pending: {summary.pending}</span>
+          </p>
+        </div>
+
+        {/* ── Localized Search Bar ── */}
+        <div className="relative max-w-md w-full">
+          <Search
+            className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant/50"
+            strokeWidth={2}
+          />
+          <input
+            type="search"
+            placeholder="Search by merchant, category or ID…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-surface-container-lowest border border-outline-variant/30 text-on-surface text-sm rounded-xl py-2.5 pl-10 pr-4 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all placeholder:text-on-surface-variant/40 shadow-sm"
+          />
+        </div>
 
         {/* ── Filter Bar ── */}
-        <section aria-labelledby="history-filters" className="relative z-10 w-full mb-6">
+        <div aria-labelledby="history-filters" className="relative z-10 w-full">
           <HistoryFilterBar
             currentStatus={currentStatus}
             onStatusChange={setCurrentStatus}
@@ -170,15 +200,15 @@ function HistoryPageContent() {
             category={selectedCategory}
             onCategoryChange={setSelectedCategory}
           />
-        </section>
+        </div>
 
         {/* ── Claims List ── */}
-        <section aria-label="Claims List" className="relative z-0">
+        <div aria-label="Claims List" className="relative z-0">
           <HistoryList
             claims={filteredClaims}
             onSelectClaim={handleSelectClaim}
           />
-        </section>
+        </div>
 
       </div>
 
@@ -188,7 +218,7 @@ function HistoryPageContent() {
         onClose={() => setSelectedClaim(null)}
         isLoading={isLoadingDetail}
       />
-    </main>
+    </div>
   );
 }
 

@@ -1,25 +1,63 @@
 "use client";
 
-import { LifeBuoy, MessageSquare, FileText, Send, Phone, ChevronDown } from "lucide-react";
+import { useState, useEffect } from "react";
+import { LifeBuoy, MessageSquare, FileText, Send, Phone, ChevronDown, CheckCircle2, X } from "lucide-react";
+
+// ─── Toast Component ──────────────────────────────────────────────────────────
+
+function Toast({ message, onDismiss }: { message: string; onDismiss: () => void }) {
+  useEffect(() => {
+    const t = setTimeout(onDismiss, 3000);
+    return () => clearTimeout(t);
+  }, [onDismiss]);
+
+  return (
+    <div className="fixed top-4 right-4 z-[100] flex items-center gap-3 bg-surface-container-highest text-on-surface px-4 py-3 rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.18)] border border-outline-variant/20 animate-in fade-in slide-in-from-top-2 duration-300 max-w-sm">
+      <div className="p-1 bg-outline-variant/10 rounded-lg shrink-0">
+        <CheckCircle2 className="w-4 h-4 text-on-surface-variant" />
+      </div>
+      <p className="text-sm font-medium font-body flex-1">{message}</p>
+      <button onClick={onDismiss} className="text-on-surface-variant hover:text-on-surface transition-colors shrink-0 cursor-pointer">
+        <X className="w-4 h-4" />
+      </button>
+    </div>
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function SupportLegacyContent() {
+  const [toast, setToast] = useState<string | null>(null);
+  const showToast = () => setToast("Feature has not been implemented yet.");
+
   return (
-    <main className="min-h-dvh pb-24 md:pb-12 bg-surface">
-      <div className="w-full max-w-7xl mx-auto px-4 md:px-6 pt-6 md:pt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="relative min-h-full p-6 md:p-10 lg:p-12">
+      {/* Ambient glow */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -top-20 -right-20 w-[480px] h-[480px] rounded-full bg-primary opacity-[0.07] blur-[80px]" />
+        <div className="absolute top-32 right-40 w-[320px] h-[320px] rounded-full bg-tertiary opacity-[0.06] blur-[64px]" />
+        <div className="absolute -top-8 right-[15%] w-[200px] h-[200px] rounded-full bg-primary-container opacity-[0.12] blur-[48px]" />
+      </div>
+
+      {/* Toast */}
+      {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
+
+      <div className="relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-7xl mx-auto">
 
         {/* ── Header ── */}
-        <header className="mb-10 text-center md:text-left">
-          <div className="flex items-center justify-center md:justify-start gap-2 text-primary mb-3">
-            <LifeBuoy className="w-6 h-6" />
-            <span className="font-label font-bold tracking-widest uppercase text-sm">Help Center</span>
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
+          <div className="max-w-2xl">
+            <h2
+              className="font-headline font-extrabold text-on-background mb-2 tracking-tight"
+              style={{ fontSize: "2.5rem", letterSpacing: "-0.02em" }}
+            >
+              How can we help?
+            </h2>
+            <p className="text-on-surface-variant text-lg font-body">
+              Browse our frequently asked questions, or contact HR directly if you have issues with your claims.
+            </p>
           </div>
-          <h1 className="font-headline text-4xl md:text-5xl font-extrabold text-on-surface tracking-tight leading-tight">
-            How can we help?
-          </h1>
-          <p className="font-body text-base md:text-lg text-on-surface-variant mt-3 max-w-2xl">
-            Browse our frequently asked questions, or contact HR directly if you have issues with your claims.
-          </p>
-        </header>
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
 
@@ -32,7 +70,11 @@ export default function SupportLegacyContent() {
               { title: "Uploading Receipts", desc: "Best practices for OCR extraction.", icon: FileText },
               { title: "Direct Deposit Setup", desc: "Learn how payouts are scheduled.", icon: FileText },
             ].map((faq, i) => (
-              <div key={i} className="bg-surface-container-low border border-outline-variant/10 p-4 rounded-2xl hover:bg-surface-container cursor-pointer transition-colors group">
+              <button
+                key={i}
+                onClick={showToast}
+                className="w-full text-left bg-surface-container-low border border-outline-variant/10 p-4 rounded-2xl hover:bg-surface-container cursor-pointer transition-colors group"
+              >
                 <div className="flex items-start gap-3">
                   <faq.icon className="w-5 h-5 text-primary shrink-0 mt-0.5" />
                   <div>
@@ -40,14 +82,17 @@ export default function SupportLegacyContent() {
                     <p className="font-body text-xs text-on-surface-variant mt-1">{faq.desc}</p>
                   </div>
                 </div>
-              </div>
+              </button>
             ))}
 
             <div className="mt-8 p-5 rounded-2xl bg-primary-container text-on-primary-container">
               <Phone className="w-6 h-6 mb-3" />
               <h3 className="font-headline font-bold text-base mb-1">Urgent Escalations</h3>
               <p className="font-body text-sm opacity-80 mb-4">Need immediate help with a rejected claim?</p>
-              <button className="w-full py-2 bg-on-primary-container text-primary-container rounded-xl font-bold text-sm shadow-sm hover:scale-[0.98] transition-transform">
+              <button
+                onClick={showToast}
+                className="w-full py-2 bg-on-primary-container text-primary-container rounded-xl font-bold text-sm shadow-sm hover:scale-[0.98] transition-transform cursor-pointer"
+              >
                 Call HR Desk
               </button>
             </div>
@@ -66,8 +111,13 @@ export default function SupportLegacyContent() {
                 </div>
               </div>
 
-              <form className="p-6 space-y-5 flex-1" onSubmit={(e) => e.preventDefault()}>
-
+              <form
+                className="p-6 space-y-5 flex-1"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  showToast();
+                }}
+              >
                 <div className="space-y-1.5">
                   <label className="font-label text-xs font-bold text-on-surface-variant uppercase tracking-wider">Issue Type</label>
                   <div className="relative">
@@ -87,7 +137,7 @@ export default function SupportLegacyContent() {
                   <input type="text" placeholder="Brief description of the problem" className="w-full bg-surface-container text-on-surface px-4 py-3 rounded-xl border border-transparent focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-sm placeholder:text-on-surface-variant/50" />
                 </div>
 
-                <div className="space-y-1.5 h-full">
+                <div className="space-y-1.5">
                   <label className="font-label text-xs font-bold text-on-surface-variant uppercase tracking-wider">Message Details</label>
                   <textarea
                     rows={6}
@@ -96,16 +146,21 @@ export default function SupportLegacyContent() {
                   />
                 </div>
 
-                <button className="w-full flex items-center justify-center gap-2 bg-primary text-on-primary px-5 py-3.5 rounded-xl font-bold text-sm hover:shadow-lg hover:-translate-y-0.5 active:scale-95 transition-all mt-4">
-                  <Send className="w-4 h-4" />
-                  Submit Request
-                </button>
+                <div className="pt-2">
+                  <button
+                    type="submit"
+                    className="w-full flex items-center justify-center gap-2 bg-primary text-on-primary px-5 py-4 rounded-xl font-bold text-sm hover:shadow-lg hover:-translate-y-0.5 active:scale-95 transition-all shadow-md cursor-pointer"
+                  >
+                    <Send className="w-4 h-4" />
+                    Submit Request
+                  </button>
+                </div>
               </form>
 
             </section>
           </div>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

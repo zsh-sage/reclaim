@@ -41,6 +41,7 @@ class ComplianceWorkflowState(TypedDict):
     main_category: str
     user_id: str
     all_category: List[str]
+    is_auto_reimburse_enabled: bool
 
     # Context loaded from DB
     user: Optional[Any]
@@ -469,7 +470,13 @@ def save_reimbursement(state: ComplianceWorkflowState, session: Session) -> dict
     judgment_str = state.get("judgment", "MANUAL REVIEW")
     judgment_enum = _map_agent_status_to_enum(judgment_str)
 
-    logger.info("[SAVE_REIMBURSEMENT] Saving reimbursement: judgment=%s claimed=%s approved=%s", judgment_str, total_claimed, total_approved)
+    # Apply auto-reimbursement bypass logic
+    is_auto_reimburse_enabled = state.get("is_auto_reimburse_enabled", False)
+    final_status = ReimbursementStatus.REVIEW
+    reviewed_at = None
+    if is_auto_reimburse_enabled and judgment_enum == JudgmentResult.APPROVED:
+        final_status = ReimbursementStatus.APPROVED
+        reviewed_at = datetime.now(timezone.utc)
 
     reimbursement = Reimbursement(
         user_id=UUID(state["user_id"]),
@@ -488,7 +495,8 @@ def save_reimbursement(state: ComplianceWorkflowState, session: Session) -> dict
             "reasoning": f"Agent judgment: {judgment_str}",
             "timestamp": datetime.now(timezone.utc).isoformat(),
         },
-        status=ReimbursementStatus.REVIEW,
+        status=final_status,
+        reviewed_at=reviewed_at,
         summary=state.get("summary", ""),
     )
 
@@ -563,6 +571,7 @@ def run_compliance_workflow(
     all_category: Optional[List[str]],
     session: Session,
     document_ids: Optional[List[str]] = None,
+    is_auto_reimburse_enabled: bool = False,
     progress_callback=None,
 ) -> dict:
     """
@@ -621,6 +630,7 @@ def run_compliance_workflow(
         "main_category": main_category,
         "user_id": user_id,
         "all_category": all_category or [],
+        "is_auto_reimburse_enabled": is_auto_reimburse_enabled,
         "user": None,
         "policy": None,
         "receipts": [],
