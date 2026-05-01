@@ -91,7 +91,7 @@ export default function Hero({ user }: { user: User | null }) {
               alt="Reclaim platform preview"
               width={580}
               height={749}
-              className="h-[520px] w-auto rounded-2xl shadow-2xl shadow-black/30"
+              className="h-[416px] w-auto"
               priority
             />
           </div>
