@@ -424,7 +424,8 @@ export default function ViewPage() {
 
           {/* Financial Breakdown */}
           <Card title={<>Financial Breakdown <span className="ml-2 text-xs font-label bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full">{bundle.line_items.length} receipts · All Passed</span></>}>
-            <div className="overflow-x-auto">
+            {/* Desktop Table */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left text-sm border-collapse">
                 <thead>
                   <tr className="bg-surface-container-low/60">
@@ -452,6 +453,32 @@ export default function ViewPage() {
                   ))}
                 </tbody>
               </table>
+            </div>
+
+            {/* Mobile Card List */}
+            <div className="md:hidden flex flex-col gap-2">
+              {bundle.line_items.map((li, idx) => (
+                <div key={li.document_id} className="bg-surface-container-lowest rounded-xl p-4 border border-outline-variant/10">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      {li.receipt_url ? (
+                        <button onClick={() => setLightbox(li.receipt_url!)} className="flex items-center gap-1 text-primary hover:underline text-xs">
+                          <ZoomIn className="w-3 h-3" />{idx + 1}
+                        </button>
+                      ) : (
+                        <span className="text-xs text-on-surface-variant font-semibold">#{idx + 1}</span>
+                      )}
+                      <span className="text-[10px] bg-surface-container px-1.5 py-0.5 rounded-full text-on-surface-variant">{CAT[li.category]}</span>
+                    </div>
+                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${STATUS_CHIP[li.status]}`}>{li.status.replace("_", " ")}</span>
+                  </div>
+                  <p className="text-sm text-on-surface font-medium mt-2">{li.description}</p>
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="text-xs text-on-surface-variant">{li.date}</span>
+                    <span className="text-sm font-semibold text-emerald-700">{fmt(li.approved_amount)}</span>
+                  </div>
+                </div>
+              ))}
             </div>
           </Card>
 

@@ -88,7 +88,7 @@ export default function TopNav() {
           <Link
             id="topnav-upload-claim-btn"
             href="/employee/claims"
-            className="hidden md:flex items-center gap-2 text-primary font-body font-bold text-sm bg-primary/10 px-4 py-2.5 rounded-xl hover:bg-primary/15 active:scale-95 transition-all mr-1"
+            className="hidden md:flex items-center text-center gap-2 text-primary font-body font-bold text-sm bg-primary/10 px-4 py-2.5 rounded-xl hover:bg-primary/15 active:scale-95 transition-all"
           >
             <Upload className="w-4 h-4" strokeWidth={2} />
             Upload Claim
@@ -170,11 +170,17 @@ export default function TopNav() {
             <HelpCircle className="w-5 h-5" strokeWidth={1.75} />
           </Link>
 
-          {/* Avatar routed to settings */}
+          {/* Avatar: opens mobile drawer on <lg, links to settings on desktop */}
           <Link
             id="topnav-profile-btn"
             href="/employee/settings"
-            aria-label="Open profile settings"
+            onClick={(e) => {
+              if (typeof window !== "undefined" && window.innerWidth < 1024) {
+                e.preventDefault();
+                window.dispatchEvent(new CustomEvent("open-mobile-nav-drawer"));
+              }
+            }}
+            aria-label="Open settings menu"
             className="ml-1 h-9 w-9 rounded-full bg-linear-to-br from-primary-container to-tertiary-container shrink-0 flex items-center justify-center font-headline font-bold text-sm text-on-primary-container border-2 border-surface-container-lowest shadow-sm hover:shadow-md hover:scale-105 transition-all cursor-pointer"
           >
             {user?.name?.charAt(0).toUpperCase() ?? "U"}

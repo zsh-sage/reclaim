@@ -341,8 +341,9 @@ export default function ManageEmployeePage() {
         </div>
 
         {/* Employee Table */}
-        <div className="bg-surface-container-lowest/80 backdrop-blur-xl rounded-xl shadow-[0_12px_60px_-15px_rgba(44,47,49,0.08)] overflow-hidden relative z-10">
-          <div className="overflow-x-auto">
+        <div className="bg-surface-container-lowest border border-outline-variant/10 rounded-2xl overflow-hidden shadow-ambient-lg">
+          {/* Desktop Table */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-surface-container-low/50">
@@ -409,6 +410,57 @@ export default function ManageEmployeePage() {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Card List */}
+          <div className="md:hidden flex flex-col gap-2 p-3">
+            {filteredEmployees.map((emp) => (
+              <div key={emp.id} className="bg-surface-container-lowest rounded-xl p-4 border border-outline-variant/10 active:scale-[0.98] transition-all">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-linear-to-br from-primary-container to-tertiary-container flex items-center justify-center font-bold text-xs text-on-primary-container border-2 border-surface-container-lowest shadow-sm shrink-0">
+                      {emp.name.charAt(0)}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-sm text-on-surface truncate">{emp.name}</p>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <Mail className="w-3 h-3 text-on-surface-variant/60 shrink-0" />
+                        <p className="text-[11px] text-on-surface-variant truncate">{emp.email}</p>
+                      </div>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <Building2 className="w-3 h-3 text-on-surface-variant/60 shrink-0" />
+                        <p className="text-[11px] text-on-surface-variant">{emp.department}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end gap-1.5 shrink-0">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                      emp.role === "HR" ? "bg-amber-100 text-amber-700" : "bg-primary/10 text-primary"
+                    }`}>
+                      {emp.role}
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <div className={`w-1.5 h-1.5 rounded-full ${emp.status === "Active" ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-on-surface-variant/30"}`} />
+                      <p className={`text-[11px] font-medium ${emp.status === "Active" ? "text-emerald-700" : "text-on-surface-variant"}`}>
+                        {emp.status}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center justify-end gap-2 mt-3 pt-3 border-t border-outline-variant/10">
+                  <button 
+                    onClick={() => handleEdit(emp)}
+                    className="p-2 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-lg transition-all active:scale-90 cursor-pointer"
+                    title="Edit Employee"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                  <button className="p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-lg transition-all cursor-pointer">
+                    <MoreVertical className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
           
           {filteredEmployees.length === 0 && (

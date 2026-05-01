@@ -171,8 +171,8 @@ export default function HRDashboardPage() {
           </button>
         </div>
 
-        {/* Responsive table */}
-        <div className="overflow-x-auto">
+        {/* Desktop Table */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-surface-container-low/50">
@@ -219,6 +219,47 @@ export default function HRDashboardPage() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Card List */}
+        <div className="md:hidden flex flex-col gap-2">
+          {isLoadingClaims ? (
+            Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="bg-surface-container-lowest rounded-xl p-4 border border-outline-variant/10 animate-pulse">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-surface-container-high shrink-0" />
+                  <div className="flex-1 space-y-1.5">
+                    <div className="h-3 w-28 rounded bg-surface-container-high" />
+                    <div className="h-2.5 w-20 rounded bg-surface-container-low" />
+                  </div>
+                  <div className="h-3 w-12 rounded bg-surface-container-high" />
+                </div>
+              </div>
+            ))
+          ) : (
+            previewClaims.map((claim) => (
+              <button
+                key={claim.id}
+                onClick={() => {
+                  const path = actionLabel === "View" ? `/hr/view/${claim.id}` : `/hr/review/${claim.id}`;
+                  window.location.href = path;
+                }}
+                className="bg-surface-container-lowest rounded-xl p-4 border border-outline-variant/10 text-left active:scale-[0.98] transition-all flex items-center gap-3"
+              >
+                <div className="w-9 h-9 rounded-full bg-linear-to-br from-primary-container to-tertiary-container flex items-center justify-center font-bold text-xs text-on-primary-container border-2 border-surface-container-lowest shadow-sm shrink-0">
+                  {claim.employee.initials}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-sm text-on-surface truncate">{claim.employee.name}</p>
+                  <p className="text-xs text-on-surface-variant mt-0.5">{claim.date} · {claim.category}</p>
+                </div>
+                <div className="flex flex-col items-end gap-1 shrink-0">
+                  <span className="font-semibold text-sm text-on-surface">{claim.amount}</span>
+                  <span className="text-primary font-semibold text-xs">{actionLabel}</span>
+                </div>
+              </button>
+            ))
+          )}
         </div>
 
         {/* Footer CTA */}
