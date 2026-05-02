@@ -32,6 +32,7 @@ from core.database import engine as db_engine
 from engine.agents.compliance_agent import run_compliance_workflow
 from engine.progress import ProgressTracker
 from engine.services.payout_service import initiate_payout_sync
+from core.push_service import fire_and_forget_push
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -333,6 +334,23 @@ def update_reimbursement_status(
     db.commit()
     db.refresh(r)
 
+    # Send push notification
+    if body.status == ReimbursementStatus.APPROVED:
+        fire_and_forget_push(
+            r.user_id,
+            f"Claim RC-{reim_short} approved",
+            f"Your claim for MYR {float(r.total_approved_amount or 0):,.2f} has been approved and is ready for payout.",
+            link=f"/employee/history?id={r.reim_id}",
+        )
+    elif body.status == ReimbursementStatus.REJECTED:
+        hr_note_text = body.hr_note or "No reason provided"
+        fire_and_forget_push(
+            r.user_id,
+            f"Claim RC-{reim_short} rejected",
+            f"Your claim was rejected. Reason: {hr_note_text[:200]}",
+            link=f"/employee/history?id={r.reim_id}",
+        )
+
     result = _build_reimbursement_response(r, db, include_line_items=True)
     result["ready_for_payout"] = body.status == ReimbursementStatus.APPROVED
     return result
@@ -584,6 +602,12 @@ async def analyze_reimbursement(
                                 )
                                 bg_db.add(notif)
                                 bg_db.commit()
+                                fire_and_forget_push(
+                                    reim.user_id,
+                                    f"Claim RC-{reim_id[:8]} automatically rejected",
+                                    f"Your claim was automatically rejected by Reclaim AI. Reason: {(reim.summary or 'See claim details for more information.')[:200]}",
+                                    link=f"/employee/history?id={reim_id}",
+                                )
                             except Exception:
                                 logger.exception("[API_ANALYZE_BG] Failed to send auto-reject notification for reim=%s", reim_id)
                     except Exception as group_err:
@@ -612,6 +636,29 @@ async def analyze_reimbursement(
                             logger.exception("[API_ANALYZE_BG] Fallback MANUAL_REVIEW failed: %s", fallback_err)
 
                 logger.info("[API_ANALYZE_BG] Publishing complete with %d reimbursements", len(all_results))
+
+                # Notify employee that claim submission was processed
+                try:
+                    reim_count = len(all_results)
+                    notif = Notification(
+                        user_id=UUID(user_id_str),
+                        type="success",
+                        title="Claim submitted for review",
+                        message=f"We received your claim with {reim_count} receipt{'s' if reim_count != 1 else ''} for processing. You'll be notified when it's reviewed.",
+                        link="/employee/history",
+                        is_read=False,
+                    )
+                    bg_db.add(notif)
+                    bg_db.commit()
+                    fire_and_forget_push(
+                        UUID(user_id_str),
+                        "Claim submitted for review",
+                        f"We received your claim with {reim_count} receipt{'s' if reim_count != 1 else ''} for processing. You'll be notified when it's reviewed.",
+                        link="/employee/history",
+                    )
+                except Exception:
+                    logger.exception("[API_ANALYZE_BG] Failed to send submission notification")
+
                 tracker.publish(task_id, "complete", {"reimbursements": all_results})
 
             except Exception as e:

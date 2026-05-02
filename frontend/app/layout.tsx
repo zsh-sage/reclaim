@@ -3,6 +3,8 @@ import { Inter, Plus_Jakarta_Sans } from "next/font/google"; // Import fonts
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext"; // Import AuthProvider
 import ServiceWorkerRegistration from "./_components/ServiceWorkerRegistration";
+import PushNotificationProvider from "./_components/PushNotificationProvider";
+import PushPermissionPrompt from "./_components/PushPermissionPrompt";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -68,8 +70,11 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <AuthProvider>
-          {children}
-          <ServiceWorkerRegistration />
+          <PushNotificationProvider>
+            {children}
+            <PushPermissionPrompt />
+            <ServiceWorkerRegistration />
+          </PushNotificationProvider>
         </AuthProvider>
       </body>
     </html>

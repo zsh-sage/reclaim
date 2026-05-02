@@ -6,8 +6,9 @@
 // (sentinel UUID 00000000-0000-0000-0000-000000000fa1) when the model is degraded.
 // ──────────────────────────────────────────────────────────────────────────────
 
-import { apiGet, apiPost, API_PREFIX } from "@/lib/api/client";
+import { apiGet, apiPost, apiDelete, API_PREFIX } from "@/lib/api/client";
 import type { Notification } from "@/lib/api/types";
+import type { PushSubscriptionJSON } from "@/lib/push/subscription";
 
 interface BackendNotification {
   notification_id: string;
@@ -52,4 +53,19 @@ export async function getUnreadCount(): Promise<number> {
 
 export async function markAllNotificationsRead(): Promise<void> {
   await apiPost(`${API_PREFIX}/notifications/read-all`);
+}
+
+export async function savePushSubscription(
+  subscription: PushSubscriptionJSON
+): Promise<void> {
+  await apiPost(`${API_PREFIX}/push/subscribe`, subscription);
+}
+
+export async function removePushSubscription(): Promise<void> {
+  await apiDelete(`${API_PREFIX}/push/unsubscribe`);
+}
+
+export async function getVapidPublicKeyAction(): Promise<string | null> {
+  const result = await apiGet<{ public_key: string }>(`${API_PREFIX}/push/vapid-public-key`);
+  return result.data?.public_key ?? null;
 }

@@ -15,6 +15,7 @@ from api.schemas import (
 from core.models import (
     User, Reimbursement, Payout, Notification,
 )
+from core.push_service import fire_and_forget_push
 from core.enums import UserRole, ReimbursementStatus, PayoutStatus
 from core.config import settings
 from engine.services.xendit import (
@@ -71,6 +72,8 @@ def _create_notification(
     )
     db.add(notif)
     db.commit()
+
+    fire_and_forget_push(user_id, title, message, link=link or "/")
 
 
 @router.get("/channels", response_model=list[PayoutChannelResponse])

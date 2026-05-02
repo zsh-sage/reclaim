@@ -40,6 +40,10 @@ class Settings(BaseSettings):
     # Autonomous reimbursement — kill switch (set to false to force all claims through HR)
     AUTO_REIMBURSE_ENABLED: bool = True
 
+    # VAPID keys for Web Push (auto-generated on startup if not configured)
+    VAPID_PRIVATE_KEY: str = ""
+    VAPID_CLAIMS_EMAIL: str = "reclaim@reclaimai.dev"
+
     model_config = SettingsConfigDict(env_file="../.env", env_file_encoding="utf-8", extra="ignore")
 
     @model_validator(mode="after")
