@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 
 from sqlmodel import Session, select
 from core.database import engine, init_db
-from core.models import Policy, PolicyReimbursableCategory, User
+from core.models import Policy, PolicyReimbursableCategory, PolicySection, User
 from core.enums import PolicyStatus
 
 
@@ -111,6 +111,75 @@ def seed():
         db.commit()
         print(f"Seeded policy {policy.policy_id}: {policy.title}")
         print(f"   Categories: {len(REIMBURSABLE_CATEGORIES)}")
+
+        # Seed policy sections so the RAG keyword fallback returns results.
+        # Embeddings are None here — the vector path skips them, the keyword
+        # ILIKE path finds them by category name and condition text.
+        section_contents = [
+            (
+                "Overview",
+                f"Policy Title: {POLICY_TITLE}\n\n{OVERVIEW_SUMMARY}",
+            ),
+            (
+                "Daily Trip Allowance (Diem Allowance)",
+                "Category: Daily Trip Allowance (Diem Allowance)\n\n"
+                "Conditions:\n"
+                "- Calculated based on duration of trip according to employee entitlement based on job grade.\n"
+                "- Departure time before 12.00 p.m. and/or arrival time after 12.00 p.m. shall be calculated as 1 full day trip.\n"
+                "- Departure time after 12.00 p.m. and/or arrival time before 12.00 p.m. shall be calculated as a half day.\n"
+                "- Employees conducting Business Travel with categorization as half day trip will only be entitled for 50% of the standard daily allowance.",
+            ),
+            (
+                "Accommodations",
+                "Category: Accommodations\n\n"
+                "Conditions:\n"
+                "- Employees may accept a room upgrade if the upgrade is at no additional cost to Company.\n"
+                "- Only Employee with grade 9 and above entitle to reserve a single occupancy during a group Business Travel.\n"
+                "- Employees may using the same hotel based on Regulatory/Government/VVIP recommendation along with the approval from President Director.\n"
+                "- Accommodation limit and hotel cap is based on employee rank and job grade per night.",
+            ),
+            (
+                "Internet Expenses",
+                "Category: Internet Expenses\n\n"
+                "Conditions:\n"
+                "- Full reimbursement for Employee with grade 8 and above.",
+            ),
+            (
+                "Telephone (Business & Private Calls)",
+                "Category: Telephone (Business & Private Calls)\n\n"
+                "Conditions:\n"
+                "- Full reimbursement for Employee with grade 8 and above.",
+            ),
+            (
+                "Laundry",
+                "Category: Laundry\n\n"
+                "Conditions:\n"
+                "- Full reimbursement for Employee with grade 8 and above, minimum 3 days trip and maximum 2 sets.",
+            ),
+            (
+                "Toll Expenses",
+                "Category: Toll Expenses\n\n"
+                "Conditions:\n"
+                "- Full reimbursement for Employee with grade 8 and above.\n"
+                "- Inter-city travel must use approved vendor or company vehicle.\n"
+                "- Receipts must be submitted within 90 days of the expense date.",
+            ),
+        ]
+
+        for order, (title, content) in enumerate(section_contents):
+            section = PolicySection(
+                section_id=uuid4(),
+                policy_id=policy.policy_id,
+                section_title=title,
+                section_order=order,
+                content=content,
+                metadata_data={"source": "seed"},
+                embedding=None,
+            )
+            db.add(section)
+
+        db.commit()
+        print(f"   Sections: {len(section_contents)} (keyword-searchable, no embeddings)")
 
 
 if __name__ == "__main__":

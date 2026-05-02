@@ -7,7 +7,7 @@ from sqlmodel import Session, select, func
 from api import deps
 from api.schemas import NotificationResponse
 from core.models import User, Notification
-from core.notification_store import get_glm_fallback_notification
+from core.notification_store import get_glm_fallback_notification, get_embedding_failure_notification
 
 router = APIRouter()
 
@@ -46,10 +46,12 @@ def get_notifications(
     )
     db_notifications: list = list(db.exec(stmt).all())
 
-    fallback = get_glm_fallback_notification()
-    if fallback:
-        return [_fallback_as_response(fallback, current_user.user_id), *db_notifications]
-    return db_notifications
+    ephemeral = []
+    for getter in (get_glm_fallback_notification, get_embedding_failure_notification):
+        n = getter()
+        if n:
+            ephemeral.append(_fallback_as_response(n, current_user.user_id))
+    return [*ephemeral, *db_notifications]
 
 
 @router.get("/unread-count")
@@ -62,8 +64,9 @@ def get_unread_count(
         Notification.is_read == False,
     )
     count = db.exec(stmt).one()
-    if get_glm_fallback_notification():
-        count += 1
+    for getter in (get_glm_fallback_notification, get_embedding_failure_notification):
+        if getter():
+            count += 1
     return {"count": count}
 
 
