@@ -1,3 +1,6 @@
+"use client";
+
+import { motion } from "framer-motion";
 import { FileLock2, LayoutGrid, ShieldAlert, UserCheck } from "lucide-react";
 
 const FEATURES = [
@@ -23,6 +26,24 @@ const FEATURES = [
   },
 ];
 
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.15, delayChildren: 0.1 },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 40, scale: 0.95 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] },
+  },
+};
+
 export default function FeaturesSection() {
   return (
     <section
@@ -30,7 +51,13 @@ export default function FeaturesSection() {
       className="relative py-20 lg:py-28 px-5 sm:px-8 lg:px-12 bg-surface"
     >
       <div className="mx-auto max-w-7xl">
-        <div className="max-w-2xl">
+        <motion.div
+          className="max-w-2xl"
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+        >
           <span className="inline-flex items-center rounded-full border border-tertiary/20 bg-tertiary/5 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-tertiary">
             Core Features
           </span>
@@ -40,22 +67,33 @@ export default function FeaturesSection() {
           <p className="mt-4 text-on-surface-variant text-base sm:text-lg leading-relaxed">
             Reclaim augments HR — it doesn&rsquo;t replace them. Every feature is designed for traceability, consistency, and human judgment at the final step.
           </p>
-        </div>
+        </motion.div>
 
-        <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-5 lg:gap-6">
+        <motion.div
+          className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-5 lg:gap-6"
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-60px" }}
+        >
           {FEATURES.map(({ icon: Icon, title, body }) => (
-            <div
+            <motion.div
               key={title}
-              className="relative overflow-hidden rounded-3xl bg-surface-container-lowest p-7 lg:p-8 shadow-ambient hover:shadow-ambient-lg transition-all duration-300 group"
+              variants={itemVariants}
+              whileHover={{ y: -6, transition: { duration: 0.25 } }}
+              className="relative overflow-hidden rounded-3xl bg-surface-container-lowest p-7 lg:p-8 shadow-ambient hover:shadow-ambient-lg transition-shadow duration-300 group"
             >
               <div
                 aria-hidden="true"
                 className="absolute -top-12 -right-12 w-44 h-44 rounded-bl-full bg-gradient-to-br from-primary/15 to-tertiary/10 group-hover:scale-110 transition-transform duration-500"
               />
               <div className="relative z-10">
-                <div className="inline-flex p-3.5 rounded-2xl bg-primary/10 text-primary mb-5">
+                <motion.div
+                  className="inline-flex p-3.5 rounded-2xl bg-primary/10 text-primary mb-5"
+                  whileHover={{ rotate: [0, -10, 10, 0], transition: { duration: 0.5 } }}
+                >
                   <Icon className="w-6 h-6" strokeWidth={2} />
-                </div>
+                </motion.div>
                 <h3 className="font-headline text-xl lg:text-2xl font-bold text-on-surface tracking-tight mb-3">
                   {title}
                 </h3>
@@ -63,9 +101,9 @@ export default function FeaturesSection() {
                   {body}
                 </p>
               </div>
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       </div>
     </section>
   );

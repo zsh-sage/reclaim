@@ -1,3 +1,6 @@
+"use client";
+
+import { motion } from "framer-motion";
 import Link from "next/link";
 import { ArrowRight, Check, UserCircle2, Users } from "lucide-react";
 
@@ -15,48 +18,102 @@ const EMP_ITEMS = [
   "Personal reimbursement history with line items",
 ];
 
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.2, delayChildren: 0.1 },
+  },
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 40, scale: 0.96 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { duration: 0.65, ease: [0.22, 1, 0.36, 1] },
+  },
+};
+
+const listItemVariants = {
+  hidden: { opacity: 0, x: -15 },
+  visible: {
+    opacity: 1,
+    x: 0,
+    transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] },
+  },
+};
+
 export default function ForWhomSection() {
   return (
     <section className="relative py-20 lg:py-28 px-5 sm:px-8 lg:px-12 bg-surface-container-low">
       <div className="mx-auto max-w-7xl">
-        <div className="max-w-2xl mb-12">
+        <motion.div
+          className="max-w-2xl mb-12"
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+        >
           <span className="inline-flex items-center rounded-full border border-on-surface-variant/20 bg-surface-container-lowest px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">
             Two portals
           </span>
           <h2 className="mt-4 font-headline text-3xl sm:text-4xl lg:text-5xl font-extrabold text-on-surface tracking-tight">
             Built for both sides of the desk.
           </h2>
-        </div>
+        </motion.div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="relative overflow-hidden rounded-3xl bg-surface-container-lowest p-8 lg:p-10 shadow-ambient hover:shadow-ambient-lg transition-shadow duration-300">
+        <motion.div
+          className="grid grid-cols-1 lg:grid-cols-2 gap-6"
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-60px" }}
+        >
+          <motion.div
+            variants={cardVariants}
+            whileHover={{ y: -6, transition: { duration: 0.25 } }}
+            className="relative overflow-hidden rounded-3xl bg-surface-container-lowest p-8 lg:p-10 shadow-ambient hover:shadow-ambient-lg transition-shadow duration-300"
+          >
             <div
               aria-hidden="true"
               className="absolute -top-12 -right-12 w-44 h-44 rounded-bl-full bg-primary/10"
             />
             <div className="relative z-10">
-              <div className="inline-flex p-3.5 rounded-2xl bg-primary/10 text-primary mb-5">
+              <motion.div
+                className="inline-flex p-3.5 rounded-2xl bg-primary/10 text-primary mb-5"
+                whileHover={{ scale: 1.1, rotate: -5 }}
+                transition={{ type: "spring", stiffness: 300 }}
+              >
                 <Users className="w-6 h-6" strokeWidth={2} />
-              </div>
+              </motion.div>
               <h3 className="font-headline text-2xl font-bold text-on-surface tracking-tight mb-2">
                 For HR Teams
               </h3>
               <p className="text-sm text-on-surface-variant mb-5">
                 Manage policy, triage claims, exercise final approval authority.
               </p>
-              <ul className="space-y-3 mb-7">
+              <motion.ul
+                className="space-y-3 mb-7"
+                variants={containerVariants}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+              >
                 {HR_ITEMS.map((item) => (
-                  <li
+                  <motion.li
                     key={item}
+                    variants={listItemVariants}
                     className="flex items-start gap-3 text-sm text-on-surface"
                   >
                     <span className="mt-0.5 inline-flex w-5 h-5 rounded-full bg-primary/15 text-primary items-center justify-center shrink-0">
                       <Check className="w-3 h-3" strokeWidth={3} />
                     </span>
                     <span>{item}</span>
-                  </li>
+                  </motion.li>
                 ))}
-              </ul>
+              </motion.ul>
               <Link
                 href="/login"
                 className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:text-primary-dim transition-colors"
@@ -65,36 +122,51 @@ export default function ForWhomSection() {
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
-          </div>
+          </motion.div>
 
-          <div className="relative overflow-hidden rounded-3xl bg-surface-container-lowest p-8 lg:p-10 shadow-ambient hover:shadow-ambient-lg transition-shadow duration-300">
+          <motion.div
+            variants={cardVariants}
+            whileHover={{ y: -6, transition: { duration: 0.25 } }}
+            className="relative overflow-hidden rounded-3xl bg-surface-container-lowest p-8 lg:p-10 shadow-ambient hover:shadow-ambient-lg transition-shadow duration-300"
+          >
             <div
               aria-hidden="true"
               className="absolute -top-12 -right-12 w-44 h-44 rounded-bl-full bg-tertiary/10"
             />
             <div className="relative z-10">
-              <div className="inline-flex p-3.5 rounded-2xl bg-tertiary/10 text-tertiary mb-5">
+              <motion.div
+                className="inline-flex p-3.5 rounded-2xl bg-tertiary/10 text-tertiary mb-5"
+                whileHover={{ scale: 1.1, rotate: 5 }}
+                transition={{ type: "spring", stiffness: 300 }}
+              >
                 <UserCircle2 className="w-6 h-6" strokeWidth={2} />
-              </div>
+              </motion.div>
               <h3 className="font-headline text-2xl font-bold text-on-surface tracking-tight mb-2">
                 For Employees
               </h3>
               <p className="text-sm text-on-surface-variant mb-5">
                 Submit claims, verify AI extraction, track status — without chasing.
               </p>
-              <ul className="space-y-3 mb-7">
+              <motion.ul
+                className="space-y-3 mb-7"
+                variants={containerVariants}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+              >
                 {EMP_ITEMS.map((item) => (
-                  <li
+                  <motion.li
                     key={item}
+                    variants={listItemVariants}
                     className="flex items-start gap-3 text-sm text-on-surface"
                   >
                     <span className="mt-0.5 inline-flex w-5 h-5 rounded-full bg-tertiary/15 text-tertiary items-center justify-center shrink-0">
                       <Check className="w-3 h-3" strokeWidth={3} />
                     </span>
                     <span>{item}</span>
-                  </li>
+                  </motion.li>
                 ))}
-              </ul>
+              </motion.ul>
               <Link
                 href="/login"
                 className="inline-flex items-center gap-1.5 text-sm font-semibold text-tertiary hover:text-tertiary-dim transition-colors"
@@ -103,8 +175,8 @@ export default function ForWhomSection() {
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       </div>
     </section>
   );

@@ -1,9 +1,30 @@
+"use client";
+
+import { motion } from "framer-motion";
+
 const STATS = [
   { value: "4", label: "AI verdicts", sub: "APPROVE · PARTIAL · REJECT · MANUAL_REVIEW" },
   { value: "5", label: "Tool calls", sub: "Per ReAct iteration cap" },
   { value: "≤4", label: "Parallel workers", sub: "Concurrent OCR + compliance" },
   { value: "100%", label: "HR-final", sub: "No silent automated decisions" },
 ];
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.15, delayChildren: 0.2 },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, x: -20 },
+  visible: {
+    opacity: 1,
+    x: 0,
+    transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] },
+  },
+};
 
 export default function StatsBand() {
   return (
@@ -18,7 +39,13 @@ export default function StatsBand() {
       />
 
       <div className="relative mx-auto max-w-7xl px-5 sm:px-8 lg:px-12 py-20 lg:py-24">
-        <div className="max-w-2xl text-on-primary mb-12">
+        <motion.div
+          className="max-w-2xl text-on-primary mb-12"
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+        >
           <span className="inline-flex items-center rounded-full border border-white/35 bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] backdrop-blur-sm">
             By the numbers
           </span>
@@ -28,23 +55,41 @@ export default function StatsBand() {
           <p className="mt-4 text-base lg:text-lg opacity-90 leading-relaxed">
             Every constraint is explicit. Every decision is reproducible. Every audit answer is one query away.
           </p>
-        </div>
+        </motion.div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8 text-on-primary">
+        <motion.div
+          className="grid grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8 text-on-primary"
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-60px" }}
+        >
           {STATS.map((s) => (
-            <div key={s.label} className="border-l-2 border-white/30 pl-5">
-              <div className="font-headline text-5xl lg:text-6xl font-black tabular-nums tracking-tighter">
+            <motion.div
+              key={s.label}
+              variants={itemVariants}
+              whileHover={{ scale: 1.03, x: 5 }}
+              transition={{ type: "spring", stiffness: 300 }}
+              className="border-l-2 border-white/30 pl-5"
+            >
+              <motion.div
+                className="font-headline text-5xl lg:text-6xl font-black tabular-nums tracking-tighter"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+              >
                 {s.value}
-              </div>
+              </motion.div>
               <div className="mt-2 text-sm font-bold uppercase tracking-wider">
                 {s.label}
               </div>
               <div className="mt-1 text-xs opacity-75 leading-snug">
                 {s.sub}
               </div>
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       </div>
     </section>
   );

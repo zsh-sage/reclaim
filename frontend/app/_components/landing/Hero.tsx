@@ -1,7 +1,44 @@
+"use client";
+
+import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, ChevronDown, Sparkles } from "lucide-react";
 import type { User } from "@/lib/api/types";
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.12, delayChildren: 0.1 },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 30 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] },
+  },
+};
+
+const floatVariants = {
+  animate: {
+    y: [0, -12, 0],
+    transition: { duration: 5, repeat: Infinity, ease: "easeInOut" },
+  },
+};
+
+const scaleInVariants = {
+  hidden: { opacity: 0, scale: 0.85, y: 40 },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    y: 0,
+    transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1], delay: 0.3 },
+  },
+};
 
 export default function Hero({ user }: { user: User | null }) {
   const dashHref = user?.role === "HR" ? "/hr/dashboard" : "/employee/dashboard";
@@ -12,13 +49,17 @@ export default function Hero({ user }: { user: User | null }) {
         aria-hidden="true"
         className="absolute inset-0 bg-[radial-gradient(circle_at_30%_40%,rgba(147,150,255,0.18),transparent_60%),radial-gradient(circle_at_70%_60%,rgba(158,0,180,0.14),transparent_60%)] mix-blend-overlay"
       />
-      <div
+      <motion.div
         aria-hidden="true"
         className="absolute -bottom-40 -left-40 w-[480px] h-[480px] rounded-full bg-tertiary blur-[140px] opacity-40"
+        animate={{ scale: [1, 1.15, 1], opacity: [0.4, 0.55, 0.4] }}
+        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
       />
-      <div
+      <motion.div
         aria-hidden="true"
         className="absolute -top-32 -right-32 w-[420px] h-[420px] rounded-full bg-primary blur-[120px] opacity-50"
+        animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.65, 0.5] }}
+        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1 }}
       />
       <div
         aria-hidden="true"
@@ -27,13 +68,21 @@ export default function Hero({ user }: { user: User | null }) {
 
       <div className="relative mx-auto max-w-7xl px-5 sm:px-8 lg:px-12 pt-16 pb-24 lg:pt-28 lg:pb-36">
         <div className="grid lg:grid-cols-[1fr_auto] gap-12 lg:gap-16 items-center">
-          <div className="max-w-3xl text-on-primary">
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/35 bg-white/10 px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] backdrop-blur-sm shadow-sm">
+          <motion.div
+            className="max-w-3xl text-on-primary"
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+          >
+            <motion.span
+              variants={itemVariants}
+              className="inline-flex items-center gap-2 rounded-full border border-white/35 bg-white/10 px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] backdrop-blur-sm shadow-sm"
+            >
               <Sparkles className="w-3.5 h-3.5" />
               Every receipt reviewed. Every decision yours.
-            </span>
+            </motion.span>
 
-            <div className="mt-6 flex items-center gap-4">
+            <motion.div variants={itemVariants} className="mt-6 flex items-center gap-4">
               <Image
                 src="/images/logo.svg"
                 alt="Reclaim Logo"
@@ -45,20 +94,26 @@ export default function Hero({ user }: { user: User | null }) {
               <span className="font-headline text-5xl sm:text-6xl lg:text-7xl font-black tracking-tight">
                 Reclaim.
               </span>
-            </div>
+            </motion.div>
 
-            <h1 className="mt-6 font-headline text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight leading-[1.1]">
+            <motion.h1
+              variants={itemVariants}
+              className="mt-6 font-headline text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight leading-[1.1]"
+            >
               AI-assisted expense reimbursement
               <br className="hidden sm:block" /> with intelligent decision support.
-            </h1>
+            </motion.h1>
 
-            <p className="mt-6 max-w-2xl text-base sm:text-lg opacity-90 font-light leading-relaxed">
+            <motion.p
+              variants={itemVariants}
+              className="mt-6 max-w-2xl text-base sm:text-lg opacity-90 font-light leading-relaxed"
+            >
               Reclaim places an intelligent compliance agent between receipt upload and HR review.
               OCR extracts every line. A LangGraph agent reasons against your active policy.
               HR opens a pre-classified triage queue — not a stack of attachments.
-            </p>
+            </motion.p>
 
-            <div className="mt-9 flex flex-wrap items-center gap-3">
+            <motion.div variants={itemVariants} className="mt-9 flex flex-wrap items-center gap-3">
               <Link
                 href="#demo"
                 className="inline-flex items-center gap-2 px-7 py-3.5 bg-on-primary text-primary rounded-full text-base font-bold shadow-ambient-lg hover:shadow-[0_0_30px_rgba(255,255,255,0.4)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
@@ -82,19 +137,26 @@ export default function Hero({ user }: { user: User | null }) {
                   <ArrowRight className="w-4 h-4" />
                 </Link>
               )}
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
 
-          <div className="hidden lg:block flex-shrink-0">
-            <Image
-              src="/images/example.png"
-              alt="Reclaim platform preview"
-              width={580}
-              height={749}
-              className="h-[600px] w-auto scale-110 origin-center"
-              priority
-            />
-          </div>
+          <motion.div
+            className="hidden lg:block flex-shrink-0"
+            variants={scaleInVariants}
+            initial="hidden"
+            animate="visible"
+          >
+            <motion.div variants={floatVariants} animate="animate">
+              <Image
+                src="/images/example.png"
+                alt="Reclaim platform preview"
+                width={580}
+                height={749}
+                className="h-[600px] w-auto scale-110 origin-center"
+                priority
+              />
+            </motion.div>
+          </motion.div>
         </div>
       </div>
     </section>

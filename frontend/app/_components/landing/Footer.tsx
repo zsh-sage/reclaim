@@ -1,3 +1,6 @@
+"use client";
+
+import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
 import { ExternalLink } from "lucide-react";
@@ -18,12 +21,41 @@ const TECH_STACK = [
   "Gemini 3.1 Flash Lite",
 ];
 
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1, delayChildren: 0.05 },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] },
+  },
+};
+
 export default function Footer() {
   return (
-    <footer className="bg-inverse-surface text-on-primary px-5 sm:px-8 lg:px-12 pt-16 pb-8">
+    <motion.footer
+      className="bg-inverse-surface text-on-primary px-5 sm:px-8 lg:px-12 pt-16 pb-8"
+      initial={{ opacity: 0 }}
+      whileInView={{ opacity: 1 }}
+      viewport={{ once: true, margin: "-40px" }}
+      transition={{ duration: 0.6 }}
+    >
       <div className="mx-auto max-w-7xl">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
-          <div className="md:col-span-2 md:pr-8">
+        <motion.div
+          className="grid grid-cols-1 md:grid-cols-4 gap-10"
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+        >
+          <motion.div variants={itemVariants} className="md:col-span-2 md:pr-8">
             <div className="flex items-center gap-2.5">
               <Image
                 src="/images/logo.svg"
@@ -39,9 +71,9 @@ export default function Footer() {
             <p className="mt-4 text-sm opacity-80 max-w-md leading-relaxed">
               Every receipt reviewed. Every decision yours. An AI-native expense reimbursement platform built around accountability and human judgment.
             </p>
-          </div>
+          </motion.div>
 
-          <div>
+          <motion.div variants={itemVariants}>
             <h4 className="text-xs font-bold uppercase tracking-[0.18em] opacity-70 mb-4">
               Product
             </h4>
@@ -65,9 +97,9 @@ export default function Footer() {
                 </Link>
               </li>
             </ul>
-          </div>
+          </motion.div>
 
-          <div>
+          <motion.div variants={itemVariants}>
             <h4 className="text-xs font-bold uppercase tracking-[0.18em] opacity-70 mb-4">
               Built with
             </h4>
@@ -78,10 +110,16 @@ export default function Footer() {
                 </li>
               ))}
             </ul>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
 
-        <div className="mt-12 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <motion.div
+          className="mt-12 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4"
+          initial={{ opacity: 0, y: 10 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.3, duration: 0.5 }}
+        >
           <p className="text-xs opacity-70 text-center sm:text-left">
             Built for UM Hackathon 2026 · Reclaim MVP v1.0
           </p>
@@ -94,8 +132,8 @@ export default function Footer() {
             <ExternalLink className="w-4 h-4" />
             View on GitHub
           </a>
-        </div>
+        </motion.div>
       </div>
-    </footer>
+    </motion.footer>
   );
 }

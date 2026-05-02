@@ -1,3 +1,6 @@
+"use client";
+
+import { motion } from "framer-motion";
 import { Brain, ChevronRight, FileText, ScanText } from "lucide-react";
 
 const PIPELINES = [
@@ -47,6 +50,33 @@ const PIPELINES = [
   },
 ];
 
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.2, delayChildren: 0.15 },
+  },
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 50, scale: 0.96 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { duration: 0.65, ease: [0.22, 1, 0.36, 1] },
+  },
+};
+
+const arrowVariants = {
+  hidden: { opacity: 0, x: -10 },
+  visible: {
+    opacity: 1,
+    x: 0,
+    transition: { duration: 0.4, delay: 0.5 },
+  },
+};
+
 export default function HowItWorks() {
   return (
     <section
@@ -63,7 +93,13 @@ export default function HowItWorks() {
       />
 
       <div className="relative mx-auto max-w-7xl">
-        <div className="max-w-2xl">
+        <motion.div
+          className="max-w-2xl"
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+        >
           <span className="inline-flex items-center rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-primary">
             How it works
           </span>
@@ -73,16 +109,29 @@ export default function HowItWorks() {
           <p className="mt-4 text-on-surface-variant text-base sm:text-lg leading-relaxed">
             Reclaim&rsquo;s intelligence is split into three deterministic, stateful agents — each with a defined input, output, and audit trail.
           </p>
-        </div>
+        </motion.div>
 
-        <div className="mt-12 grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 items-stretch">
+        <motion.div
+          className="mt-12 grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 items-stretch"
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-60px" }}
+        >
           {PIPELINES.map((p, idx) => (
-            <div key={p.name} className="relative flex">
-              <div className="glass-card relative flex-1 rounded-3xl p-7 border border-white/50 shadow-ambient hover:shadow-ambient-lg transition-shadow duration-300">
+            <motion.div key={p.name} className="relative flex" variants={cardVariants}>
+              <motion.div
+                className="glass-card relative flex-1 rounded-3xl p-7 border border-white/50 shadow-ambient hover:shadow-ambient-lg transition-shadow duration-300"
+                whileHover={{ y: -5, transition: { duration: 0.25 } }}
+              >
                 <div className="flex items-center gap-3 mb-5">
-                  <div className="inline-flex p-3 rounded-xl bg-primary/10 text-primary">
+                  <motion.div
+                    className="inline-flex p-3 rounded-xl bg-primary/10 text-primary"
+                    whileHover={{ scale: 1.1, rotate: 5 }}
+                    transition={{ type: "spring", stiffness: 300 }}
+                  >
                     <p.icon className="w-5 h-5" strokeWidth={2} />
-                  </div>
+                  </motion.div>
                   <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-on-surface-variant">
                     {p.badge}
                   </span>
@@ -98,31 +147,40 @@ export default function HowItWorks() {
                 </p>
 
                 <ul className="mt-5 space-y-2">
-                  {p.nodes.map((n) => (
-                    <li
+                  {p.nodes.map((n, nodeIdx) => (
+                    <motion.li
                       key={n}
+                      initial={{ opacity: 0, x: -10 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: 0.3 + nodeIdx * 0.08, duration: 0.4 }}
                       className="flex items-start gap-2 text-xs text-on-surface font-mono"
                     >
                       <ChevronRight className="w-3.5 h-3.5 text-primary mt-0.5 shrink-0" />
                       <span className="break-words">{n}</span>
-                    </li>
+                    </motion.li>
                   ))}
                 </ul>
-              </div>
+              </motion.div>
 
               {idx < PIPELINES.length - 1 && (
-                <div
+                <motion.div
                   aria-hidden="true"
                   className="hidden lg:flex absolute -right-5 top-1/2 -translate-y-1/2 z-10 items-center justify-center"
+                  variants={arrowVariants}
                 >
-                  <div className="w-9 h-9 rounded-full bg-primary text-on-primary shadow-ambient flex items-center justify-center">
+                  <motion.div
+                    className="w-9 h-9 rounded-full bg-primary text-on-primary shadow-ambient flex items-center justify-center"
+                    animate={{ x: [0, 5, 0] }}
+                    transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                  >
                     <ChevronRight className="w-5 h-5" />
-                  </div>
-                </div>
+                  </motion.div>
+                </motion.div>
               )}
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       </div>
     </section>
   );

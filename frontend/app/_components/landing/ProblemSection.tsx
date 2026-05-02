@@ -1,3 +1,6 @@
+"use client";
+
+import { motion } from "framer-motion";
 import { TrendingUp, FileSearch, GitCompareArrows, Hourglass } from "lucide-react";
 
 const PROBLEMS = [
@@ -23,6 +26,24 @@ const PROBLEMS = [
   },
 ];
 
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.12, delayChildren: 0.1 },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 30, scale: 0.95 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] },
+  },
+};
+
 export default function ProblemSection() {
   return (
     <section
@@ -30,7 +51,13 @@ export default function ProblemSection() {
       className="relative py-20 lg:py-28 px-5 sm:px-8 lg:px-12 bg-surface"
     >
       <div className="mx-auto max-w-7xl">
-        <div className="max-w-2xl">
+        <motion.div
+          className="max-w-2xl"
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+        >
           <span className="inline-flex items-center rounded-full border border-error/20 bg-error-container/30 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-error">
             The Problem
           </span>
@@ -41,12 +68,20 @@ export default function ProblemSection() {
             Every reimbursement claim — RM 15 lunch or RM 8,000 travel — runs the same manual loop:
             open the attachment, read the amounts, cross-reference a policy PDF, write a response.
           </p>
-        </div>
+        </motion.div>
 
-        <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <motion.div
+          className="mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5"
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-60px" }}
+        >
           {PROBLEMS.map(({ icon: Icon, title, body }) => (
-            <div
+            <motion.div
               key={title}
+              variants={itemVariants}
+              whileHover={{ y: -5, transition: { duration: 0.2 } }}
               className="relative overflow-hidden rounded-2xl bg-surface-container-lowest p-6 shadow-ambient hover:shadow-ambient-lg transition-shadow duration-300 group"
             >
               <div
@@ -54,9 +89,13 @@ export default function ProblemSection() {
                 className="absolute -top-10 -right-10 w-36 h-36 rounded-bl-full bg-error-container/30 group-hover:scale-110 transition-transform duration-500"
               />
               <div className="relative z-10">
-                <div className="inline-flex p-3 rounded-xl bg-error-container/40 text-error mb-5">
+                <motion.div
+                  className="inline-flex p-3 rounded-xl bg-error-container/40 text-error mb-5"
+                  whileHover={{ rotate: [0, -8, 8, 0] }}
+                  transition={{ duration: 0.5 }}
+                >
                   <Icon className="w-5 h-5" strokeWidth={2} />
-                </div>
+                </motion.div>
                 <h3 className="font-headline text-lg font-bold text-on-surface tracking-tight mb-2">
                   {title}
                 </h3>
@@ -64,9 +103,9 @@ export default function ProblemSection() {
                   {body}
                 </p>
               </div>
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       </div>
     </section>
   );

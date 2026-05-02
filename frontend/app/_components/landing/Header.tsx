@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, Menu, X } from "lucide-react";
@@ -33,7 +34,10 @@ export default function Header({ user }: { user: User | null }) {
   const ctaHref = user ? dashHref : "/login";
 
   return (
-    <header
+    <motion.header
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
       className={`sticky top-0 z-50 w-full transition-all duration-300 ${
         scrolled
           ? "bg-surface/80 backdrop-blur-xl border-b border-surface-container-high/60 shadow-ambient"
@@ -55,27 +59,38 @@ export default function Header({ user }: { user: User | null }) {
           </span>
         </Link>
 
-        <nav className="hidden lg:flex items-center gap-8">
+        <motion.nav
+          className="hidden lg:flex items-center gap-8"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2, duration: 0.4 }}
+        >
           {NAV_LINKS.map((l) => (
             <a
               key={l.href}
               href={l.href}
-              className="text-sm font-medium text-on-surface-variant hover:text-on-surface transition-colors"
+              className="relative text-sm font-medium text-on-surface-variant hover:text-on-surface transition-colors group"
             >
               {l.label}
+              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary group-hover:w-full transition-all duration-300" />
             </a>
           ))}
-        </nav>
+        </motion.nav>
 
-        <div className="hidden lg:flex items-center">
+        <motion.div
+          className="hidden lg:flex items-center"
+          initial={{ opacity: 0, x: 10 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.3, duration: 0.4 }}
+        >
           <Link
             href={ctaHref}
-            className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-gradient-to-r from-primary to-primary-dim text-white rounded-full text-sm font-semibold shadow-ambient hover:shadow-[0_0_24px_rgba(70,71,211,0.35)] transition-shadow"
+            className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-gradient-to-r from-primary to-primary-dim text-white rounded-full text-sm font-semibold shadow-ambient hover:shadow-[0_0_24px_rgba(70,71,211,0.35)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
           >
             {ctaLabel}
             <ArrowRight className="w-4 h-4" />
           </Link>
-        </div>
+        </motion.div>
 
         <button
           type="button"
@@ -88,17 +103,26 @@ export default function Header({ user }: { user: User | null }) {
       </div>
 
       {mobileOpen && (
-        <div className="lg:hidden border-t border-surface-container-high bg-surface-container-lowest/95 backdrop-blur-xl">
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: "auto" }}
+          exit={{ opacity: 0, height: 0 }}
+          transition={{ duration: 0.25 }}
+          className="lg:hidden border-t border-surface-container-high bg-surface-container-lowest/95 backdrop-blur-xl overflow-hidden"
+        >
           <nav className="flex flex-col px-5 py-4 gap-1">
-            {NAV_LINKS.map((l) => (
-              <a
+            {NAV_LINKS.map((l, i) => (
+              <motion.a
                 key={l.href}
                 href={l.href}
                 onClick={() => setMobileOpen(false)}
+                initial={{ opacity: 0, x: -15 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.05, duration: 0.25 }}
                 className="px-3 py-2.5 rounded-lg text-sm font-medium text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors"
               >
                 {l.label}
-              </a>
+              </motion.a>
             ))}
             <Link
               href={ctaHref}
@@ -109,8 +133,8 @@ export default function Header({ user }: { user: User | null }) {
               <ArrowRight className="w-4 h-4" />
             </Link>
           </nav>
-        </div>
+        </motion.div>
       )}
-    </header>
+    </motion.header>
   );
 }
