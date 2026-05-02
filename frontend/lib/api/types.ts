@@ -461,7 +461,6 @@ export interface DocumentChangeLogEntry {
 /** Request body for POST /api/v1/reimbursements/analyze. */
 export interface AnalyzeRequest {
   settlement_id: string;
-  policy_id: string;
   document_ids?: string[];
   is_auto_reimburse_enabled?: boolean;
 }
@@ -484,6 +483,12 @@ export interface AnalyzeResponse {
   created_at: string | null;
   message: string;
   task_id?: string;
+}
+
+/** SSE complete payload for multi-policy autonomous analysis. */
+export interface AnalyzeResponseMulti {
+  reimbursements: AnalyzeResponse[];
+  failed_groups?: { policy_alias: string; error: string }[];
 }
 
 // ─── Claim Drafts ─────────────────────────────────────────────────────────────

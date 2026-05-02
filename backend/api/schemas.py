@@ -266,7 +266,6 @@ class StatusUpdateRequest(BaseModel):
 
 class AnalyzeReimbursementRequest(BaseModel):
     settlement_id: str
-    policy_id: str
     document_ids: Optional[List[str]] = None
     is_auto_reimburse_enabled: bool = False
 

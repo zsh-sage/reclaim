@@ -37,10 +37,11 @@ logger = logging.getLogger(__name__)
 class ComplianceWorkflowState(TypedDict):
     # Inputs
     settlement_id: str
-    policy_id: str
+    policy_id: Optional[str]
     main_category: str
     user_id: str
     all_category: List[str]
+    document_ids: Optional[List[str]]
     is_auto_reimburse_enabled: bool
 
     # Context loaded from DB
@@ -171,7 +172,7 @@ def load_context(state: ComplianceWorkflowState, session: Session) -> dict:
     """Load user, policy, and TravelSettlement basket from the database."""
     logger.info("[LOAD_CONTEXT] Loading context for settlement=%s policy=%s user=%s", state.get("settlement_id"), state.get("policy_id"), state.get("user_id"))
     user = session.get(User, UUID(state["user_id"]))
-    policy = session.get(Policy, UUID(state["policy_id"]))
+    policy = session.get(Policy, UUID(state["policy_id"])) if state.get("policy_id") else None
 
     # Parse mandatory conditions dict
     try:
@@ -202,13 +203,17 @@ def load_context(state: ComplianceWorkflowState, session: Session) -> dict:
                     ).all()
                     all_category = [c.category for c in cats]
 
-                # Fetch receipts from normalized table
-                s_receipts = session.exec(
-                    select(SettlementReceipt).where(
-                        SettlementReceipt.settlement_id == settlement.settlement_id
+                # Fetch receipts from normalized table, filtered to this policy group
+                receipt_query = select(SettlementReceipt).where(
+                    SettlementReceipt.settlement_id == settlement.settlement_id
+                )
+                doc_id_filter = state.get("document_ids") or []
+                if doc_id_filter:
+                    receipt_query = receipt_query.where(
+                        SettlementReceipt.document_id.in_([UUID(d) for d in doc_id_filter])
                     )
-                ).all()
-                logger.info("[LOAD_CONTEXT] Found %d SettlementReceipts", len(s_receipts))
+                s_receipts = session.exec(receipt_query).all()
+                logger.info("[LOAD_CONTEXT] Found %d SettlementReceipts (filtered by %d doc_ids)", len(s_receipts), len(doc_id_filter))
 
                 # Bulk-fetch all SupportingDocuments for this settlement in one query
                 doc_ids = [sr.document_id for sr in s_receipts if sr.document_id]
@@ -579,7 +584,9 @@ def run_compliance_workflow(
     Returns a dict with reimbursement_id, judgment, totals, line_items,
     confidence, and summary.
     """
-    tools = [get_disparance_date, make_search_policy_rag_tool(policy_id, session)]
+    tools = [get_disparance_date]
+    if policy_id:
+        tools.append(make_search_policy_rag_tool(policy_id, session))
     _progress = {"cb": progress_callback}
 
     def _load_context(state):
@@ -626,10 +633,11 @@ def run_compliance_workflow(
     logger.info("[RUN_COMPLIANCE] Invoking graph for settlement=%s policy=%s", settlement_id, policy_id)
     result = app.invoke({
         "settlement_id": settlement_id,
-        "policy_id": policy_id,
+        "policy_id": policy_id or "",
         "main_category": main_category,
         "user_id": user_id,
         "all_category": all_category or [],
+        "document_ids": document_ids or [],
         "is_auto_reimburse_enabled": is_auto_reimburse_enabled,
         "user": None,
         "policy": None,
