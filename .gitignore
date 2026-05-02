@@ -69,3 +69,6 @@ agent_workflow_plans.md
 backend/storage/documents/*
 backend/storage/policies/*
 AGENTS.md
+
+# VAPID keys (auto-generated on startup)
+backend/vapid_keys.json

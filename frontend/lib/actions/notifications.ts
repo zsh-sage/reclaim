@@ -64,3 +64,8 @@ export async function savePushSubscription(
 export async function removePushSubscription(): Promise<void> {
   await apiDelete(`${API_PREFIX}/push/unsubscribe`);
 }
+
+export async function getVapidPublicKeyAction(): Promise<string | null> {
+  const result = await apiGet<{ public_key: string }>(`${API_PREFIX}/push/vapid-public-key`);
+  return result.data?.public_key ?? null;
+}
