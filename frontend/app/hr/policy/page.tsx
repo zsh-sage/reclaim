@@ -77,7 +77,7 @@ export function HrProcessingScreen({ currentStep, onBack }: { currentStep: numbe
                 const isPending = idx > currentStep;
 
                 return (
-                  <div key={step.id} className="flex items-start gap-5 relative">
+                  <div key={step.policy_id} className="flex items-start gap-5 relative">
                     {isCompleted && (
                       <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center shrink-0 mt-0.5 shadow-[0_4px_12px_rgba(70,71,211,0.35)] z-10">
                         <CheckCircle2 className="w-3.5 h-3.5 text-on-primary" strokeWidth={2.5} />
@@ -276,11 +276,11 @@ export default function PolicyStudio() {
 
     const applyEdits = (list: Policy[]) => {
       return list
-        .filter(p => !deletedIds.includes(p.id))
+        .filter(p => !deletedIds.includes(p.policy_id))
         .map(p => {
-          if (localEdits[p.id]) {
+          if (localEdits[p.policy_id]) {
             // Apply saved edits (ignoring the icon as it's a React component)
-            const { icon, ...editedData } = localEdits[p.id];
+            const { icon, ...editedData } = localEdits[p.policy_id];
             return { ...p, ...editedData };
           }
           return p;
@@ -295,8 +295,9 @@ export default function PolicyStudio() {
       if (backendPolicies.length === 0) return;
       // Map backend Policy type (from types.ts) → local Policy shape (mockData.ts)
       const mapped: Policy[] = backendPolicies.map((p) => ({
-        id: p.policy_id,
-        name: p.title,
+        policy_id: p.policy_id,
+        alias: p.alias,
+        title: p.title,
         version: "V1.0",
         department: "General",
         lastModified: p.effective_date
@@ -305,11 +306,12 @@ export default function PolicyStudio() {
         status: (p.status === "ACTIVE" ? "Active" : p.status === "DEPRECATED" ? "Expired" : "Impending") as PolicyStatus,
         icon: FileText,
         overview_summary: p.overview_summary,
-        aiConditions: parseMandatoryConditions(p.mandatory_conditions) ?? undefined,
+        mandatory_conditions: parseMandatoryConditions(p.mandatory_conditions) ?? undefined,
+        reimbursable_categories_with_budgets: p.reimbursable_categories_with_budgets ?? [],
         history: [],
       }));
-      // Merge: prepend real policies, keep mocks as fallback examples
-      setPolicies([...mapped, ...MOCK_POLICIES]);
+      // Use only real policies, no mock fallback
+      setPolicies(mapped);
     }).catch(() => {
       // Keep mock data on error
     });
@@ -321,17 +323,17 @@ export default function PolicyStudio() {
 
   useEffect(() => {
     if (editingPolicy && editingPolicy !== "new") {
-      const p = policies.find(x => x.id === editingPolicy);
+      const p = policies.find(x => x.policy_id === editingPolicy);
       if (p) {
         setEditStatus(p.status);
-        setEditName(p.name);
-        setEditDepartment(p.department);
-        setEditVersion(p.version);
+        setEditName(p.alias);
+        setEditDepartment("");
+        setEditVersion("1.0");
         setEditDate("2023-10-12");
         setExistingMainPolicyDeleted(false);
         setEditOverviewSummary(p.overview_summary || "");
-        setEditConditions(p.aiConditions || null);
-        setEditingPolicyId(p.id || null);
+        setEditConditions(p.mandatory_conditions || null);
+        setEditingPolicyId(p.policy_id || null);
 
         // Initialize budgets from policy data (or from categories)
         const budgets: Record<string, string> = {};
@@ -339,9 +341,9 @@ export default function PolicyStudio() {
           p.reimbursable_categories_with_budgets.forEach((cat: any) => {
             budgets[cat.category] = cat.auto_approval_budget?.toString() ?? "";
           });
-        } else if (p.aiConditions) {
+        } else if (p.mandatory_conditions) {
           // Fallback: initialize empty budgets for each category
-          Object.keys(p.aiConditions).forEach(cat => {
+          Object.keys(JSON.parse(p.mandatory_conditions || "{}")).forEach(cat => {
             budgets[cat] = "";
           });
         }
@@ -452,7 +454,7 @@ export default function PolicyStudio() {
             status: (p.status === "ACTIVE" ? "Active" : p.status === "DEPRECATED" ? "Expired" : "Impending") as PolicyStatus,
             icon: FileText,
             overview_summary: p.overview_summary,
-            aiConditions: parseMandatoryConditions(p.mandatory_conditions) ?? undefined,
+            mandatory_conditions: parseMandatoryConditions(p.mandatory_conditions) ?? undefined,
           }));
           setPolicies([...mapped, ...MOCK_POLICIES]);
         }
@@ -495,7 +497,7 @@ export default function PolicyStudio() {
         mainFile: mainPolicyFile,
         appendixFiles: appendixFiles,
         existingAppendix: existingAppendix,
-        aiConditions: editConditions || undefined,
+        mandatory_conditions: editConditions || undefined,
         history: updatedHistory
       };
       setPolicies([newPolicy, ...policies]);
@@ -506,7 +508,7 @@ export default function PolicyStudio() {
         department: editDepartment,
         version: editVersion,
         existingAppendix: existingAppendix,
-        aiConditions: editConditions || undefined,
+        mandatory_conditions: editConditions || undefined,
         history: updatedHistory
       };
 
@@ -515,7 +517,7 @@ export default function PolicyStudio() {
       localEdits[editingPolicy] = updatedPolicyData;
       localStorage.setItem('local_policy_edits', JSON.stringify(localEdits));
 
-      setPolicies(policies.map(p => p.id === editingPolicy ? {
+      setPolicies(policies.map(p => p.policy_id === editingPolicy ? {
         ...p,
         ...updatedPolicyData,
         mainFile: mainPolicyFile,
@@ -541,7 +543,7 @@ export default function PolicyStudio() {
     }
     
     // Remove from local state
-    setPolicies(prev => prev.filter(p => p.id !== deletingPolicyId));
+    setPolicies(prev => prev.filter(p => p.policy_id !== deletingPolicyId));
     
     // Persist deletion in LocalStorage (like the edit-view delete does)
     const deletedIds = JSON.parse(localStorage.getItem('deleted_policy_ids') || '[]');
@@ -1086,7 +1088,7 @@ export default function PolicyStudio() {
 
   const filteredPolicies = policies.filter(p => {
     const matchesStatus = p.status === activeFilter;
-    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    const matchesSearch = p.alias.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.department.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesStatus && matchesSearch;
   });
@@ -1181,8 +1183,8 @@ export default function PolicyStudio() {
                       {filteredPolicies.length > 0 ? (
                         filteredPolicies.slice(0, 3).map((policy) => (
                           <tr
-                            key={policy.id}
-                            onClick={() => setEditingPolicy(policy.id)}
+                            key={policy.policy_id}
+                            onClick={() => setEditingPolicy(policy.policy_id)}
                             className="group transition-all duration-200 hover:bg-primary/[0.04] hover:shadow-[inset_4px_0_0_0_#4647d3] cursor-pointer border-b border-surface-container-highest/50 last:border-0"
                           >
                             <td className="py-5 px-6">
@@ -1191,7 +1193,7 @@ export default function PolicyStudio() {
                                   <policy.icon size={20} />
                                 </div>
                                 <div>
-                                  <p className="font-semibold text-base">{policy.name}</p>
+                                  <p className="font-semibold text-base">{policy.alias}</p>
                                   <p className="text-sm text-on-surface-variant mt-0.5">{policy.version} • {policy.department}</p>
                                 </div>
                               </div>
@@ -1204,7 +1206,7 @@ export default function PolicyStudio() {
                             </td>
                             <td className="py-5 px-6 text-right">
                               <button
-                                onClick={(e) => { e.stopPropagation(); setEditingPolicy(policy.id); }}
+                                onClick={(e) => { e.stopPropagation(); setEditingPolicy(policy.policy_id); }}
                                 className="text-primary font-semibold text-sm group-hover:underline group-hover:translate-x-0.5 transition-all duration-150 active:scale-95 cursor-pointer"
                               >
                                 Edit
@@ -1228,15 +1230,15 @@ export default function PolicyStudio() {
                   {filteredPolicies.length > 0 ? (
                     filteredPolicies.slice(0, 3).map((policy) => (
                       <button
-                        key={policy.id}
-                        onClick={() => setEditingPolicy(policy.id)}
+                        key={policy.policy_id}
+                        onClick={() => setEditingPolicy(policy.policy_id)}
                         className="bg-surface-container-lowest rounded-xl p-4 border border-outline-variant/10 text-left active:scale-[0.98] transition-all flex items-center gap-3"
                       >
                         <div className="w-10 h-10 rounded-lg bg-primary-container/20 flex items-center justify-center text-primary shrink-0">
                           <policy.icon size={20} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-sm text-on-surface truncate">{policy.name}</p>
+                          <p className="font-semibold text-sm text-on-surface truncate">{policy.alias}</p>
                           <p className="text-xs text-on-surface-variant mt-0.5">{policy.version} · {policy.department}</p>
                           <p className="text-xs text-on-surface-variant/70 mt-0.5">{policy.lastModified}</p>
                         </div>
@@ -1744,7 +1746,7 @@ function ViewAllModal({
   if (!isOpen) return null;
 
   const filtered = policies.filter(p =>
-    p.name.toLowerCase().includes(modalQuery.toLowerCase()) ||
+    p.alias.toLowerCase().includes(modalQuery.toLowerCase()) ||
     p.department.toLowerCase().includes(modalQuery.toLowerCase())
   );
 
@@ -1788,14 +1790,14 @@ function ViewAllModal({
             </thead>
             <tbody className="divide-y divide-outline-variant/10">
               {filtered.map((policy) => (
-                <tr key={policy.id} className="hover:bg-primary/[0.04] transition-all cursor-default">
+                <tr key={policy.policy_id} className="hover:bg-primary/[0.04] transition-all cursor-default">
                   <td className="py-4 px-6">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-lg bg-primary-container/20 flex items-center justify-center text-primary">
                         <policy.icon size={18} />
                       </div>
                       <div>
-                        <p className="font-semibold text-on-surface text-sm">{policy.name}</p>
+                        <p className="font-semibold text-on-surface text-sm">{policy.alias}</p>
                         <p className="text-[11px] text-on-surface-variant mt-0.5">{policy.version} • {policy.department}</p>
                       </div>
                     </div>
@@ -1808,7 +1810,7 @@ function ViewAllModal({
                   </td>
                   <td className="py-4 px-6 text-right">
                     <button
-                      onClick={() => onEdit(policy.id)}
+                      onClick={() => onEdit(policy.policy_id)}
                       className="text-primary font-bold text-xs hover:underline transition-all cursor-pointer"
                     >
                       Edit

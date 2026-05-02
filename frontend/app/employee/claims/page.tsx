@@ -582,6 +582,66 @@ function CaptureReceiptContent() {
     originalOcrRef.current = mappedReceipts.map(r => ({ ...r }));
     setOcrReceipts(mappedReceipts);
 
+    // Auto-fill travel context from successful receipts
+    const receipts = (result.receipts as any[]) || [];
+    if (receipts.length > 0) {
+      // Extract destinations - unique, case-insensitive, comma-separated
+      const destinationsSet = new Set<string>();
+      receipts.forEach((r: any) => {
+        const dest = r.extracted_data?.destination as string | undefined;
+        if (dest && dest !== "Not found in Receipt" && dest.trim()) {
+          destinationsSet.add(dest.trim());
+        }
+      });
+      const travelDestination = Array.from(destinationsSet).join(", ");
+
+      // Extract dates - use departure_date/arrival_date, fallback to receipt date
+      const departureDates: string[] = [];
+      const arrivalDates: string[] = [];
+
+      receipts.forEach((r: any) => {
+        const extracted = r.extracted_data || {};
+        const depDate = extracted.departure_date as string | undefined;
+        const arrDate = extracted.arrival_date as string | undefined;
+        const receiptDate = r.date as string | undefined;
+
+        // For departure: prefer departure_date, fallback to date
+        if (depDate && depDate !== "Not found in Receipt" && depDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          departureDates.push(depDate);
+        } else if (receiptDate && receiptDate !== "Not found in Receipt" && receiptDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          departureDates.push(receiptDate);
+        }
+
+        // For arrival: prefer arrival_date, fallback to date
+        if (arrDate && arrDate !== "Not found in Receipt" && arrDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          arrivalDates.push(arrDate);
+        } else if (receiptDate && receiptDate !== "Not found in Receipt" && receiptDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          arrivalDates.push(receiptDate);
+        }
+      });
+
+      // Find earliest departure and latest arrival
+      const sortedDepartures = departureDates.sort();
+      const sortedArrivals = arrivalDates.sort();
+      const departureDate = sortedDepartures.length > 0 ? sortedDepartures[0] : "";
+      const arrivalDate = sortedArrivals.length > 0 ? sortedArrivals[sortedArrivals.length - 1] : "";
+
+      // Check if any receipt indicates overseas travel
+      const anyOverseas = receipts.some((r: any) => {
+        const overseas = r.extracted_data?.overseas as boolean | undefined;
+        return overseas === true;
+      });
+
+      // Auto-fill claim context
+      setClaimContext(prev => ({
+        ...prev,
+        travelDestination: prev.travelDestination || travelDestination,
+        departureDate: prev.departureDate || departureDate,
+        arrivalDate: prev.arrivalDate || arrivalDate,
+        overseas: prev.overseas || anyOverseas,
+      }));
+    }
+
     if (result.employee) {
       const emp: any = result.employee;
       setEmployeeData({

@@ -480,7 +480,7 @@ export default function ReviewPage() {
                 </thead>
                 <tbody className="divide-y divide-outline-variant/10">
                   {bundle.line_items.map((li, idx) => (
-                    <tr key={li.document_id} className="hover:bg-surface-container-low/30 transition-colors align-top">
+                    <tr key={`table-${li.document_id}-${idx}`} className="hover:bg-surface-container-low/30 transition-colors align-top">
                       <td className="py-3 px-3 text-on-surface-variant">
                         {li.receipt_url
                           ? <button onClick={() => setLightbox(li.receipt_url!)} className="flex items-center gap-1 text-primary hover:underline text-xs"><ZoomIn className="w-3 h-3" />{idx + 1}</button>
@@ -514,7 +514,7 @@ export default function ReviewPage() {
             {/* Mobile Card List */}
             <div className="md:hidden flex flex-col gap-2">
               {bundle.line_items.map((li, idx) => (
-                <div key={li.document_id} className="bg-surface-container-lowest rounded-xl p-4 border border-outline-variant/10">
+                <div key={`mobile-${li.document_id}-${idx}`} className="bg-surface-container-lowest rounded-xl p-4 border border-outline-variant/10">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2">
                       {li.receipt_url ? (
@@ -646,7 +646,7 @@ export default function ReviewPage() {
           >
             <div className="p-4 flex flex-col gap-3">
               {bundle.line_items.map((li, idx) => (
-                <div key={li.document_id} className="flex items-center gap-3">
+                <div key={`approval-${li.document_id}-${idx}`} className="flex items-center gap-3">
                   <span className="text-xs text-on-surface-variant w-5 shrink-0">#{idx + 1}</span>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium text-on-surface truncate">{li.description}</p>

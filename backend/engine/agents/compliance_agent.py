@@ -82,17 +82,35 @@ def _extract_text_content(content: Any) -> str:
 def _extract_json(content: str) -> dict | None:
     """Try to extract a JSON object from text with brace-balanced parsing."""
     if not content:
+        logger.warning("[JSON_EXTRACT] Empty content provided")
         return None
+
+    # Remove markdown code blocks if present
+    content_cleaned = content.strip()
+    if content_cleaned.startswith("```json"):
+        content_cleaned = content_cleaned[7:]
+    elif content_cleaned.startswith("```"):
+        content_cleaned = content_cleaned[3:]
+    if content_cleaned.endswith("```"):
+        content_cleaned = content_cleaned[:-3]
+    content_cleaned = content_cleaned.strip()
+
+    # Try direct parse first
     try:
-        result = json.loads(content)
+        result = json.loads(content_cleaned)
         if isinstance(result, dict):
+            logger.debug("[JSON_EXTRACT] Successfully parsed JSON directly")
             return result
-    except Exception:
-        pass
+    except json.JSONDecodeError as e:
+        logger.debug("[JSON_EXTRACT] Direct JSON parse failed: %s", str(e))
+    except Exception as e:
+        logger.warning("[JSON_EXTRACT] Unexpected error during direct parse: %s", str(e))
+
+    # Brace-balanced extraction for nested JSON objects
     depth = 0
     start = -1
     candidates: list[str] = []
-    for i, ch in enumerate(content):
+    for i, ch in enumerate(content_cleaned):
         if ch == "{":
             if depth == 0:
                 start = i
@@ -100,15 +118,28 @@ def _extract_json(content: str) -> dict | None:
         elif ch == "}":
             depth -= 1
             if depth == 0 and start >= 0:
-                candidates.append(content[start : i + 1])
+                candidates.append(content_cleaned[start : i + 1])
                 start = -1
-    for candidate in reversed(candidates):
+
+    # Try candidates from outermost to innermost
+    for idx, candidate in enumerate(reversed(candidates)):
         try:
             parsed = json.loads(candidate)
             if isinstance(parsed, dict):
+                logger.debug("[JSON_EXTRACT] Successfully parsed candidate %d/%d", idx + 1, len(candidates))
                 return parsed
-        except Exception:
-            continue
+        except json.JSONDecodeError as e:
+            logger.debug("[JSON_EXTRACT] Candidate %d failed: %s", idx + 1, str(e))
+        except Exception as e:
+            logger.warning("[JSON_EXTRACT] Candidate %d unexpected error: %s", idx + 1, str(e))
+
+    # All parsing failed - log for debugging
+    logger.error(
+        "[JSON_EXTRACT] All parsing attempts failed. Content preview (first 500 chars):\n%s",
+        content[:500]
+    )
+    if len(content) > 500:
+        logger.error("[JSON_EXTRACT] Content preview (last 200 chars):\n%s", content[-200:])
     return None
 
 
@@ -141,6 +172,7 @@ def _format_human_edit_block(human_edit) -> str:
 
 def _parse_line_item(content: str, receipt: dict) -> dict:
     """Parse JSON from LLM response for a single receipt. Returns a fallback dict on failure."""
+    doc_id = receipt.get("document_id", "unknown")
     parsed = _extract_json(content)
 
     if isinstance(parsed, dict):
@@ -148,11 +180,21 @@ def _parse_line_item(content: str, receipt: dict) -> dict:
         approved = float(parsed.get("approved_amount", 0) or 0)
         deducted = round(requested - approved, 2)
         parsed["deduction_amount"] = deducted
+        logger.info(
+            "[PARSE_LINE_ITEM] Successfully parsed receipt %s: status=%s requested=%s approved=%s",
+            doc_id, parsed.get("status"), requested, approved
+        )
         return parsed
 
     # Fallback — LLM response could not be parsed
+    logger.error(
+        "[PARSE_LINE_ITEM] Failed to parse receipt %s. Document ID: %s, Merchant: %s",
+        doc_id,
+        receipt.get("document_id"),
+        receipt.get("merchant_name")
+    )
     requested = float(receipt.get("total_amount", 0) or 0)
-    return {
+    fallback = {
         "document_id": receipt.get("document_id", "unknown"),
         "date": receipt.get("date", ""),
         "category": receipt.get("category", ""),
@@ -161,9 +203,11 @@ def _parse_line_item(content: str, receipt: dict) -> dict:
         "requested_amount": requested,
         "approved_amount": 0.0,
         "deduction_amount": requested,
-        "audit_notes": [{"tag": "[PARSE_ERROR]", "message": "Could not parse compliance analysis."}],
+        "audit_notes": [{"tag": "PARSE_ERROR", "message": "Could not parse compliance analysis. AI response was not valid JSON."}],
         "human_edit_risk": "NONE",
     }
+    logger.warning("[PARSE_LINE_ITEM] Using MANUAL_REVIEW fallback for receipt %s", doc_id)
+    return fallback
 
 
 # -- Graph Nodes ---------------------------------------------------------------
@@ -230,8 +274,13 @@ def load_context(state: ComplianceWorkflowState, session: Session) -> dict:
                 # Build receipt dicts from normalized rows
                 receipts = []
                 for sr in s_receipts:
+                    # Skip receipts without a valid document_id - they can't be linked properly
+                    if not sr.document_id:
+                        logger.warning("[LOAD_CONTEXT] Skipping SettlementReceipt with no document_id: category=%s amount=%s", sr.category, sr.claimed_amount)
+                        continue
+
                     receipt_dict = {
-                        "document_id": str(sr.document_id) if sr.document_id else "",
+                        "document_id": str(sr.document_id),
                         "date": sr.receipt_date.isoformat() if sr.receipt_date else "",
                         "category": sr.category or "",
                         "merchant_name": sr.merchant_name or "",
@@ -583,11 +632,15 @@ def save_reimbursement(state: ComplianceWorkflowState, session: Session) -> dict
             # Parse document_id
             doc_id_str = li.get("document_id", "")
             doc_uuid = None
-            if doc_id_str and doc_id_str != "unknown":
+            if doc_id_str and doc_id_str != "unknown" and doc_id_str.strip():
                 try:
                     doc_uuid = UUID(doc_id_str)
-                except ValueError:
+                except ValueError as e:
+                    logger.warning("[SAVE_REIMBURSEMENT] Invalid document_id format: %s. Error: %s", doc_id_str, e)
                     doc_uuid = None
+            else:
+                if doc_id_str and doc_id_str != "unknown":
+                    logger.warning("[SAVE_REIMBURSEMENT] Skipping line item with blank/unknown document_id: %r", doc_id_str)
 
             line_item = LineItem(
                 reim_id=reimbursement.reim_id,
@@ -633,7 +686,13 @@ def _check_category_budgets(policy_id: str, category_totals: dict, session: Sess
     policy_categories = {pc.category: pc.auto_approval_budget for pc in result.scalars()}
 
     # Check each category in the claim
-    for category_name, claimed_amount in category_totals.items():
+    for category_name, category_data in category_totals.items():
+        # Extract claimed amount from dict structure: {"claimed": X, "approved": Y}
+        if isinstance(category_data, dict):
+            claimed_amount = category_data.get("claimed", 0)
+        else:
+            claimed_amount = category_data
+
         budget = policy_categories.get(category_name)
 
         # Null budget = unlimited, skip check

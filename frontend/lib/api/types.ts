@@ -282,7 +282,7 @@ export interface Policy {
   alias: string;
   title: string;
   reimbursable_categories: string[];
-  reimbursable_categories_with_budgets: PolicyCategoryBudget[];
+  reimbursable_categories_with_budgets?: PolicyCategoryBudget[];
   overview_summary: string;
   mandatory_conditions: string;
   status: "DRAFT" | "ACTIVE" | "DEPRECATED";

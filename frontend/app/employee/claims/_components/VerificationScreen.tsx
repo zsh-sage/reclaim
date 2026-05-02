@@ -421,7 +421,6 @@ export function VerificationScreen({
   // Validation
   const contextValid =
     claimContext.travelDestination.trim() !== "" &&
-    claimContext.travelPurpose.trim()     !== "" &&
     claimContext.departureDate             !== "" &&
     claimContext.arrivalDate               !== "";
 
@@ -508,7 +507,7 @@ export function VerificationScreen({
 
         <div className="flex flex-col gap-1">
           <label className="text-xs font-semibold text-on-surface-variant font-label">
-            Travel Purpose<span className="text-error ml-0.5">*</span>
+            Travel Purpose
           </label>
           <textarea
             value={claimContext.travelPurpose}

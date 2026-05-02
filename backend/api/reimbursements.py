@@ -570,13 +570,16 @@ async def analyze_reimbursement(
                     except Exception as group_err:
                         logger.exception("[API_ANALYZE_BG] Compliance failed for policy=%s", policy_alias)
                         try:
+                            # Calculate total claimed from group receipts so fallback has meaningful amount
+                            total_claimed = sum((float(r.claimed_amount) or 0) for r in group_receipts)
+
                             fail_reim = Reimbursement(
                                 user_id=UUID(user_id_str),
                                 policy_id=UUID(policy_id_str),
                                 settlement_id=settlement_uuid,
                                 main_category=group_main_category,
                                 currency=settlement_currency,
-                                total_claimed_amount=Decimal("0"),
+                                total_claimed_amount=Decimal(str(total_claimed)),
                                 judgment=JudgmentResult.NEEDS_INFO,
                                 status=ReimbursementStatus.REVIEW,
                                 summary=f"Compliance pipeline failed for '{policy_alias}' — manual review required. Error: {str(group_err)[:500]}",

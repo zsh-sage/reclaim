@@ -1,5 +1,5 @@
 import type { AiStatus } from "@/lib/api/types";
-import { AlertTriangle, Clock, CheckCircle2, HelpCircle } from "lucide-react";
+import { AlertTriangle, Clock, CheckCircle2, HelpCircle, Zap, XCircle } from "lucide-react";
 import { JSX } from "react";
 
 export const STATUS_ICON: Record<AiStatus, JSX.Element> = {
@@ -7,6 +7,8 @@ export const STATUS_ICON: Record<AiStatus, JSX.Element> = {
   "Awaiting Review": <Clock className="w-3.5 h-3.5" strokeWidth={2.5} />,
   "Passed AI Review": <CheckCircle2 className="w-3.5 h-3.5" strokeWidth={2.5} />,
   "Low Confidence": <HelpCircle className="w-3.5 h-3.5" strokeWidth={2.5} />,
+  "Auto-Approved": <Zap className="w-3.5 h-3.5" strokeWidth={2.5} />,
+  "Auto-Rejected": <XCircle className="w-3.5 h-3.5" strokeWidth={2.5} />,
 };
 
 export const STATUS_STYLE: Record<AiStatus, string> = {
@@ -14,6 +16,8 @@ export const STATUS_STYLE: Record<AiStatus, string> = {
   "Awaiting Review": "bg-amber-100 text-amber-800",
   "Passed AI Review": "bg-emerald-50 text-emerald-700",
   "Low Confidence": "bg-tertiary/10 text-tertiary-dim",
+  "Auto-Approved": "bg-emerald-100 text-emerald-800",
+  "Auto-Rejected": "bg-red-100 text-red-700",
 };
 
 export function StatusBadge({ status }: { status: AiStatus }) {
