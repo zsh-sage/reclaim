@@ -54,7 +54,7 @@ export default function EmployeeDashboardPage() {
               Welcome back, {firstName}.
             </h2>
             <p className="text-on-surface-variant font-body text-sm font-medium italic opacity-80">
-              Every receipt reviewed. Every decision yours.
+              From receipt to reimbursement — in minutes, not days
             </p>
           </div>
 

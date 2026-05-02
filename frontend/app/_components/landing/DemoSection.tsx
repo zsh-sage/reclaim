@@ -21,7 +21,7 @@ const ACCOUNTS: DemoAccount[] = [
     slug: "hr",
     email: "hr@example.com",
     password: "password",
-    description: "Manage policy, review the triage dashboard, exercise the final decision.",
+    description: "Manage policy, monitor autonomous approvals, focus on edge cases.",
     iconBg: "bg-primary/10",
     iconText: "text-primary",
   },

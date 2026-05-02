@@ -21,8 +21,8 @@ const FEATURES = [
   },
   {
     icon: UserCheck,
-    title: "Human-in-the-loop, always",
-    body: "The AI is advisory. No claim transitions to APPROVED or REJECTED without an explicit HR action. Every AI judgment is transparent, explained, and overridable.",
+    title: "Autonomous approve and decline",
+    body: "AI handles the straightforward cases automatically so HR can focus only on the ambiguous ones that need judgment. Clean claims flow through instantly.",
   },
 ];
 

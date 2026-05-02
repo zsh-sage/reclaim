@@ -79,7 +79,7 @@ export default function Hero({ user }: { user: User | null }) {
               className="inline-flex items-center gap-2 rounded-full border border-white/35 bg-white/10 px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] backdrop-blur-sm shadow-sm"
             >
               <Sparkles className="w-3.5 h-3.5" />
-              Every receipt reviewed. Every decision yours.
+              From receipt to reimbursement — in minutes, not days
             </motion.span>
 
             <motion.div variants={itemVariants} className="mt-6 flex items-center gap-4">

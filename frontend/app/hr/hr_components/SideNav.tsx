@@ -46,7 +46,7 @@ export default function SideNav() {
             HR Portal
           </p>
           <p className="font-body text-[10px] text-primary/70 mt-1 font-medium italic">
-            Every receipt reviewed. Every decision yours.
+            From receipt to reimbursement — in minutes, not days
           </p>
         </div>
 

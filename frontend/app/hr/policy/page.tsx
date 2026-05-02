@@ -164,6 +164,7 @@ export default function PolicyStudio() {
   const [categoryBudgets, setCategoryBudgets] = useState<Record<string, string>>({});
   const [editingPolicyId, setEditingPolicyId] = useState<string | null>(null);
   const [editOverviewSummary, setEditOverviewSummary] = useState<string>("");
+  const [existingMainPolicyFilename, setExistingMainPolicyFilename] = useState<string>("");
   const [editHistory, setEditHistory] = useState<{ user: string, action: string, date: string, details?: string }[]>([]);
 
   // Delete confirmation state
@@ -298,8 +299,8 @@ export default function PolicyStudio() {
         policy_id: p.policy_id,
         alias: p.alias,
         title: p.title,
-        version: "V1.0",
-        department: "General",
+        version: "",
+        department: "",
         lastModified: p.effective_date
           ? new Date(p.effective_date).toLocaleDateString("en-MY", { month: "short", day: "numeric", year: "numeric" })
           : "",
@@ -309,6 +310,8 @@ export default function PolicyStudio() {
         mandatory_conditions: parseMandatoryConditions(p.mandatory_conditions) ?? undefined,
         reimbursable_categories_with_budgets: p.reimbursable_categories_with_budgets ?? [],
         history: [],
+        source_file_url: p.source_file_url,
+        effective_date: p.effective_date,
       }));
       // Use only real policies, no mock fallback
       setPolicies(mapped);
@@ -327,13 +330,16 @@ export default function PolicyStudio() {
       if (p) {
         setEditStatus(p.status);
         setEditName(p.alias);
-        setEditDepartment("");
-        setEditVersion("1.0");
-        setEditDate("2023-10-12");
+        setEditDepartment(p.department || "");
+        setEditVersion(p.version || "");
+        setEditDate(p.effective_date ? new Date(p.effective_date).toISOString().slice(0, 10) : "");
         setExistingMainPolicyDeleted(false);
         setEditOverviewSummary(p.overview_summary || "");
         setEditConditions(p.mandatory_conditions || null);
         setEditingPolicyId(p.policy_id || null);
+        setExistingMainPolicyFilename(
+          p.source_file_url ? p.source_file_url.split(/[\\/]/).pop() ?? "" : ""
+        );
 
         // Initialize budgets from policy data (or from categories)
         const budgets: Record<string, string> = {};
@@ -352,14 +358,7 @@ export default function PolicyStudio() {
           { user: "Sarah Miller", action: "Policy Created", date: "Oct 12, 2023", details: "Initial draft uploaded" },
           { user: "James Wilson", action: "Updated Appendix", date: "Jan 15, 2024", details: "Added W10 Requirements Review" }
         ]);
-        if (p.existingAppendix) {
-          setExistingAppendix(p.existingAppendix);
-        } else {
-          setExistingAppendix([
-            { name: "W10_Requirements_Review.pdf", size: "1.2 MB" },
-            { name: "Ergonomic_Guidelines_2023.pdf", size: "845 KB" }
-          ]);
-        }
+        setExistingAppendix(p.existingAppendix ?? []);
         setAppendixFiles(p.appendixFiles || []);
         setMainPolicyFile(p.mainFile || null);
       }
@@ -373,6 +372,7 @@ export default function PolicyStudio() {
       setEditConditions(null);
       setEditingPolicyId(null);
       setCategoryBudgets({});
+      setExistingMainPolicyFilename("");
       setMainPolicyFile(null);
       setAppendixFiles([]);
     }
@@ -446,8 +446,8 @@ export default function PolicyStudio() {
             policy_id: p.policy_id,
             alias: p.alias,
             title: p.title,
-            version: "V1.0",
-            department: "General",
+            version: "",
+            department: "",
             lastModified: p.effective_date
               ? new Date(p.effective_date).toLocaleDateString("en-MY", { month: "short", day: "numeric", year: "numeric" })
               : "",
@@ -455,6 +455,8 @@ export default function PolicyStudio() {
             icon: FileText,
             overview_summary: p.overview_summary,
             mandatory_conditions: parseMandatoryConditions(p.mandatory_conditions) ?? undefined,
+            source_file_url: p.source_file_url,
+            effective_date: p.effective_date,
           }));
           setPolicies([...mapped, ...MOCK_POLICIES]);
         }
@@ -465,12 +467,25 @@ export default function PolicyStudio() {
       return;
     }
 
-    // ── Edit existing (local-only for now) ────────────────────────────────
-    await new Promise(r => setTimeout(r, 1000));
+    // ── Edit existing ────────────────────────────────────────────────────
     setSavingStep(1);
-    await new Promise(r => setTimeout(r, 1000));
+
+    // Save category budgets to backend
+    if (editingPolicyId && Object.keys(categoryBudgets).length > 0) {
+      const categoriesWithBudgets = Object.entries(categoryBudgets).map(([category, budget]) => ({
+        category,
+        auto_approval_budget: budget !== "" ? parseFloat(budget) : null,
+      }));
+      const budgetResult = await updatePolicyCategories(editingPolicyId, categoriesWithBudgets);
+      if (!budgetResult.ok) {
+        setSaveError(budgetResult.error ?? "Failed to update category budgets");
+        setIsSaving(false);
+        return;
+      }
+    }
+
     setSavingStep(2);
-    await new Promise(r => setTimeout(r, 800));
+    await new Promise(r => setTimeout(r, 500));
 
     // Record History
     const now = new Date();
@@ -746,17 +761,17 @@ export default function PolicyStudio() {
                   </div>
                 ) : !isNew && !existingMainPolicyDeleted ? (
                   <div className="flex flex-col gap-4 border border-outline-variant/30 rounded-2xl overflow-hidden bg-surface-container-lowest">
-                    {/* Mock PDF Viewer for existing file */}
+                    {/* PDF Viewer for existing file */}
                     <div className="w-full h-[400px] border-b border-outline-variant/20 bg-surface-container-lowest flex flex-col items-center justify-center p-8 text-center relative overflow-hidden group">
                       <div className="absolute inset-0 bg-primary/5 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity" />
                       <FileText className="text-primary/60 mb-4" size={56} strokeWidth={1} />
-                      <p className="font-headline text-lg font-medium text-on-surface mb-2">Remote_Work_Policy_v2.4_FINAL.pdf</p>
-                      <p className="font-body text-sm text-on-surface-variant mb-6">Existing Document • 2.4 MB</p>
+                      <p className="font-headline text-lg font-medium text-on-surface mb-2">{existingMainPolicyFilename || "Policy Document"}</p>
+                      <p className="font-body text-sm text-on-surface-variant mb-6">Existing Document</p>
                     </div>
                     <div className="p-4 flex items-center justify-between">
                       <div className="flex flex-col">
-                        <p className="font-body text-sm font-medium text-on-surface truncate">Remote_Work_Policy_v2.4_FINAL.pdf</p>
-                        <p className="font-body text-xs text-on-surface-variant">Uploaded on Oct 12, 2023</p>
+                        <p className="font-body text-sm font-medium text-on-surface truncate">{existingMainPolicyFilename || "Policy Document"}</p>
+                        <p className="font-body text-xs text-on-surface-variant">Saved on server</p>
                       </div>
                       <div className="flex gap-2">
                         <button onClick={() => mainPolicyInputRef.current?.click()} className="px-4 py-1.5 border border-outline text-on-surface rounded-full font-body text-xs font-medium hover:bg-surface-container-low transition-colors cursor-pointer">
@@ -1028,6 +1043,41 @@ export default function PolicyStudio() {
                 </div>
               )}
 
+              {/* Auto-Approval Budgets Card */}
+              {!isNew && Object.keys(categoryBudgets).length > 0 && (
+                <div className="bg-surface-container-lowest rounded-3xl shadow-[0_20px_50px_rgba(44,47,49,0.08)] border border-outline-variant/10 overflow-hidden flex flex-col shrink-0">
+                  <div className="p-5 border-b border-outline-variant/10 flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center">
+                      <Banknote className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="font-headline font-bold text-base text-on-surface">Auto-Approval Budgets</h3>
+                      <p className="text-xs text-on-surface-variant">Max per category for auto-approval. Blank = unlimited.</p>
+                    </div>
+                  </div>
+                  <div className="p-5 flex flex-col gap-3">
+                    {Object.keys(categoryBudgets).map((cat) => (
+                      <div key={cat} className="flex items-center gap-3">
+                        <div className="flex-1">
+                          <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1 block truncate">{cat}</label>
+                          <div className="relative group">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/60 text-xs font-medium group-focus-within:text-primary transition-colors">MYR</span>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={categoryBudgets[cat]}
+                              onChange={(e) => setCategoryBudgets(prev => ({ ...prev, [cat]: e.target.value }))}
+                              placeholder="Unlimited"
+                              className="w-full pl-10 pr-3 py-2 bg-surface-container-low border border-outline-variant/20 rounded-xl text-sm text-on-surface font-mono tabular-nums focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all placeholder:text-on-surface-variant/40"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
             </div>
           </div>
@@ -1041,8 +1091,9 @@ export default function PolicyStudio() {
             conditions={editConditions}
             categoryBudgets={categoryBudgets}
             policyId={editingPolicyId}
-            onSave={(newConditions) => {
+            onSave={(newConditions, newBudgets) => {
               setEditConditions(newConditions);
+              if (newBudgets) setCategoryBudgets(newBudgets);
               setConditionsModalOpen(false);
             }}
           />
@@ -1430,7 +1481,7 @@ function ConditionsModal({
   conditions: Record<string, any>;
   categoryBudgets: Record<string, string>;
   policyId: string | null;
-  onSave: (newConditions: Record<string, any>) => void;
+  onSave: (newConditions: Record<string, any>, newBudgets?: Record<string, string>) => void;
 }) {
   const [localConditions, setLocalConditions] = useState(conditions);
   const [localBudgets, setLocalBudgets] = useState<Record<string, string>>(categoryBudgets);
@@ -1500,29 +1551,23 @@ function ConditionsModal({
 
   const handleSaveBudgets = async () => {
     if (!policyId) {
-      // No policy ID - just save conditions locally (existing behavior)
-      onSave(localConditions);
+      onSave(localConditions, localBudgets);
       return;
     }
 
     setIsSaving(true);
     try {
-      // Prepare categories with budgets
       const categoriesWithBudgets = Object.keys(localConditions).map(category => ({
         category,
-        auto_approval_budget: localBudgets[category]
+        auto_approval_budget: localBudgets[category] !== ""
           ? parseFloat(localBudgets[category])
           : null,
       }));
 
-      // Call API to update budgets
       const result = await updatePolicyCategories(policyId, categoriesWithBudgets);
 
       if (result.ok) {
-        onSave(localConditions);
-        onClose();
-        // Refresh policies to get updated data
-        // Note: In a real app, you'd want to update the policies state here
+        onSave(localConditions, localBudgets);
       } else {
         alert(result.error || "Failed to update policy budgets");
       }

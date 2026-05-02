@@ -6,7 +6,7 @@ const STATS = [
   { value: "4", label: "AI verdicts", sub: "APPROVE · PARTIAL · REJECT · MANUAL_REVIEW" },
   { value: "5", label: "Tool calls", sub: "Per ReAct iteration cap" },
   { value: "≤ 4", label: "Parallel workers", sub: "Concurrent OCR + compliance" },
-  { value: "100%", label: "HR-final", sub: "No silent automated decisions" },
+  { value: "100%", label: "Transparent", sub: "Every AI decision logged & reviewable" },
 ];
 
 const containerVariants: Variants = {

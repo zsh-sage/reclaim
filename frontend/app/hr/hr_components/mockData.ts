@@ -22,6 +22,8 @@ export interface Policy {
   mandatory_conditions?: Record<string, SubCategoryCondition>;
   history?: { user: string, action: string, date: string, details?: string }[];
   reimbursable_categories_with_budgets?: { category: string; auto_approval_budget?: number | null }[];
+  source_file_url?: string;
+  effective_date?: string | null;
 }
 
 export interface SubCategoryCondition {
