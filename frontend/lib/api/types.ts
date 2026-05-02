@@ -187,7 +187,9 @@ export type AiStatus =
   | "Policy Flagged"
   | "Awaiting Review"
   | "Passed AI Review"
-  | "Low Confidence";
+  | "Low Confidence"
+  | "Auto-Approved"
+  | "Auto-Rejected";
 
 /** Per-receipt AI judgment — mirrors backend LineItemStatus. */
 export type LineItemStatus = "APPROVED" | "REJECTED" | "PARTIAL_APPROVE" | "PENDING";

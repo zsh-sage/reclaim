@@ -475,13 +475,24 @@ def save_reimbursement(state: ComplianceWorkflowState, session: Session) -> dict
     judgment_str = state.get("judgment", "MANUAL REVIEW")
     judgment_enum = _map_agent_status_to_enum(judgment_str)
 
-    # Apply auto-reimbursement bypass logic
-    is_auto_reimburse_enabled = state.get("is_auto_reimburse_enabled", False)
+    # Determine final status based on autonomous policy:
+    #   APPROVED + confidence>0.7 + no human edits → auto-approve (payout triggered by API layer)
+    #   REJECTED (any confidence)                  → auto-reject (no payout, employee notified)
+    #   anything else                              → REVIEW (HR Required Attention)
+    has_human_edits = any(
+        r.get("_human_edit", {}).get("has_changes")
+        for r in state.get("receipts", [])
+    )
+    confidence = state.get("confidence") or 0.0
     final_status = ReimbursementStatus.REVIEW
     reviewed_at = None
-    if is_auto_reimburse_enabled and judgment_enum == JudgmentResult.APPROVED:
-        final_status = ReimbursementStatus.APPROVED
-        reviewed_at = datetime.now(timezone.utc)
+    if settings.AUTO_REIMBURSE_ENABLED:
+        if judgment_enum == JudgmentResult.APPROVED and confidence > 0.7 and not has_human_edits:
+            final_status = ReimbursementStatus.APPROVED
+            reviewed_at = datetime.now(timezone.utc)
+        elif judgment_enum == JudgmentResult.REJECTED:
+            final_status = ReimbursementStatus.REJECTED
+            reviewed_at = datetime.now(timezone.utc)
 
     reimbursement = Reimbursement(
         user_id=UUID(state["user_id"]),

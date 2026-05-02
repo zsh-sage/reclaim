@@ -30,6 +30,7 @@ from core.enums import UserRole, ReimbursementStatus, JudgmentResult, PolicyStat
 from core.database import engine as db_engine
 from engine.agents.compliance_agent import run_compliance_workflow
 from engine.progress import ProgressTracker
+from engine.services.payout_service import initiate_payout_sync
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -542,7 +543,30 @@ async def analyze_reimbursement(
                         if not reim:
                             raise ValueError(f"Reimbursement {reim_id} not found in DB after creation")
                         all_results.append(_build_reimbursement_response(reim, bg_db, include_line_items=True))
-                        logger.info("[API_ANALYZE_BG] Group %d complete: reim_id=%s judgment=%s", i + 1, reim_id, result.get("judgment"))
+                        logger.info("[API_ANALYZE_BG] Group %d complete: reim_id=%s judgment=%s status=%s", i + 1, reim_id, result.get("judgment"), reim.status)
+
+                        # Auto-payout for high-confidence approvals (reviewed_by IS NULL = auto-processed)
+                        if reim.status == ReimbursementStatus.APPROVED and reim.reviewed_by is None:
+                            try:
+                                initiate_payout_sync(reim.reim_id, bg_db, loop=loop)
+                            except Exception:
+                                logger.exception("[API_ANALYZE_BG] Auto-payout failed for reim=%s — claim stays APPROVED", reim_id)
+
+                        # Notify employee of auto-reject
+                        elif reim.status == ReimbursementStatus.REJECTED and reim.reviewed_by is None:
+                            try:
+                                notif = Notification(
+                                    user_id=reim.user_id,
+                                    type="error",
+                                    title=f"Claim RC-{reim_id[:8]} automatically rejected",
+                                    message=f"Your claim was automatically rejected by Reclaim AI. Reason: {(reim.summary or 'See claim details for more information.')[:200]}",
+                                    link=f"/employee/history?id={reim_id}",
+                                    is_read=False,
+                                )
+                                bg_db.add(notif)
+                                bg_db.commit()
+                            except Exception:
+                                logger.exception("[API_ANALYZE_BG] Failed to send auto-reject notification for reim=%s", reim_id)
                     except Exception as group_err:
                         logger.exception("[API_ANALYZE_BG] Compliance failed for policy=%s", policy_alias)
                         try:

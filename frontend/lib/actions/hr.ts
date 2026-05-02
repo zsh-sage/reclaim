@@ -128,32 +128,123 @@ function mapToBundle(r: ReimbursementRaw): ClaimBundle {
 
 // ─── Actions ─────────────────────────────────────────────────────────────────
 
-/** Fetch all reimbursements (HR sees everyone's). Returns Claim[] for dashboard list rows. */
+/**
+ * Fetch all reimbursements and bucket them for the HR dashboard.
+ *
+ * - attention : status=REVIEW (all ages) — HR must act
+ * - passed    : auto-approved (reviewed_by=null) within 24 h — informational
+ * - flagged   : auto-rejected (reviewed_by=null) within 24 h — informational
+ *
+ * All buckets sorted most-recent first.
+ */
 export async function getHRClaims(): Promise<{
   attention: Claim[];
-  approved: Claim[];
+  passed: Claim[];
+  flagged: Claim[];
+  allReims: ReimbursementRaw[];
 }> {
   const result = await apiGet<ReimbursementRaw[]>(`${API_PREFIX}/reimbursements/`);
 
   if (!result.data || result.data.length === 0) {
-    return { attention: [], approved: [] };
+    return { attention: [], passed: [], flagged: [], allReims: [] };
   }
 
-  const attention: Claim[] = [];
-  const approved: Claim[] = [];
+  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const byRecent = (a: ReimbursementRaw, b: ReimbursementRaw) =>
+    new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime();
 
-  const hrDone = ["APPROVED", "REJECTED", "DISBURSING", "PAID", "DISBURSEMENT_FAILED"];
-  for (const r of result.data) {
-    if (hrDone.includes(r.status)) continue;
-    const claim = mapToClaim(r);
-    if (claim.status === "Passed AI Review") {
-      approved.push(claim);
-    } else {
-      attention.push(claim);
+  const attention: Claim[] = [];
+  const passed: Claim[] = [];
+  const flagged: Claim[] = [];
+
+  const sorted = [...result.data].sort(byRecent);
+
+  for (const r of sorted) {
+    const isAutoProcessed = r.reviewed_by == null;
+    const createdAt = r.created_at ? new Date(r.created_at) : null;
+    const isRecent = createdAt != null && createdAt >= cutoff;
+
+    if (r.status === "REVIEW") {
+      attention.push(mapToClaim(r));
+    } else if (
+      isAutoProcessed &&
+      isRecent &&
+      ["APPROVED", "DISBURSING", "PAID"].includes(r.status)
+    ) {
+      passed.push(mapToClaim(r));
+    } else if (isAutoProcessed && isRecent && r.status === "REJECTED") {
+      flagged.push(mapToClaim(r));
     }
   }
 
-  return { attention, approved };
+  return { attention, passed, flagged, allReims: result.data };
+}
+
+export interface HistoryClaim {
+  id: string;        // display: RC-XXXXXXXX
+  reim_id: string;   // full UUID for navigation
+  employeeName: string;
+  employeeInitial: string;
+  department: string;
+  policyName: string;
+  amount: number;
+  currency: string;
+  dateSubmitted: string;
+  dateResolved: string;
+  status: "Approved" | "Rejected" | "Paid";
+}
+
+/**
+ * Fetch all resolved reimbursements for the history tab.
+ * Includes:
+ *   - All HR-reviewed claims (reviewed_by != null), any age
+ *   - Auto-processed claims older than 24 h (reviewed_by == null, created_at < cutoff)
+ * Excludes REVIEW status (lives in Required Attention) and
+ * auto-processed claims within 24 h (lives in dashboard tabs).
+ */
+export async function getHRHistory(): Promise<HistoryClaim[]> {
+  const result = await apiGet<ReimbursementRaw[]>(`${API_PREFIX}/reimbursements/`);
+  if (!result.data) return [];
+
+  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const statusMap: Record<string, "Approved" | "Rejected" | "Paid" | null> = {
+    APPROVED: "Approved",
+    DISBURSING: "Approved",
+    PAID: "Paid",
+    REJECTED: "Rejected",
+    DISBURSEMENT_FAILED: "Rejected",
+  };
+
+  return result.data
+    .filter((r) => {
+      if (r.status === "REVIEW" || r.status === "PENDING" || r.status === "APPEALED") return false;
+      const isAutoProcessed = r.reviewed_by == null;
+      const createdAt = r.created_at ? new Date(r.created_at) : null;
+      const isRecent = createdAt != null && createdAt >= cutoff;
+      if (isAutoProcessed && isRecent) return false; // still in dashboard tabs
+      return statusMap[r.status] != null;
+    })
+    .sort(
+      (a, b) =>
+        new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime(),
+    )
+    .map((r) => {
+      const name = r.employee_name ?? "Unknown";
+      const resolvedDate = r.reviewed_at ?? r.updated_at ?? r.created_at;
+      return {
+        id: `RC-${r.reim_id.slice(0, 8).toUpperCase()}`,
+        reim_id: r.reim_id,
+        employeeName: name,
+        employeeInitial: name.charAt(0).toUpperCase(),
+        department: r.department_name ?? "—",
+        policyName: r.policy_name ?? r.main_category ?? "General",
+        amount: r.total_claimed_amount ?? 0,
+        currency: r.currency ?? "MYR",
+        dateSubmitted: formatDate(r.created_at),
+        dateResolved: formatDate(resolvedDate ?? null),
+        status: statusMap[r.status] as "Approved" | "Rejected" | "Paid",
+      };
+    });
 }
 
 /** Fetch a single reimbursement by reim_id and map to ClaimBundle for detail view. */

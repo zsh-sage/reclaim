@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     XENDIT_BASE_URL: str = "https://api.xendit.co"
     XENDIT_MOCK_MODE: bool = False
 
+    # Autonomous reimbursement — kill switch (set to false to force all claims through HR)
+    AUTO_REIMBURSE_ENABLED: bool = True
+
     model_config = SettingsConfigDict(env_file="../.env", env_file_encoding="utf-8", extra="ignore")
 
     @model_validator(mode="after")
