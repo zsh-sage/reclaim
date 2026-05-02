@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useAuth } from "@/context/AuthContext";
-import { Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, ArrowRight, Users } from "lucide-react";
 import Image from "next/image";
 import LoadingOverlay from "@/components/LoadingOverlay";
 
@@ -37,6 +37,25 @@ export default function LoginPage() {
       password: "",
     },
   });
+
+  async function handleDemoLogin(role: "hr" | "employee") {
+    setError(null);
+    setDemoBanner(role);
+    setActivePortal(role);
+    setIsValidating(true);
+    const creds = DEMO_CREDENTIALS[role];
+    form.setValue("email", creds.email);
+    form.setValue("password", creds.password);
+    try {
+      await login(creds.email, creds.password);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Demo sign-in failed. Try again.";
+      setError(message);
+      setDemoBanner(null);
+    } finally {
+      setIsValidating(false);
+    }
+  }
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setError(null);
@@ -156,6 +175,28 @@ export default function LoginPage() {
                 </button>
                 <button type="button" onClick={() => setActivePortal("hr")} className={`flex-1 py-2.5 text-sm rounded-full relative z-10 transition-colors duration-300 font-medium ${activePortal === "hr" ? "font-semibold text-primary" : "text-on-surface-variant hover:text-on-surface"}`}>
                   HR Dashboard
+                </button>
+              </div>
+
+              {/* Demo Login Buttons */}
+              <div className="flex gap-3 mb-6">
+                <button
+                  type="button"
+                  onClick={() => handleDemoLogin("employee")}
+                  disabled={isValidating}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl border border-primary/20 bg-primary/5 text-sm font-semibold text-primary hover:bg-primary/10 hover:border-primary/30 disabled:opacity-50 transition-all cursor-pointer"
+                >
+                  <Users className="w-4 h-4" />
+                  Login as Employee
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDemoLogin("hr")}
+                  disabled={isValidating}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl border border-primary/20 bg-primary/5 text-sm font-semibold text-primary hover:bg-primary/10 hover:border-primary/30 disabled:opacity-50 transition-all cursor-pointer"
+                >
+                  <Users className="w-4 h-4" />
+                  Login as HR
                 </button>
               </div>
 
