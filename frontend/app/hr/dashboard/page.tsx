@@ -2,13 +2,13 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { TrendingUp, ChevronRight, CheckCircle2 } from "lucide-react";
-import type { Claim } from "@/lib/api/types";
+import { TrendingUp, ChevronRight, CheckCircle2, XCircle, Zap } from "lucide-react";
+import type { Claim, ReimbursementRaw } from "@/lib/api/types";
 import { getHRClaims } from "@/lib/actions/hr";
 import { ClaimRow } from "@/components/claims/ClaimRow";
 import { ViewAllModal } from "@/components/claims/ViewAllModal";
 
-type TabKey = "attention" | "approved";
+type TabKey = "attention" | "passed" | "flagged";
 
 export default function HRDashboardPage() {
   const router = useRouter();
@@ -17,46 +17,70 @@ export default function HRDashboardPage() {
   const [activeTab, setActiveTab] = useState<TabKey>("attention");
   const [modalOpen, setModalOpen] = useState(false);
   const [attentionClaims, setAttentionClaims] = useState<Claim[]>([]);
-  const [approvedClaims, setApprovedClaims] = useState<Claim[]>([]);
+  const [passedClaims, setPassedClaims] = useState<Claim[]>([]);
+  const [flaggedClaims, setFlaggedClaims] = useState<Claim[]>([]);
+  const [allReims, setAllReims] = useState<ReimbursementRaw[]>([]);
   const [isLoadingClaims, setIsLoadingClaims] = useState(true);
 
-  // Fetch real reimbursements from backend on mount
   useEffect(() => {
     getHRClaims()
-      .then(({ attention, approved }) => {
+      .then(({ attention, passed, flagged, allReims: reims }) => {
         setAttentionClaims(attention);
-        setApprovedClaims(approved);
+        setPassedClaims(passed);
+        setFlaggedClaims(flagged);
+        setAllReims(reims);
       })
-      .catch(() => {
-        // Keep empty arrays on error — UI will show empty state
-      })
-      .finally(() => {
-        setIsLoadingClaims(false);
-      });
+      .catch(() => {})
+      .finally(() => setIsLoadingClaims(false));
   }, []);
 
-  // Derive KPIs from real claims data (no backend dashboard endpoint needed)
-  const totalClaims = attentionClaims.length + approvedClaims.length;
-  const autoApprovalRate = useMemo(() => {
-    if (totalClaims === 0) return 0;
-    return (approvedClaims.length / totalClaims) * 100;
-  }, [approvedClaims.length, totalClaims]);
+  // Auto-solve rate: (auto-approved + auto-rejected) / total
+  const { autoSolveRate, autoSolvedCount, totalClaims } = useMemo(() => {
+    const total = allReims.length;
+    if (total === 0) return { autoSolveRate: 0, autoSolvedCount: 0, totalClaims: 0 };
+    const autoSolved = allReims.filter(
+      (r) =>
+        r.reviewed_by == null &&
+        ["APPROVED", "DISBURSING", "PAID", "REJECTED"].includes(r.status),
+    ).length;
+    return {
+      autoSolveRate: (autoSolved / total) * 100,
+      autoSolvedCount: autoSolved,
+      totalClaims: total,
+    };
+  }, [allReims]);
 
-  const previewClaims =
+  const tabs: { key: TabKey; label: string; count: number }[] = [
+    { key: "attention", label: "Required Attention", count: attentionClaims.length },
+    { key: "passed", label: "Passed AI Review", count: passedClaims.length },
+    { key: "flagged", label: "Flagged AI Review", count: flaggedClaims.length },
+  ];
+
+  const activeClaims =
     activeTab === "attention"
-      ? attentionClaims.slice(0, 5)
-      : approvedClaims.slice(0, 3);
-  const allClaims =
-    activeTab === "attention" ? attentionClaims : approvedClaims;
-  const actionLabel = activeTab === "attention" ? "Review" : "View";
+      ? attentionClaims
+      : activeTab === "passed"
+        ? passedClaims
+        : flaggedClaims;
+
+  const previewClaims = activeClaims.slice(0, activeTab === "attention" ? 5 : 3);
+
+  const actionLabel =
+    activeTab === "attention" ? "Review" : "View";
+
   const modalTitle =
     activeTab === "attention"
       ? "All Pending Requests"
-      : "All Passed AI Review Claims";
+      : activeTab === "passed"
+        ? "Passed AI Review (last 24 h)"
+        : "Flagged AI Review (last 24 h)";
+
   const viewAllLabel =
     activeTab === "attention"
       ? "View All Pending Requests"
-      : "View All Passed AI Review Claims";
+      : activeTab === "passed"
+        ? "View All Passed Claims"
+        : "View All Flagged Claims";
 
   return (
     <div className="relative min-h-full p-6 md:p-10 lg:p-12">
@@ -87,22 +111,20 @@ export default function HRDashboardPage() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10 relative z-10">
+        {/* Auto-Solve Rate */}
         <div className="bg-surface-container-lowest/70 backdrop-blur-2xl rounded-xl p-6 shadow-[0_8px_40px_-12px_rgba(44,47,49,0.06)] relative overflow-hidden group hover:shadow-[0_16px_48px_-12px_rgba(70,71,211,0.12)] hover:-translate-y-0.5 transition-all duration-300">
           <div className="relative z-10">
             <p className="text-xs font-semibold font-headline text-on-surface-variant tracking-widest uppercase mb-2">
-              Auto-Approval Rate
+              Auto-Solve Rate
             </p>
             <div className="flex items-end gap-3">
-              <span className="text-4xl font-extrabold font-headline text-on-surface">84.2%</span>
-              <span className="flex items-center gap-1 text-sm font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md mb-1">
-                <TrendingUp className="w-3.5 h-3.5" strokeWidth={2.5} />
-                +2.4%
+              <span className="text-4xl font-extrabold font-headline text-on-surface">
+                {isLoadingClaims ? "—" : `${autoSolveRate.toFixed(1)}%`}
               </span>
               {!isLoadingClaims && totalClaims > 0 && (
-                <span className="flex items-center gap-1 text-sm font-medium
-                                 text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md mb-1">
-                  <CheckCircle2 className="w-3.5 h-3.5" strokeWidth={2.5} />
-                  {approvedClaims.length} passed
+                <span className="flex items-center gap-1 text-sm font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md mb-1">
+                  <Zap className="w-3.5 h-3.5" strokeWidth={2.5} />
+                  {autoSolvedCount} auto-solved
                 </span>
               )}
             </div>
@@ -113,6 +135,7 @@ export default function HRDashboardPage() {
           <div className="absolute -bottom-6 -right-6 w-36 h-36 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/15 group-hover:scale-110 transition-all duration-500" />
         </div>
 
+        {/* Pending Manual Reviews */}
         <div className="bg-surface-container-lowest/70 backdrop-blur-2xl rounded-xl p-6 shadow-[0_8px_40px_-12px_rgba(44,47,49,0.06)] relative overflow-hidden group hover:shadow-[0_16px_48px_-12px_rgba(180,19,64,0.10)] hover:-translate-y-0.5 transition-all duration-300">
           <div className="relative z-10">
             <p className="text-xs font-semibold font-headline text-on-surface-variant tracking-widest uppercase mb-2">
@@ -135,41 +158,54 @@ export default function HRDashboardPage() {
       {/* Triage Table */}
       <div className="bg-surface-container-lowest/80 backdrop-blur-xl rounded-xl shadow-[0_12px_60px_-15px_rgba(44,47,49,0.08)] overflow-hidden relative z-10">
         {/* Tab strip */}
-        <div className="flex border-b border-outline-variant/15 px-6 pt-4 gap-8">
-          <button
-            id="tab-requires-attention"
-            onClick={() => setActiveTab("attention")}
-            className={`pb-3 text-sm font-headline font-bold transition-all duration-300 ease-out flex items-center gap-2 cursor-pointer hover:-translate-y-0.5 active:scale-95 border-b-2 ${
-              activeTab === "attention"
-                ? "text-primary border-primary"
-                : "text-on-surface-variant border-transparent hover:text-on-surface"
-            }`}
-          >
-            Requires Attention
-            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-label font-semibold transition-colors duration-300 ${
-              activeTab === "attention" ? "bg-error/10 text-error-dim" : "bg-surface-container text-on-surface-variant"
-            }`}>
-              {attentionClaims.length}
-            </span>
-          </button>
+        <div className="flex border-b border-outline-variant/15 px-6 pt-4 gap-6 overflow-x-auto">
+          {tabs.map(({ key, label, count }) => {
+            const isActive = activeTab === key;
+            const badgeStyle =
+              key === "attention"
+                ? isActive
+                  ? "bg-error/10 text-error-dim"
+                  : "bg-surface-container text-on-surface-variant"
+                : key === "passed"
+                  ? isActive
+                    ? "bg-emerald-50 text-emerald-700"
+                    : "bg-surface-container text-on-surface-variant"
+                  : isActive
+                    ? "bg-amber-50 text-amber-700"
+                    : "bg-surface-container text-on-surface-variant";
 
-          <button
-            id="tab-passed-ai-review"
-            onClick={() => setActiveTab("approved")}
-            className={`pb-3 text-sm font-headline font-bold transition-all duration-300 ease-out flex items-center gap-2 cursor-pointer hover:-translate-y-0.5 active:scale-95 border-b-2 ${
-              activeTab === "approved"
-                ? "text-primary border-primary"
-                : "text-on-surface-variant border-transparent hover:text-on-surface"
-            }`}
-          >
-            Passed AI Review
-            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-label font-semibold transition-colors duration-300 ${
-              activeTab === "approved" ? "bg-emerald-50 text-emerald-700" : "bg-surface-container text-on-surface-variant"
-            }`}>
-              {approvedClaims.length}
-            </span>
-          </button>
+            return (
+              <button
+                key={key}
+                onClick={() => setActiveTab(key)}
+                className={`pb-3 text-sm font-headline font-bold transition-all duration-300 ease-out flex items-center gap-2 cursor-pointer hover:-translate-y-0.5 active:scale-95 border-b-2 whitespace-nowrap ${
+                  isActive
+                    ? "text-primary border-primary"
+                    : "text-on-surface-variant border-transparent hover:text-on-surface"
+                }`}
+              >
+                {label}
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-label font-semibold transition-colors duration-300 ${badgeStyle}`}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
         </div>
+
+        {/* Informational banner for auto-processed tabs */}
+        {activeTab === "passed" && (
+          <div className="mx-6 mt-4 flex items-center gap-2 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-2.5">
+            <CheckCircle2 className="w-3.5 h-3.5 shrink-0" strokeWidth={2.5} />
+            These claims were automatically approved by Reclaim AI (confidence &gt; 70%) and payment has been initiated. No HR action required.
+          </div>
+        )}
+        {activeTab === "flagged" && (
+          <div className="mx-6 mt-4 flex items-center gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-2.5">
+            <XCircle className="w-3.5 h-3.5 shrink-0" strokeWidth={2.5} />
+            These claims were automatically rejected by Reclaim AI. Employees have been notified. No HR action required.
+          </div>
+        )}
 
         {/* Desktop Table */}
         <div className="hidden md:block overflow-x-auto">
@@ -208,6 +244,16 @@ export default function HRDashboardPage() {
                     <td className="py-5 px-6 text-right"><div className="h-3 w-12 rounded bg-surface-container-high ml-auto" /></td>
                   </tr>
                 ))
+              ) : previewClaims.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-12 text-center text-sm text-on-surface-variant">
+                    {activeTab === "attention"
+                      ? "No claims require attention right now."
+                      : activeTab === "passed"
+                        ? "No auto-approved claims in the last 24 hours."
+                        : "No auto-rejected claims in the last 24 hours."}
+                  </td>
+                </tr>
               ) : (
                 previewClaims.map((claim) => (
                   <ClaimRow
@@ -222,7 +268,7 @@ export default function HRDashboardPage() {
         </div>
 
         {/* Mobile Card List */}
-        <div className="md:hidden flex flex-col gap-2">
+        <div className="md:hidden flex flex-col gap-2 p-4">
           {isLoadingClaims ? (
             Array.from({ length: 3 }).map((_, i) => (
               <div key={i} className="bg-surface-container-lowest rounded-xl p-4 border border-outline-variant/10 animate-pulse">
@@ -236,6 +282,10 @@ export default function HRDashboardPage() {
                 </div>
               </div>
             ))
+          ) : previewClaims.length === 0 ? (
+            <p className="py-8 text-center text-sm text-on-surface-variant">
+              Nothing here right now.
+            </p>
           ) : (
             previewClaims.map((claim) => (
               <button
@@ -265,7 +315,6 @@ export default function HRDashboardPage() {
         {/* Footer CTA */}
         <div className="p-5 text-center border-t border-outline-variant/15">
           <button
-            id="view-all-btn"
             onClick={() => setModalOpen(true)}
             className="inline-flex items-center gap-2 text-sm font-semibold font-headline text-primary hover:text-primary-dim transition-all duration-200 active:scale-95 group/cta px-4 py-2 rounded-xl hover:bg-primary/5 cursor-pointer"
           >
@@ -280,7 +329,7 @@ export default function HRDashboardPage() {
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
         title={modalTitle}
-        claims={allClaims}
+        claims={activeClaims}
         actionLabel={actionLabel}
       />
     </div>

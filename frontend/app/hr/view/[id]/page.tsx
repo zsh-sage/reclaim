@@ -436,7 +436,7 @@ export default function ViewPage() {
                 </thead>
                 <tbody className="divide-y divide-outline-variant/10">
                   {bundle.line_items.map((li, idx) => (
-                    <tr key={li.document_id} className="hover:bg-surface-container-low/30 transition-colors">
+                    <tr key={`table-${li.document_id}-${idx}`} className="hover:bg-surface-container-low/30 transition-colors">
                       <td className="py-3 px-4 text-on-surface-variant">
                         {li.receipt_url
                           ? <button onClick={() => setLightbox(li.receipt_url!)} className="flex items-center gap-1 text-primary hover:underline text-xs"><ZoomIn className="w-3 h-3" />{idx + 1}</button>
@@ -458,7 +458,7 @@ export default function ViewPage() {
             {/* Mobile Card List */}
             <div className="md:hidden flex flex-col gap-2">
               {bundle.line_items.map((li, idx) => (
-                <div key={li.document_id} className="bg-surface-container-lowest rounded-xl p-4 border border-outline-variant/10">
+                <div key={`mobile-${li.document_id}-${idx}`} className="bg-surface-container-lowest rounded-xl p-4 border border-outline-variant/10">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2">
                       {li.receipt_url ? (

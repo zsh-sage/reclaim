@@ -93,6 +93,17 @@ class DepartmentResponse(DepartmentCreate):
 # Policy Schemas
 # =============================================================================
 
+class PolicyCategoryWithBudget(BaseModel):
+    """Policy reimbursable category with auto-approval budget."""
+    category: str
+    auto_approval_budget: Optional[float] = None
+
+
+class PolicyCategoriesUpdateRequest(BaseModel):
+    """Request to update category budgets."""
+    categories: List[PolicyCategoryWithBudget]
+
+
 class PolicyCreate(BaseModel):
     alias: str
     title: str
@@ -115,6 +126,7 @@ class PolicyResponse(BaseModel):
     mandatory_conditions: str
     source_file_url: str
     reimbursable_categories: List[str]
+    reimbursable_categories_with_budgets: List[PolicyCategoryWithBudget] = []
     status: PolicyStatus
     created_by: UUID
     created_at: datetime
@@ -266,7 +278,6 @@ class StatusUpdateRequest(BaseModel):
 
 class AnalyzeReimbursementRequest(BaseModel):
     settlement_id: str
-    policy_id: str
     document_ids: Optional[List[str]] = None
     is_auto_reimburse_enabled: bool = False
 

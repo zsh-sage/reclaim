@@ -72,6 +72,7 @@ def _extract_json_object(text: str) -> dict:
 
     start = stripped.find("{")
     if start == -1:
+        logger.error("[DOC_EXTRACT_JSON] No JSON object found in response. Content preview: %s", text[:500])
         raise ValueError("No JSON object found in response")
 
     depth = 0
@@ -94,8 +95,15 @@ def _extract_json_object(text: str) -> dict:
         elif ch == "}":
             depth -= 1
             if depth == 0:
-                return json.loads(stripped[start : i + 1])
+                try:
+                    result = json.loads(stripped[start : i + 1])
+                    logger.debug("[DOC_EXTRACT_JSON] Successfully extracted JSON object")
+                    return result
+                except json.JSONDecodeError as e:
+                    logger.error("[DOC_EXTRACT_JSON] Failed to parse extracted JSON: %s. Content: %s", str(e), stripped[start:i+1][:200])
+                    raise
 
+    logger.error("[DOC_EXTRACT_JSON] Unbalanced braces. Content preview: %s", text[:500])
     raise ValueError("Unbalanced braces — could not extract JSON object")
 
 

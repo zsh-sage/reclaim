@@ -187,7 +187,9 @@ export type AiStatus =
   | "Policy Flagged"
   | "Awaiting Review"
   | "Passed AI Review"
-  | "Low Confidence";
+  | "Low Confidence"
+  | "Auto-Approved"
+  | "Auto-Rejected";
 
 /** Per-receipt AI judgment — mirrors backend LineItemStatus. */
 export type LineItemStatus = "APPROVED" | "REJECTED" | "PARTIAL_APPROVE" | "PENDING";
@@ -280,6 +282,7 @@ export interface Policy {
   alias: string;
   title: string;
   reimbursable_categories: string[];
+  reimbursable_categories_with_budgets?: PolicyCategoryBudget[];
   overview_summary: string;
   mandatory_conditions: string;
   status: "DRAFT" | "ACTIVE" | "DEPRECATED";
@@ -288,6 +291,11 @@ export interface Policy {
   source_file_url: string;
   created_by?: string;
   created_at?: string | null;
+}
+
+export interface PolicyCategoryBudget {
+  category: string;
+  auto_approval_budget: number | null;
 }
 
 export interface ExtractedData {
@@ -461,7 +469,6 @@ export interface DocumentChangeLogEntry {
 /** Request body for POST /api/v1/reimbursements/analyze. */
 export interface AnalyzeRequest {
   settlement_id: string;
-  policy_id: string;
   document_ids?: string[];
   is_auto_reimburse_enabled?: boolean;
 }
@@ -484,6 +491,12 @@ export interface AnalyzeResponse {
   created_at: string | null;
   message: string;
   task_id?: string;
+}
+
+/** SSE complete payload for multi-policy autonomous analysis. */
+export interface AnalyzeResponseMulti {
+  reimbursements: AnalyzeResponse[];
+  failed_groups?: { policy_alias: string; error: string }[];
 }
 
 // ─── Claim Drafts ─────────────────────────────────────────────────────────────

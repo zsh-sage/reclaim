@@ -3,14 +3,11 @@
 import { useEffect, useRef, useState, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
-  ChevronDown,
   FileText,
   Upload,
   Trash2,
   Loader2,
-  Search,
   Camera,
-  ImageIcon,
   ZoomIn,
   ZoomOut,
   Maximize2,
@@ -38,9 +35,8 @@ import { SuccessModal, type SuccessType } from "./_components/SuccessModal";
 // CameraModal removed — using native <input capture="environment"> instead
 
 // ─── Server Actions ───────────────────────────────────────────────────────────
-import { getPolicies } from "@/lib/actions/policies";
 import { uploadDocuments, editDocument, analyzeCompliance, saveDraft, updateDraft, loadDraft } from "@/lib/actions/claims";
-import type { Policy, SubCategoryConfig, AnalyzeResponse, DocumentUploadResponse } from "@/lib/api/types";
+import type { SubCategoryConfig, AnalyzeResponseMulti, DocumentUploadResponse } from "@/lib/api/types";
 
 // ─── SSE ─────────────────────────────────────────────────────────────────────
 import { subscribeToProgress } from "@/lib/sse";
@@ -85,103 +81,6 @@ function compressImage(file: File, quality = 0.85, maxWidth = 2048): Promise<Fil
     img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
     img.src = url;
   });
-}
-
-// ─── useOnClickOutside ────────────────────────────────────────────────────────
-
-function useOnClickOutside(ref: React.RefObject<HTMLElement | null>, handler: () => void) {
-  useEffect(() => {
-    const listener = (e: MouseEvent | TouchEvent) => {
-      if (!ref.current || ref.current.contains(e.target as Node)) return;
-      handler();
-    };
-    document.addEventListener("mousedown", listener);
-    document.addEventListener("touchstart", listener);
-    return () => {
-      document.removeEventListener("mousedown", listener);
-      document.removeEventListener("touchstart", listener);
-    };
-  }, [ref, handler]);
-}
-
-// ─── CustomSelect ─────────────────────────────────────────────────────────────
-
-interface CustomSelectProps {
-  options: string[];
-  value: string;
-  onChange: (val: string) => void;
-  placeholder: string;
-  disabled?: boolean;
-}
-
-function CustomSelect({ options, value, onChange, placeholder, disabled = false }: CustomSelectProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [searchQuery, setSearch] = useState("");
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  useOnClickOutside(dropdownRef, () => setIsOpen(false));
-
-  const filtered = options.filter(o => o.toLowerCase().includes(searchQuery.toLowerCase()));
-
-  return (
-    <div className={`relative ${disabled ? "opacity-50 pointer-events-none" : ""}`} ref={dropdownRef}>
-      <button
-        type="button"
-        onClick={() => setIsOpen(o => !o)}
-        disabled={disabled}
-        className={`w-full flex items-center justify-between text-left text-base rounded-2xl px-4 py-4 transition-all duration-200 font-body ${disabled
-          ? "bg-surface-container-low border border-outline-variant/20 text-on-surface-variant cursor-not-allowed"
-          : "bg-surface-container-lowest border border-outline-variant/30 text-on-surface cursor-pointer shadow-[0_2px_12px_rgba(44,47,49,0.06)] hover:border-primary/50 focus:border-primary focus:ring-4 focus:ring-primary/10"
-          }`}
-      >
-        <span className={value ? "text-on-surface truncate pr-4" : "text-on-surface-variant/70 truncate pr-4"}>
-          {value || placeholder}
-        </span>
-        <ChevronDown
-          className={`w-5 h-5 shrink-0 text-outline-variant transition-transform duration-300 ${isOpen ? "rotate-180 text-primary" : ""}`}
-          strokeWidth={1.75}
-        />
-      </button>
-
-      {isOpen && !disabled && (
-        <div className="absolute z-50 w-full mt-2 bg-surface-container-lowest border border-outline-variant/20 rounded-2xl shadow-[0_16px_48px_-12px_rgba(44,47,49,0.2)] flex flex-col overflow-hidden origin-top animate-in fade-in zoom-in-95 duration-200">
-          {options.length > 5 && (
-            <div className="p-3 border-b border-outline-variant/10 sticky top-0 bg-surface-container-lowest shrink-0">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-outline-variant" strokeWidth={1.75} />
-                <input
-                  type="text"
-                  placeholder="Search options…"
-                  value={searchQuery}
-                  onChange={e => setSearch(e.target.value)}
-                  className="w-full bg-surface-container-low text-on-surface text-sm rounded-xl py-2 pl-9 pr-3 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-on-surface-variant/50 border border-transparent focus:border-primary/30"
-                />
-              </div>
-            </div>
-          )}
-          <div className="max-h-64 overflow-y-auto overscroll-contain py-2 flex-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-outline-variant/30 [&::-webkit-scrollbar-thumb]:rounded-full">
-            {filtered.length === 0 ? (
-              <div className="px-4 py-4 text-sm text-on-surface-variant text-center font-body">No options found</div>
-            ) : (
-              filtered.map(opt => (
-                <button
-                  key={opt}
-                  type="button"
-                  onClick={() => { onChange(opt); setIsOpen(false); setSearch(""); }}
-                  className={`w-full text-left px-4 py-3 text-sm font-body transition-colors ${value === opt
-                    ? "bg-primary/10 text-primary font-semibold"
-                    : "text-on-surface hover:bg-surface-container-highest/50 active:bg-surface-container-highest"
-                    }`}
-                >
-                  {opt}
-                </button>
-              ))
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
 }
 
 // ─── Inline Document Viewer (used in form stage right panel) ──────────────────
@@ -465,17 +364,7 @@ function CaptureReceiptContent() {
   // ── Stage ──────────────────────────────────────────────────────────────────
   const [stage, setStage] = useState<Stage>("form");
 
-  // ── Policy data (fetched via server action) ────────────────────────────────
-  const [policyData, setPolicyData] = useState<Policy[]>([]);
-
-  useEffect(() => {
-    getPolicies().then((policies) => {
-      setPolicyData(policies);
-    });
-  }, []);
-
   // ── Form state ─────────────────────────────────────────────────────────────
-  const [mainCategory, setMainCategory] = useState("");
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [activeDocId, setActiveDocId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -504,7 +393,7 @@ function CaptureReceiptContent() {
   const [settlementId, setSettlementId] = useState<string | null>(null);
   const [documentIds, setDocumentIds] = useState<string[]>([]);
   const [employeeData, setEmployeeData] = useState<DbEmployee | null>(null);
-  const [analysisResult, setAnalysisResult] = useState<AnalyzeResponse | null>(null);
+  const [analysisResult, setAnalysisResult] = useState<AnalyzeResponseMulti | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -556,8 +445,7 @@ function CaptureReceiptContent() {
   const [restoredFileNames, setRestoredFileNames] = useState<string[]>([]);
 
   // ── Derived ────────────────────────────────────────────────────────────────
-  const selectedMain = policyData.find(d => d.title === mainCategory);
-  const canProcess = files.length > 0 && mainCategory !== "";
+  const canProcess = files.length > 0;
   const isFull = files.length >= MAX_FILES;
   const activeFile = files.find(f => f.id === activeDocId) ?? null;
 
@@ -694,6 +582,66 @@ function CaptureReceiptContent() {
     originalOcrRef.current = mappedReceipts.map(r => ({ ...r }));
     setOcrReceipts(mappedReceipts);
 
+    // Auto-fill travel context from successful receipts
+    const receipts = (result.receipts as any[]) || [];
+    if (receipts.length > 0) {
+      // Extract destinations - unique, case-insensitive, comma-separated
+      const destinationsSet = new Set<string>();
+      receipts.forEach((r: any) => {
+        const dest = r.extracted_data?.destination as string | undefined;
+        if (dest && dest !== "Not found in Receipt" && dest.trim()) {
+          destinationsSet.add(dest.trim());
+        }
+      });
+      const travelDestination = Array.from(destinationsSet).join(", ");
+
+      // Extract dates - use departure_date/arrival_date, fallback to receipt date
+      const departureDates: string[] = [];
+      const arrivalDates: string[] = [];
+
+      receipts.forEach((r: any) => {
+        const extracted = r.extracted_data || {};
+        const depDate = extracted.departure_date as string | undefined;
+        const arrDate = extracted.arrival_date as string | undefined;
+        const receiptDate = r.date as string | undefined;
+
+        // For departure: prefer departure_date, fallback to date
+        if (depDate && depDate !== "Not found in Receipt" && depDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          departureDates.push(depDate);
+        } else if (receiptDate && receiptDate !== "Not found in Receipt" && receiptDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          departureDates.push(receiptDate);
+        }
+
+        // For arrival: prefer arrival_date, fallback to date
+        if (arrDate && arrDate !== "Not found in Receipt" && arrDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          arrivalDates.push(arrDate);
+        } else if (receiptDate && receiptDate !== "Not found in Receipt" && receiptDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          arrivalDates.push(receiptDate);
+        }
+      });
+
+      // Find earliest departure and latest arrival
+      const sortedDepartures = departureDates.sort();
+      const sortedArrivals = arrivalDates.sort();
+      const departureDate = sortedDepartures.length > 0 ? sortedDepartures[0] : "";
+      const arrivalDate = sortedArrivals.length > 0 ? sortedArrivals[sortedArrivals.length - 1] : "";
+
+      // Check if any receipt indicates overseas travel
+      const anyOverseas = receipts.some((r: any) => {
+        const overseas = r.extracted_data?.overseas as boolean | undefined;
+        return overseas === true;
+      });
+
+      // Auto-fill claim context
+      setClaimContext(prev => ({
+        ...prev,
+        travelDestination: prev.travelDestination || travelDestination,
+        departureDate: prev.departureDate || departureDate,
+        arrivalDate: prev.arrivalDate || arrivalDate,
+        overseas: prev.overseas || anyOverseas,
+      }));
+    }
+
     if (result.employee) {
       const emp: any = result.employee;
       setEmployeeData({
@@ -780,12 +728,6 @@ function CaptureReceiptContent() {
       return;
     }
 
-    const policy = policyData.find(p => p.title === mainCategory);
-    if (!policy) {
-      setSubmitError("Please select a valid policy category.");
-      return;
-    }
-
     setIsSubmitting(true);
     setSubmitError(null);
 
@@ -817,7 +759,6 @@ function CaptureReceiptContent() {
     const isAutoReimburseEnabled = localStorage.getItem("reclaim_auto_reimburse") === "true";
     const analyzeResult = await analyzeCompliance({
       settlement_id: settlementId,
-      policy_id: policy.policy_id,
       document_ids: documentIds,
       is_auto_reimburse_enabled: isAutoReimburseEnabled,
     });
@@ -837,7 +778,7 @@ function CaptureReceiptContent() {
         },
         onComplete: (completeResult: Record<string, unknown>) => {
           setIsSubmitting(false);
-          setAnalysisResult(completeResult as unknown as AnalyzeResponse);
+          setAnalysisResult(completeResult as unknown as AnalyzeResponseMulti);
           setIsDirty(false);
           setShowSuccess(true);
         },
@@ -860,7 +801,6 @@ function CaptureReceiptContent() {
     files.forEach(f => { if (f.previewUrl) URL.revokeObjectURL(f.previewUrl); });
     fileMapRef.current.clear();
     setFiles([]);
-    setMainCategory("");
     setActiveDocId(null);
     setOcrReceipts([]);
     setSettlementId(null);
@@ -902,11 +842,11 @@ function CaptureReceiptContent() {
     const fileNames = files.map(f => f.name);
     const draftData: Record<string, unknown> = {
       ocrReceipts, claimContext, settlementId,
-      documentIds, employeeData, mainCategory, stage, fileNames,
+      documentIds, employeeData, stage, fileNames,
     };
     const failedCount = ocrReceipts.filter(r => !r.success).length;
     const payload = {
-      main_category: mainCategory || null,
+      main_category: null,
       settlement_id: settlementId || null,
       draft_data: draftData,
       receipt_count: ocrReceipts.length,
@@ -969,7 +909,6 @@ function CaptureReceiptContent() {
     const data = result.draft_data as Record<string, unknown>;
     setDraftId(result.draft_id);
 
-    if (result.main_category) setMainCategory(result.main_category);
     if (result.settlement_id) setSettlementId(result.settlement_id);
     if (data.documentIds) setDocumentIds(data.documentIds as string[]);
     if (data.claimContext) setClaimContext(data.claimContext as ClaimContext);
@@ -1103,7 +1042,7 @@ function CaptureReceiptContent() {
                 location: "",
                 department: "",
               }}
-              mainCategory={mainCategory}
+              mainCategory=""
               ocrReceipts={ocrReceipts}
               claimContext={claimContext}
               onClaimContextChange={ctx => { setClaimContext(ctx); setIsDirty(true); }}
@@ -1133,39 +1072,8 @@ function CaptureReceiptContent() {
               </div>
             )}
 
-            {/* Category selector — full width, matches the upload area below */}
-            <div className="flex flex-col gap-2 relative z-20 w-full">
-              <label className="text-sm font-semibold text-on-surface font-headline ml-1">
-                Expense Category
-              </label>
-              <CustomSelect
-                options={policyData.map(d => d.title)}
-                value={mainCategory}
-                onChange={v => { setMainCategory(v); setFiles([]); setActiveDocId(null); setIsDirty(true); }}
-                placeholder="Select a category…"
-              />
-              {selectedMain && (
-                <p className="text-xs text-on-surface-variant font-body ml-1">
-                  Covers: {selectedMain.reimbursable_categories.slice(0, 3).join(", ")} &amp; more.
-                </p>
-              )}
-            </div>
-
             {/* Split-view upload area */}
-            {!mainCategory ? (
-              /* Empty state — no category selected yet */
-              <div className="bg-surface-container-lowest rounded-2xl flex flex-col items-center justify-center py-14 px-6 text-center shadow-[0_8px_40px_-8px_rgba(44,47,49,0.06)] border border-outline-variant/10">
-                <div className="w-14 h-14 rounded-full bg-surface-container-low flex items-center justify-center mb-4">
-                  <ImageIcon className="w-6 h-6 text-outline-variant" strokeWidth={1.5} />
-                </div>
-                <h3 className="text-base font-semibold text-on-surface font-headline mb-1">Select a category first</h3>
-                <p className="text-sm text-on-surface-variant font-body max-w-xs leading-relaxed">
-                  Choose an expense category above before uploading your receipts.
-                </p>
-              </div>
-            ) : (
-              /* Two-column split: left = upload controls, right = doc preview */
-              <div className="flex flex-col lg:flex-row gap-5 items-stretch" style={{ minHeight: 480 }}>
+            <div className="flex flex-col lg:flex-row gap-5 items-stretch" style={{ minHeight: 480 }}>
 
                 {/* ── Left: Dropzone + file list ─────────────────────────── */}
                 <div className="w-full lg:w-[380px] shrink-0 flex flex-col gap-4">
@@ -1224,7 +1132,6 @@ function CaptureReceiptContent() {
                   <DocViewer file={activeFile} />
                 </div>
               </div>
-            )}
 
             {/* Hidden file input — desktop multi-file picker */}
             <input
@@ -1255,7 +1162,7 @@ function CaptureReceiptContent() {
               <button
                 id="save-draft-btn"
                 onClick={handleSaveDraftButton}
-                disabled={isSavingDraft || (!mainCategory && files.length === 0 && ocrReceipts.length === 0)}
+                disabled={isSavingDraft || (files.length === 0 && ocrReceipts.length === 0)}
                 className={`flex-1 px-6 py-3 rounded-xl font-semibold text-sm font-body text-center transition-all duration-200 ${draftSaved
                     ? "bg-green-100 text-green-700 border border-green-300"
                     : isSavingDraft

@@ -156,6 +156,7 @@ class PolicyReimbursableCategory(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     policy_id: UUID = Field(foreign_key="policies.policy_id", index=True)
     category: str = Field(sa_column=Column(String, nullable=False))
+    auto_approval_budget: Optional[float] = Field(default=None, sa_column=Column(Numeric(12, 2), nullable=True))
 
     __table_args__ = (
         UniqueConstraint("policy_id", "category", name="uq_policy_category"),

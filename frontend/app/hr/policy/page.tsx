@@ -1,10 +1,10 @@
 "use client";
 
 import React, { JSX, useRef, useState, useEffect } from 'react';
-import { Plus, Search, ChevronUp, ChevronDown, ChevronRight, FileText, Shield, Archive, Pencil, Trash2, ArrowLeft, X, SlidersHorizontal, Upload, Settings, CheckCircle2, ScanLine, Sparkles, History, Clock, User, PlusCircle, AlertCircle, ShieldCheck, Users, Calendar, BarChart3 } from 'lucide-react';
+import { Plus, Search, ChevronUp, ChevronDown, ChevronRight, FileText, Shield, Archive, Pencil, Trash2, ArrowLeft, X, SlidersHorizontal, Upload, Settings, CheckCircle2, ScanLine, Sparkles, History, Clock, User, PlusCircle, AlertCircle, ShieldCheck, Users, Calendar, BarChart3, Banknote } from 'lucide-react';
 import { MOCK_POLICIES, POLICY_STATUS_STYLE, Policy, PolicyStatus } from '../hr_components/mockData';
 import { uploadPolicy } from '@/lib/actions/hr';
-import { getPolicies, deletePolicy } from '@/lib/actions/policies';
+import { getPolicies, deletePolicy, updatePolicyCategories } from '@/lib/actions/policies';
 
 const SAVE_STEPS = [
   { id: "upload", label: "Uploading documents...", subtitle: "Securely storing policy files." },
@@ -161,6 +161,8 @@ export default function PolicyStudio() {
   const POLICY_MAX_SIZE = 10 * 1024 * 1024; // 10 MB
   const [conditionsModalOpen, setConditionsModalOpen] = useState(false);
   const [editConditions, setEditConditions] = useState<Record<string, any> | null>(null);
+  const [categoryBudgets, setCategoryBudgets] = useState<Record<string, string>>({});
+  const [editingPolicyId, setEditingPolicyId] = useState<string | null>(null);
   const [editOverviewSummary, setEditOverviewSummary] = useState<string>("");
   const [editHistory, setEditHistory] = useState<{ user: string, action: string, date: string, details?: string }[]>([]);
 
@@ -274,11 +276,11 @@ export default function PolicyStudio() {
 
     const applyEdits = (list: Policy[]) => {
       return list
-        .filter(p => !deletedIds.includes(p.id))
+        .filter(p => !deletedIds.includes(p.policy_id))
         .map(p => {
-          if (localEdits[p.id]) {
+          if (localEdits[p.policy_id]) {
             // Apply saved edits (ignoring the icon as it's a React component)
-            const { icon, ...editedData } = localEdits[p.id];
+            const { icon, ...editedData } = localEdits[p.policy_id];
             return { ...p, ...editedData };
           }
           return p;
@@ -293,8 +295,9 @@ export default function PolicyStudio() {
       if (backendPolicies.length === 0) return;
       // Map backend Policy type (from types.ts) → local Policy shape (mockData.ts)
       const mapped: Policy[] = backendPolicies.map((p) => ({
-        id: p.policy_id,
-        name: p.title,
+        policy_id: p.policy_id,
+        alias: p.alias,
+        title: p.title,
         version: "V1.0",
         department: "General",
         lastModified: p.effective_date
@@ -303,11 +306,12 @@ export default function PolicyStudio() {
         status: (p.status === "ACTIVE" ? "Active" : p.status === "DEPRECATED" ? "Expired" : "Impending") as PolicyStatus,
         icon: FileText,
         overview_summary: p.overview_summary,
-        aiConditions: parseMandatoryConditions(p.mandatory_conditions) ?? undefined,
+        mandatory_conditions: parseMandatoryConditions(p.mandatory_conditions) ?? undefined,
+        reimbursable_categories_with_budgets: p.reimbursable_categories_with_budgets ?? [],
         history: [],
       }));
-      // Merge: prepend real policies, keep mocks as fallback examples
-      setPolicies([...mapped, ...MOCK_POLICIES]);
+      // Use only real policies, no mock fallback
+      setPolicies(mapped);
     }).catch(() => {
       // Keep mock data on error
     });
@@ -319,16 +323,31 @@ export default function PolicyStudio() {
 
   useEffect(() => {
     if (editingPolicy && editingPolicy !== "new") {
-      const p = policies.find(x => x.id === editingPolicy);
+      const p = policies.find(x => x.policy_id === editingPolicy);
       if (p) {
         setEditStatus(p.status);
-        setEditName(p.name);
-        setEditDepartment(p.department);
-        setEditVersion(p.version);
+        setEditName(p.alias);
+        setEditDepartment("");
+        setEditVersion("1.0");
         setEditDate("2023-10-12");
         setExistingMainPolicyDeleted(false);
         setEditOverviewSummary(p.overview_summary || "");
-        setEditConditions(p.aiConditions || null);
+        setEditConditions(p.mandatory_conditions || null);
+        setEditingPolicyId(p.policy_id || null);
+
+        // Initialize budgets from policy data (or from categories)
+        const budgets: Record<string, string> = {};
+        if (p.reimbursable_categories_with_budgets) {
+          p.reimbursable_categories_with_budgets.forEach((cat: any) => {
+            budgets[cat.category] = cat.auto_approval_budget?.toString() ?? "";
+          });
+        } else if (p.mandatory_conditions) {
+          Object.keys(p.mandatory_conditions).forEach(cat => {
+            budgets[cat] = "";
+          });
+        }
+        setCategoryBudgets(budgets);
+
         setEditHistory(p.history || [
           { user: "Sarah Miller", action: "Policy Created", date: "Oct 12, 2023", details: "Initial draft uploaded" },
           { user: "James Wilson", action: "Updated Appendix", date: "Jan 15, 2024", details: "Added W10 Requirements Review" }
@@ -352,6 +371,8 @@ export default function PolicyStudio() {
       setEditDate("");
       setEditOverviewSummary("");
       setEditConditions(null);
+      setEditingPolicyId(null);
+      setCategoryBudgets({});
       setMainPolicyFile(null);
       setAppendixFiles([]);
     }
@@ -432,7 +453,7 @@ export default function PolicyStudio() {
             status: (p.status === "ACTIVE" ? "Active" : p.status === "DEPRECATED" ? "Expired" : "Impending") as PolicyStatus,
             icon: FileText,
             overview_summary: p.overview_summary,
-            aiConditions: parseMandatoryConditions(p.mandatory_conditions) ?? undefined,
+            mandatory_conditions: parseMandatoryConditions(p.mandatory_conditions) ?? undefined,
           }));
           setPolicies([...mapped, ...MOCK_POLICIES]);
         }
@@ -475,7 +496,7 @@ export default function PolicyStudio() {
         mainFile: mainPolicyFile,
         appendixFiles: appendixFiles,
         existingAppendix: existingAppendix,
-        aiConditions: editConditions || undefined,
+        mandatory_conditions: editConditions || undefined,
         history: updatedHistory
       };
       setPolicies([newPolicy, ...policies]);
@@ -486,7 +507,7 @@ export default function PolicyStudio() {
         department: editDepartment,
         version: editVersion,
         existingAppendix: existingAppendix,
-        aiConditions: editConditions || undefined,
+        mandatory_conditions: editConditions || undefined,
         history: updatedHistory
       };
 
@@ -495,7 +516,7 @@ export default function PolicyStudio() {
       localEdits[editingPolicy] = updatedPolicyData;
       localStorage.setItem('local_policy_edits', JSON.stringify(localEdits));
 
-      setPolicies(policies.map(p => p.id === editingPolicy ? {
+      setPolicies(policies.map(p => p.policy_id === editingPolicy ? {
         ...p,
         ...updatedPolicyData,
         mainFile: mainPolicyFile,
@@ -521,7 +542,7 @@ export default function PolicyStudio() {
     }
     
     // Remove from local state
-    setPolicies(prev => prev.filter(p => p.id !== deletingPolicyId));
+    setPolicies(prev => prev.filter(p => p.policy_id !== deletingPolicyId));
     
     // Persist deletion in LocalStorage (like the edit-view delete does)
     const deletedIds = JSON.parse(localStorage.getItem('deleted_policy_ids') || '[]');
@@ -1015,6 +1036,8 @@ export default function PolicyStudio() {
             isOpen={conditionsModalOpen}
             onClose={() => setConditionsModalOpen(false)}
             conditions={editConditions}
+            categoryBudgets={categoryBudgets}
+            policyId={editingPolicyId}
             onSave={(newConditions) => {
               setEditConditions(newConditions);
               setConditionsModalOpen(false);
@@ -1064,7 +1087,7 @@ export default function PolicyStudio() {
 
   const filteredPolicies = policies.filter(p => {
     const matchesStatus = p.status === activeFilter;
-    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    const matchesSearch = p.alias.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.department.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesStatus && matchesSearch;
   });
@@ -1159,8 +1182,8 @@ export default function PolicyStudio() {
                       {filteredPolicies.length > 0 ? (
                         filteredPolicies.slice(0, 3).map((policy) => (
                           <tr
-                            key={policy.id}
-                            onClick={() => setEditingPolicy(policy.id)}
+                            key={policy.policy_id}
+                            onClick={() => setEditingPolicy(policy.policy_id)}
                             className="group transition-all duration-200 hover:bg-primary/[0.04] hover:shadow-[inset_4px_0_0_0_#4647d3] cursor-pointer border-b border-surface-container-highest/50 last:border-0"
                           >
                             <td className="py-5 px-6">
@@ -1169,7 +1192,7 @@ export default function PolicyStudio() {
                                   <policy.icon size={20} />
                                 </div>
                                 <div>
-                                  <p className="font-semibold text-base">{policy.name}</p>
+                                  <p className="font-semibold text-base">{policy.alias}</p>
                                   <p className="text-sm text-on-surface-variant mt-0.5">{policy.version} • {policy.department}</p>
                                 </div>
                               </div>
@@ -1182,7 +1205,7 @@ export default function PolicyStudio() {
                             </td>
                             <td className="py-5 px-6 text-right">
                               <button
-                                onClick={(e) => { e.stopPropagation(); setEditingPolicy(policy.id); }}
+                                onClick={(e) => { e.stopPropagation(); setEditingPolicy(policy.policy_id); }}
                                 className="text-primary font-semibold text-sm group-hover:underline group-hover:translate-x-0.5 transition-all duration-150 active:scale-95 cursor-pointer"
                               >
                                 Edit
@@ -1206,15 +1229,15 @@ export default function PolicyStudio() {
                   {filteredPolicies.length > 0 ? (
                     filteredPolicies.slice(0, 3).map((policy) => (
                       <button
-                        key={policy.id}
-                        onClick={() => setEditingPolicy(policy.id)}
+                        key={policy.policy_id}
+                        onClick={() => setEditingPolicy(policy.policy_id)}
                         className="bg-surface-container-lowest rounded-xl p-4 border border-outline-variant/10 text-left active:scale-[0.98] transition-all flex items-center gap-3"
                       >
                         <div className="w-10 h-10 rounded-lg bg-primary-container/20 flex items-center justify-center text-primary shrink-0">
                           <policy.icon size={20} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-sm text-on-surface truncate">{policy.name}</p>
+                          <p className="font-semibold text-sm text-on-surface truncate">{policy.alias}</p>
                           <p className="text-xs text-on-surface-variant mt-0.5">{policy.version} · {policy.department}</p>
                           <p className="text-xs text-on-surface-variant/70 mt-0.5">{policy.lastModified}</p>
                         </div>
@@ -1395,20 +1418,30 @@ function ConditionsModal({
   isOpen,
   onClose,
   conditions,
+  categoryBudgets,
+  policyId,
   onSave
 }: {
   isOpen: boolean;
   onClose: () => void;
   conditions: Record<string, any>;
+  categoryBudgets: Record<string, string>;
+  policyId: string | null;
   onSave: (newConditions: Record<string, any>) => void;
 }) {
   const [localConditions, setLocalConditions] = useState(conditions);
+  const [localBudgets, setLocalBudgets] = useState<Record<string, string>>(categoryBudgets);
+  const [isSaving, setIsSaving] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [isAddingCategory, setIsAddingCategory] = useState(false);
 
   useEffect(() => {
     setLocalConditions(conditions);
   }, [conditions]);
+
+  useEffect(() => {
+    setLocalBudgets(categoryBudgets);
+  }, [categoryBudgets]);
 
   if (!isOpen) return null;
 
@@ -1452,6 +1485,49 @@ function ConditionsModal({
       }));
       setNewCategoryName("");
       setIsAddingCategory(false);
+    }
+  };
+
+  const handleUpdateBudget = (category: string, value: string) => {
+    setLocalBudgets(prev => ({
+      ...prev,
+      [category]: value,
+    }));
+  };
+
+  const handleSaveBudgets = async () => {
+    if (!policyId) {
+      // No policy ID - just save conditions locally (existing behavior)
+      onSave(localConditions);
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      // Prepare categories with budgets
+      const categoriesWithBudgets = Object.keys(localConditions).map(category => ({
+        category,
+        auto_approval_budget: localBudgets[category]
+          ? parseFloat(localBudgets[category])
+          : null,
+      }));
+
+      // Call API to update budgets
+      const result = await updatePolicyCategories(policyId, categoriesWithBudgets);
+
+      if (result.ok) {
+        onSave(localConditions);
+        onClose();
+        // Refresh policies to get updated data
+        // Note: In a real app, you'd want to update the policies state here
+      } else {
+        alert(result.error || "Failed to update policy budgets");
+      }
+    } catch (error) {
+      console.error("Error saving budgets:", error);
+      alert("Failed to save budgets");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -1535,6 +1611,51 @@ function ConditionsModal({
             </div>
           ))}
 
+          {/* Auto-Approval Budgets Section */}
+          <div className="bg-gradient-to-br from-primary/5 to-tertiary/5 rounded-2xl p-6 border border-primary/10">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
+                <Banknote className="w-5 h-5 text-primary" strokeWidth={2} />
+              </div>
+              <div>
+                <h4 className="font-headline font-bold text-base text-on-surface">Auto-Approval Budgets</h4>
+                <p className="text-xs text-on-surface-variant">
+                  Set the maximum amount per category for auto-approval. Leave blank for unlimited.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {Object.keys(localConditions).map((category) => {
+                const currentBudget = localBudgets[category] ?? "";
+
+                return (
+                  <div key={category} className="flex items-center gap-3">
+                    <div className="flex-1">
+                      <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1 block">
+                        {category}
+                      </label>
+                      <div className="relative group">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/60 text-sm font-medium group-focus-within:text-primary transition-colors">
+                          MYR
+                        </span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={currentBudget}
+                          onChange={(e) => handleUpdateBudget(category, e.target.value)}
+                          placeholder="Unlimited"
+                          className="w-full pl-12 pr-4 py-2.5 bg-surface-container-lowest border border-outline-variant/20 rounded-xl text-sm text-on-surface font-mono tabular-nums focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all placeholder:text-on-surface-variant/40"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Add New Category UI */}
           {isAddingCategory ? (
             <div className="bg-primary/5 rounded-2xl p-6 border-2 border-dashed border-primary/20 animate-in slide-in-from-bottom-2 duration-300">
@@ -1579,15 +1700,24 @@ function ConditionsModal({
         <div className="p-6 border-t border-outline-variant/10 bg-surface-container-low/30 flex justify-between items-center shrink-0">
           <button
             onClick={onClose}
-            className="px-6 py-3 text-on-surface-variant font-body font-bold hover:bg-surface-container-high rounded-xl transition-all cursor-pointer"
+            disabled={isSaving}
+            className="px-6 py-3 text-on-surface-variant font-body font-bold hover:bg-surface-container-high rounded-xl transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancel
           </button>
           <button
-            onClick={() => onSave(localConditions)}
-            className="px-8 py-3 bg-primary text-white rounded-xl font-body font-bold hover:shadow-lg hover:shadow-primary/20 transition-all active:scale-95 cursor-pointer"
+            onClick={handleSaveBudgets}
+            disabled={isSaving}
+            className="px-8 py-3 bg-primary text-white rounded-xl font-body font-bold hover:shadow-lg hover:shadow-primary/20 transition-all active:scale-95 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed flex items-center gap-2"
           >
-            Save Conditions
+            {isSaving ? (
+              <>
+                <Settings className="w-4 h-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              "Save Conditions & Budgets"
+            )}
           </button>
         </div>
       </div>
@@ -1615,7 +1745,7 @@ function ViewAllModal({
   if (!isOpen) return null;
 
   const filtered = policies.filter(p =>
-    p.name.toLowerCase().includes(modalQuery.toLowerCase()) ||
+    p.alias.toLowerCase().includes(modalQuery.toLowerCase()) ||
     p.department.toLowerCase().includes(modalQuery.toLowerCase())
   );
 
@@ -1659,14 +1789,14 @@ function ViewAllModal({
             </thead>
             <tbody className="divide-y divide-outline-variant/10">
               {filtered.map((policy) => (
-                <tr key={policy.id} className="hover:bg-primary/[0.04] transition-all cursor-default">
+                <tr key={policy.policy_id} className="hover:bg-primary/[0.04] transition-all cursor-default">
                   <td className="py-4 px-6">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-lg bg-primary-container/20 flex items-center justify-center text-primary">
                         <policy.icon size={18} />
                       </div>
                       <div>
-                        <p className="font-semibold text-on-surface text-sm">{policy.name}</p>
+                        <p className="font-semibold text-on-surface text-sm">{policy.alias}</p>
                         <p className="text-[11px] text-on-surface-variant mt-0.5">{policy.version} • {policy.department}</p>
                       </div>
                     </div>
@@ -1679,7 +1809,7 @@ function ViewAllModal({
                   </td>
                   <td className="py-4 px-6 text-right">
                     <button
-                      onClick={() => onEdit(policy.id)}
+                      onClick={() => onEdit(policy.policy_id)}
                       className="text-primary font-bold text-xs hover:underline transition-all cursor-pointer"
                     >
                       Edit

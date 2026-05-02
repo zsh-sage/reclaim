@@ -23,13 +23,14 @@ from api.schemas import (
 )
 from core.models import (
     User, Reimbursement, SupportingDocument, TravelSettlement, Policy,
-    LineItem, ReimbursementSubCategory, SettlementCategory,
-    Department, Payout, Notification,
+    LineItem, ReimbursementSubCategory,
+    Department, Payout, Notification, SettlementReceipt, PolicyReimbursableCategory,
 )
 from core.enums import UserRole, ReimbursementStatus, JudgmentResult, PolicyStatus
 from core.database import engine as db_engine
 from engine.agents.compliance_agent import run_compliance_workflow
 from engine.progress import ProgressTracker
+from engine.services.payout_service import initiate_payout_sync
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -376,17 +377,16 @@ async def analyze_reimbursement(
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_user),
 ) -> dict:
-    """Run basket compliance analysis on a TravelSettlement against a policy."""
-    logger.info("[API_ANALYZE] Called with settlement=%s policy=%s docs=%s user=%s", body.settlement_id, body.policy_id, body.document_ids, current_user.user_id)
+    """Run basket compliance analysis, auto-routing each receipt to its matched policy."""
+    logger.info("[API_ANALYZE] Called with settlement=%s docs=%s user=%s", body.settlement_id, body.document_ids, current_user.user_id)
 
     # === Validation ===
     try:
         settlement_uuid = UUID(body.settlement_id)
-        policy_uuid = UUID(body.policy_id)
     except ValueError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid settlement_id or policy_id",
+            detail="Invalid settlement_id",
         )
 
     settlement = db.get(TravelSettlement, settlement_uuid)
@@ -402,36 +402,7 @@ async def analyze_reimbursement(
             detail="Settlement does not belong to current user",
         )
 
-    policy = db.get(Policy, policy_uuid)
-    if not policy:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Policy {body.policy_id} not found",
-        )
-
-    if policy.status != PolicyStatus.ACTIVE:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Policy is not active",
-        )
-
-    from core.models import PolicyReimbursableCategory
-    policy_cats = db.exec(
-        select(PolicyReimbursableCategory).where(
-            PolicyReimbursableCategory.policy_id == policy_uuid
-        )
-    ).all()
-    reimbursable_categories = [c.category for c in policy_cats]
-
-    main_category = reimbursable_categories[0] if reimbursable_categories else ""
-
-    if not main_category:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Policy has no reimbursable categories",
-        )
-
-    # Cache check: return cached result if no human edits and settlement was already evaluated
+    # Cache check: return cached results if no human edits
     has_edits = bool(
         db.exec(
             select(SupportingDocument).where(
@@ -441,29 +412,17 @@ async def analyze_reimbursement(
         ).first()
     )
 
-    cached_reim = db.exec(
+    cached_reims = db.exec(
         select(Reimbursement).where(Reimbursement.settlement_id == settlement_uuid)
-    ).first()
-
-    if not has_edits and cached_reim:
-        logger.info("[API_ANALYZE] Returning cached reimbursement %s", cached_reim.reim_id)
-        return _build_reimbursement_response(cached_reim, db, include_line_items=True)
-
-    # Fetch settlement categories
-    settlement_cats = db.exec(
-        select(SettlementCategory).where(
-            SettlementCategory.settlement_id == settlement_uuid
-        )
     ).all()
-    all_category = [c.category for c in settlement_cats]
 
-    if not all_category:
-        all_category = reimbursable_categories or [main_category]
+    if not has_edits and cached_reims:
+        logger.info("[API_ANALYZE] Returning %d cached reimbursements", len(cached_reims))
+        results = [_build_reimbursement_response(r, db, include_line_items=True) for r in cached_reims]
+        return {"reimbursements": results}
 
-    logger.info("[API_ANALYZE] Categories for analysis: %s", all_category)
-
-    # === Extract params for background processing ===
     user_id_str = str(current_user.user_id)
+    settlement_currency = settlement.currency or "MYR"
 
     # === Create task and launch background processing ===
     tracker = ProgressTracker()
@@ -473,66 +432,172 @@ async def analyze_reimbursement(
     loop = asyncio.get_running_loop()
 
     def _process_background():
+        from decimal import Decimal
+        from collections import Counter
         logger.info("[API_ANALYZE_BG] Starting background compliance for task=%s", task_id)
-        with Session(db_engine) as bg_db:
-            def progress_callback(stage: str, data: dict):
-                logger.info("[API_ANALYZE_BG] task=%s stage=%s", task_id, stage)
-                tracker.publish(task_id, stage, data)
 
+        with Session(db_engine) as bg_db:
             try:
-                result = run_compliance_workflow(
-                    settlement_id=body.settlement_id,
-                    policy_id=body.policy_id,
-                    main_category=main_category,
-                    user_id=user_id_str,
-                    all_category=all_category,
-                    session=bg_db,
-                    document_ids=body.document_ids,
-                    is_auto_reimburse_enabled=body.is_auto_reimburse_enabled,
-                    progress_callback=progress_callback,
+                # 1. Load settlement receipts (optionally filtered to submitted document_ids)
+                receipts_q = select(SettlementReceipt).where(
+                    SettlementReceipt.settlement_id == settlement_uuid
                 )
-                logger.info("[API_ANALYZE_BG] Workflow returned reimbursement_id=%s", result.get("reimbursement_id"))
-                reim_id = result.get("reimbursement_id")
-                if not reim_id:
-                    logger.error("[API_ANALYZE_BG] No reimbursement_id returned")
-                    tracker.publish(task_id, "error", {"message": "Compliance workflow returned no reimbursement ID"})
+                if body.document_ids:
+                    receipts_q = receipts_q.where(
+                        SettlementReceipt.document_id.in_([UUID(d) for d in body.document_ids])
+                    )
+                all_receipts = bg_db.exec(receipts_q).all()
+                logger.info("[API_ANALYZE_BG] Loaded %d settlement receipts", len(all_receipts))
+
+                if not all_receipts:
+                    tracker.publish(task_id, "error", {"message": "No receipts found for this settlement"})
                     return
-                reim = bg_db.get(Reimbursement, UUID(reim_id))
-                if not reim:
-                    logger.error("[API_ANALYZE_BG] Reimbursement %s not found in DB", reim_id)
-                    tracker.publish(task_id, "error", {"message": f"Reimbursement {reim_id} not found in database"})
-                    return
-                try:
-                    formatted = _build_reimbursement_response(reim, bg_db, include_line_items=True)
-                    logger.info("[API_ANALYZE_BG] Publishing complete event for task=%s", task_id)
-                    tracker.publish(task_id, "complete", formatted)
-                except Exception as build_err:
-                    logger.exception("[API_ANALYZE_BG] Failed to build response")
-                    tracker.publish(task_id, "error", {"message": f"Failed to format response: {build_err}"})
-            except Exception as e:
-                logger.exception("[API_ANALYZE_BG] Compliance workflow failed")
-                try:
-                    from decimal import Decimal
-                    fail_reim = Reimbursement(
+
+                # 2. Map each unique category → best active policy (latest effective_date)
+                unique_categories = list({r.category for r in all_receipts if r.category})
+                cat_to_policy_id: dict[str, Optional[str]] = {}
+                for cat in unique_categories:
+                    rows = bg_db.exec(
+                        select(PolicyReimbursableCategory, Policy)
+                        .join(Policy, PolicyReimbursableCategory.policy_id == Policy.policy_id)
+                        .where(
+                            PolicyReimbursableCategory.category == cat,
+                            Policy.status == PolicyStatus.ACTIVE,
+                        )
+                        .order_by(Policy.effective_date.desc(), Policy.created_at.desc())
+                    ).all()
+                    cat_to_policy_id[cat] = str(rows[0][1].policy_id) if rows else None
+                logger.info("[API_ANALYZE_BG] Category→policy map: %s", cat_to_policy_id)
+
+                # 3. Group document_ids by resolved policy_id (None = unmatched)
+                groups: dict[Optional[str], list[str]] = {}
+                for receipt in all_receipts:
+                    if not receipt.document_id:
+                        continue
+                    pid = cat_to_policy_id.get(receipt.category)
+                    groups.setdefault(pid, []).append(str(receipt.document_id))
+
+                matched_groups = [(pid, dids) for pid, dids in groups.items() if pid is not None]
+                unmatched_doc_ids = groups.get(None, [])
+                all_results: list[dict] = []
+
+                def progress_callback(stage: str, data: dict):
+                    logger.info("[API_ANALYZE_BG] task=%s stage=%s", task_id, stage)
+                    tracker.publish(task_id, stage, data)
+
+                # 4. Unmatched receipts → direct MANUAL_REVIEW (no agent)
+                if unmatched_doc_ids:
+                    logger.info("[API_ANALYZE_BG] Creating MANUAL_REVIEW for %d unmatched receipts", len(unmatched_doc_ids))
+                    unmatched_reim = Reimbursement(
                         user_id=UUID(user_id_str),
-                        policy_id=policy_uuid,
+                        policy_id=None,
                         settlement_id=settlement_uuid,
-                        main_category=main_category,
-                        currency="MYR",
+                        main_category="Uncategorized",
+                        currency=settlement_currency,
                         total_claimed_amount=Decimal("0"),
                         judgment=JudgmentResult.NEEDS_INFO,
                         status=ReimbursementStatus.REVIEW,
-                        summary=f"Compliance pipeline failed — manual review required. Error: {str(e)[:500]}",
-                        ai_reasoning={"error": str(e), "pipeline_failure": True},
+                        summary="No matching active policy found for these receipts. Manual review required.",
+                        ai_reasoning={"unmatched_documents": unmatched_doc_ids, "pipeline_failure": False},
                     )
-                    bg_db.add(fail_reim)
+                    bg_db.add(unmatched_reim)
                     bg_db.commit()
-                    bg_db.refresh(fail_reim)
-                    formatted = _build_reimbursement_response(fail_reim, bg_db, include_line_items=False)
-                    tracker.publish(task_id, "complete", formatted)
-                except Exception as fallback_err:
-                    logger.exception("[API_ANALYZE_BG] Failed to write MANUAL_REVIEW record: %s", fallback_err)
-                    tracker.publish(task_id, "error", {"message": str(e)})
+                    bg_db.refresh(unmatched_reim)
+                    all_results.append(_build_reimbursement_response(unmatched_reim, bg_db, include_line_items=False))
+
+                # 5. Run compliance agent once per matched policy group
+                for i, (policy_id_str, doc_ids) in enumerate(matched_groups):
+                    policy_obj = bg_db.get(Policy, UUID(policy_id_str))
+                    policy_alias = policy_obj.title if policy_obj else policy_id_str
+
+                    tracker.publish(task_id, "compliance_analysis", {
+                        "message": f"Evaluating policy {i + 1} of {len(matched_groups)}: {policy_alias}...",
+                        "policy_index": i + 1,
+                        "policy_total": len(matched_groups),
+                        "policy_alias": policy_alias,
+                    })
+
+                    group_receipts = [r for r in all_receipts if r.document_id and str(r.document_id) in doc_ids]
+                    group_categories = list({r.category for r in group_receipts if r.category})
+                    cat_counts = Counter(r.category for r in group_receipts if r.category)
+                    group_main_category = cat_counts.most_common(1)[0][0] if cat_counts else "General"
+
+                    logger.info("[API_ANALYZE_BG] Group %d/%d policy=%s docs=%d cats=%s", i + 1, len(matched_groups), policy_alias, len(doc_ids), group_categories)
+
+                    try:
+                        result = run_compliance_workflow(
+                            settlement_id=body.settlement_id,
+                            policy_id=policy_id_str,
+                            main_category=group_main_category,
+                            user_id=user_id_str,
+                            all_category=group_categories,
+                            session=bg_db,
+                            document_ids=doc_ids,
+                            is_auto_reimburse_enabled=body.is_auto_reimburse_enabled,
+                            progress_callback=progress_callback,
+                        )
+                        reim_id = result.get("reimbursement_id")
+                        if not reim_id:
+                            raise ValueError("Compliance workflow returned no reimbursement_id")
+                        reim = bg_db.get(Reimbursement, UUID(reim_id))
+                        if not reim:
+                            raise ValueError(f"Reimbursement {reim_id} not found in DB after creation")
+                        all_results.append(_build_reimbursement_response(reim, bg_db, include_line_items=True))
+                        logger.info("[API_ANALYZE_BG] Group %d complete: reim_id=%s judgment=%s status=%s", i + 1, reim_id, result.get("judgment"), reim.status)
+
+                        # Auto-payout for high-confidence approvals (reviewed_by IS NULL = auto-processed)
+                        if reim.status == ReimbursementStatus.APPROVED and reim.reviewed_by is None:
+                            try:
+                                initiate_payout_sync(reim.reim_id, bg_db, loop=loop)
+                            except Exception:
+                                logger.exception("[API_ANALYZE_BG] Auto-payout failed for reim=%s — claim stays APPROVED", reim_id)
+
+                        # Notify employee of auto-reject
+                        elif reim.status == ReimbursementStatus.REJECTED and reim.reviewed_by is None:
+                            try:
+                                notif = Notification(
+                                    user_id=reim.user_id,
+                                    type="error",
+                                    title=f"Claim RC-{reim_id[:8]} automatically rejected",
+                                    message=f"Your claim was automatically rejected by Reclaim AI. Reason: {(reim.summary or 'See claim details for more information.')[:200]}",
+                                    link=f"/employee/history?id={reim_id}",
+                                    is_read=False,
+                                )
+                                bg_db.add(notif)
+                                bg_db.commit()
+                            except Exception:
+                                logger.exception("[API_ANALYZE_BG] Failed to send auto-reject notification for reim=%s", reim_id)
+                    except Exception as group_err:
+                        logger.exception("[API_ANALYZE_BG] Compliance failed for policy=%s", policy_alias)
+                        try:
+                            # Calculate total claimed from group receipts so fallback has meaningful amount
+                            total_claimed = sum((float(r.claimed_amount) or 0) for r in group_receipts)
+
+                            fail_reim = Reimbursement(
+                                user_id=UUID(user_id_str),
+                                policy_id=UUID(policy_id_str),
+                                settlement_id=settlement_uuid,
+                                main_category=group_main_category,
+                                currency=settlement_currency,
+                                total_claimed_amount=Decimal(str(total_claimed)),
+                                judgment=JudgmentResult.NEEDS_INFO,
+                                status=ReimbursementStatus.REVIEW,
+                                summary=f"Compliance pipeline failed for '{policy_alias}' — manual review required. Error: {str(group_err)[:500]}",
+                                ai_reasoning={"error": str(group_err), "pipeline_failure": True, "policy_id": policy_id_str},
+                            )
+                            bg_db.add(fail_reim)
+                            bg_db.commit()
+                            bg_db.refresh(fail_reim)
+                            all_results.append(_build_reimbursement_response(fail_reim, bg_db, include_line_items=False))
+                        except Exception as fallback_err:
+                            logger.exception("[API_ANALYZE_BG] Fallback MANUAL_REVIEW failed: %s", fallback_err)
+
+                logger.info("[API_ANALYZE_BG] Publishing complete with %d reimbursements", len(all_results))
+                tracker.publish(task_id, "complete", {"reimbursements": all_results})
+
+            except Exception as e:
+                logger.exception("[API_ANALYZE_BG] Fatal error in background processing")
+                tracker.publish(task_id, "error", {"message": str(e)})
 
     loop.run_in_executor(_executor, _process_background)
 

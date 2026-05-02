@@ -16,7 +16,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { getHRHistory, type HistoryClaim } from "@/lib/actions/hr";
-
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type ClaimStatus = "Approved" | "Rejected" | "Paid";
@@ -98,7 +97,7 @@ export default function HRHistoryPage() {
         (c) =>
           c.employeeName.toLowerCase().includes(q) ||
           c.id.toLowerCase().includes(q) ||
-          c.policyName.toLowerCase().includes(q)
+          c.policyName.toLowerCase().includes(q),
       );
     }
     return result;
@@ -108,10 +107,9 @@ export default function HRHistoryPage() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
   const paginated = filtered.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
+    currentPage * ITEMS_PER_PAGE,
   );
 
-  // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, statusFilter]);
@@ -153,7 +151,7 @@ export default function HRHistoryPage() {
               Claim History
             </h2>
             <p className="text-on-surface-variant text-lg font-body">
-              A full audit log of all resolved claims across the organization.
+              All resolved claims — auto-processed and HR-reviewed, combined.
             </p>
           </div>
         </div>
@@ -227,7 +225,6 @@ export default function HRHistoryPage() {
 
         {/* ── Search & Filter Bar ── */}
         <div className="bg-surface-container-low/50 backdrop-blur-md border border-outline-variant/10 rounded-2xl p-4 mb-6 flex flex-col sm:flex-row gap-3">
-          {/* Search */}
           <div className="flex-1 relative group">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant group-focus-within:text-primary transition-colors w-4 h-4" />
             <input
@@ -239,7 +236,6 @@ export default function HRHistoryPage() {
             />
           </div>
 
-          {/* Status Filter */}
           <div className="flex items-center gap-2 shrink-0">
             <Filter className="w-4 h-4 text-on-surface-variant shrink-0" />
             <select
@@ -289,6 +285,7 @@ export default function HRHistoryPage() {
                 {!isLoading &&
                   paginated.map((claim) => {
                     const cfg = STATUS_CONFIG[claim.status];
+                    const StatusIcon = cfg.icon;
                     const formatted = `RM ${new Intl.NumberFormat("en-MY", {
                       minimumFractionDigits: 2,
                     }).format(claim.amount)}`;
@@ -364,7 +361,7 @@ export default function HRHistoryPage() {
                         {/* View Action */}
                         <td className="py-4 px-6 text-right align-middle whitespace-nowrap">
                           <Link
-                            href={`/hr/view/${claim.id}`}
+                            href={`/hr/view/${claim.reim_id}`}
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-on-surface-variant hover:text-primary hover:bg-primary/10 transition-all active:scale-90 cursor-pointer"
                           >
                             View
@@ -401,7 +398,7 @@ export default function HRHistoryPage() {
 
                 return (
                   <Link
-                    href={`/hr/view/${claim.id}`}
+                    href={`/hr/view/${claim.reim_id}`}
                     key={claim.id}
                     className="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant/10 flex items-center justify-between hover:bg-surface-container-highest/30 transition-colors active:scale-[0.98] cursor-pointer"
                   >
@@ -447,7 +444,9 @@ export default function HRHistoryPage() {
                 No claims found
               </p>
               <p className="text-on-surface-variant text-sm mt-1">
-                Try adjusting your search or filter criteria.
+                {data.length === 0
+                  ? "Resolved claims will appear here once they age out of the dashboard."
+                  : "Try adjusting your search or filter criteria."}
               </p>
             </div>
           )}
@@ -474,7 +473,7 @@ export default function HRHistoryPage() {
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
-                {[...Array(totalPages)].map((_, i) => (
+                {[...Array(Math.min(totalPages, 7))].map((_, i) => (
                   <button
                     key={i}
                     onClick={() => setCurrentPage(i + 1)}

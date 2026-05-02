@@ -34,6 +34,7 @@ class PolicyWorkflowState(TypedDict):
     markdown_docs: List[Dict]   # [{file: str, text: str}]
     title: str
     extracted_categories: List[str]
+    extracted_categories_with_budgets: List[Dict[str, any]]  # [{"category": str, "auto_approval_budget": float | None}]
     overview_summary: str
     mandatory_procedures: Dict
     error: Optional[str]
@@ -66,6 +67,7 @@ def extract_categories_and_summary(state: PolicyWorkflowState) -> dict:
             "error": "No PDFs could be parsed.",
             "title": "",
             "extracted_categories": [],
+            "extracted_categories_with_budgets": [],
             "overview_summary": "",
         }
 
@@ -78,14 +80,55 @@ def extract_categories_and_summary(state: PolicyWorkflowState) -> dict:
 
     try:
         res = chain.invoke({"text": combined_text})
+
+        # Parse categories - handle both old format (array of strings) and new format (array of objects)
+        extracted_categories_raw = res.get("reimbursement_available_category", [])
+        categories_with_budgets = []
+
+        for item in extracted_categories_raw:
+            if isinstance(item, str):
+                # Old format - string only, apply intelligent defaults
+                categories_with_budgets.append({
+                    "category": item,
+                    "auto_approval_budget": _get_default_budget_for_category(item)
+                })
+            elif isinstance(item, dict):
+                # New format - may have budget
+                cat_name = item.get("category")
+                budget = item.get("auto_approval_budget")
+                if budget is None:
+                    budget = _get_default_budget_for_category(cat_name)
+                categories_with_budgets.append({
+                    "category": cat_name,
+                    "auto_approval_budget": budget
+                })
+
         return {
             "title": res.get("title", ""),
-            "extracted_categories": res.get("reimbursement_available_category", []),
+            "extracted_categories": [c["category"] for c in categories_with_budgets],
+            "extracted_categories_with_budgets": categories_with_budgets,
             "overview_summary": res.get("overview_summary", ""),
         }
     except Exception as e:
         print(f"Error in extract_categories_and_summary: {e}")
-        return {"title": "", "extracted_categories": [], "overview_summary": ""}
+        return {
+            "title": "",
+            "extracted_categories": [],
+            "extracted_categories_with_budgets": [],
+            "overview_summary": ""
+        }
+
+def _get_default_budget_for_category(category: str) -> float:
+    """Intelligent default budgets based on category name."""
+    cat_lower = category.lower()
+    if any(k in cat_lower for k in ['accommod', 'hotel', 'lodging']):
+        return 500.0
+    elif any(k in cat_lower for k in ['meal', 'food', 'dinner', 'lunch', 'breakfast']):
+        return 100.0
+    elif any(k in cat_lower for k in ['transport', 'travel', 'taxi', 'flight', 'bus', 'train']):
+        return 200.0
+    else:
+        return 50.0
 
 
 # ---------------------------------------------------------------------------
@@ -136,11 +179,13 @@ def save_to_db(state: PolicyWorkflowState, session: Session) -> dict:
     session.commit()
     print(f"Saved policy {policy.policy_id}.")
 
-    # Bulk insert PolicyReimbursableCategory rows
-    for category in state.get("extracted_categories", []):
+    # Bulk insert PolicyReimbursableCategory rows with budgets
+    categories_with_budgets = state.get("extracted_categories_with_budgets", [])
+    for cat_data in categories_with_budgets:
         prc = PolicyReimbursableCategory(
             policy_id=policy.policy_id,
-            category=category,
+            category=cat_data["category"],
+            auto_approval_budget=cat_data.get("auto_approval_budget"),
         )
         session.add(prc)
 

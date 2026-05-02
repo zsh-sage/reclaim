@@ -5,8 +5,8 @@
 // Falls back to hardcoded mock data if the backend is unavailable.
 // ──────────────────────────────────────────────────────────────────────────────
 
-import { apiGet, apiDelete, API_PREFIX } from "@/lib/api/client";
-import type { Policy } from "@/lib/api/types";
+import { apiGet, apiDelete, apiPatch, API_PREFIX } from "@/lib/api/client";
+import type { Policy, PolicyCategoryBudget } from "@/lib/api/types";
 
 // ─── Mock Fallback ────────────────────────────────────────────────────────────
 
@@ -171,6 +171,7 @@ export async function getPolicies(): Promise<Policy[]> {
       alias: p.alias as string,
       title: p.title as string,
       reimbursable_categories: (p.reimbursable_categories ?? p.reimbursable_category ?? []) as string[],
+      reimbursable_categories_with_budgets: (p.reimbursable_categories_with_budgets ?? []) as PolicyCategoryBudget[],
       overview_summary: p.overview_summary as string,
       status: p.status as "DRAFT" | "ACTIVE" | "DEPRECATED",
       effective_date: (p.effective_date as string | null) ?? null,
@@ -186,5 +187,19 @@ export async function getPolicies(): Promise<Policy[]> {
 export async function deletePolicy(policyId: string): Promise<{ ok: boolean; error?: string }> {
   const result = await apiDelete<null>(`${API_PREFIX}/policies/${policyId}`);
   if (result.error) return { ok: false, error: result.error };
+  return { ok: true };
+}
+
+/** Update auto-approval budgets for policy categories. */
+export async function updatePolicyCategories(
+  policyId: string,
+  categories: { category: string; auto_approval_budget: number | null }[]
+): Promise<{ ok: boolean; error?: string }> {
+  const result = await apiPatch<void>(`${API_PREFIX}/policies/${policyId}/categories`, {
+    categories,
+  });
+  if (result.error) {
+    return { ok: false, error: result.error };
+  }
   return { ok: true };
 }

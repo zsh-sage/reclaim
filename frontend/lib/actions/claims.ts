@@ -15,6 +15,7 @@ import type {
   EditDocumentResponse,
   AnalyzeRequest,
   AnalyzeResponse,
+  AnalyzeResponseMulti,
   DraftSummary,
   DraftFull,
   DraftSaveRequest,
@@ -87,12 +88,12 @@ export async function editDocument(
   }
 }
 
-/** Run compliance analysis on an uploaded settlement against a policy. */
+/** Run autonomous compliance analysis — routes each receipt to its matched policy. */
 export async function analyzeCompliance(
   req: AnalyzeRequest
-): Promise<AnalyzeResponse | { error: string }> {
+): Promise<AnalyzeResponseMulti | { error: string }> {
   try {
-    const result = await apiPost<AnalyzeResponse>(`${API_PREFIX}/reimbursements/analyze`, req);
+    const result = await apiPost<AnalyzeResponseMulti>(`${API_PREFIX}/reimbursements/analyze`, req);
     if (result.error) return { error: result.error };
     return result.data!;
   } catch (err) {

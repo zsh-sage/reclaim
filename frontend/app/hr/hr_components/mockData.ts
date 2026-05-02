@@ -7,8 +7,9 @@ import type { ClaimBundle } from "@/lib/api/types";
 export type PolicyStatus = "Active" | "Impending" | "Expired";
 
 export interface Policy {
-  id: string;
-  name: string;
+  policy_id: string;
+  alias: string;
+  title: string;
   version: string;
   department: string;
   lastModified: string;
@@ -18,8 +19,9 @@ export interface Policy {
   mainFile?: File | null;
   appendixFiles?: File[];
   existingAppendix?: { name: string, size: string }[];
-  aiConditions?: Record<string, SubCategoryCondition>;
+  mandatory_conditions?: Record<string, SubCategoryCondition>;
   history?: { user: string, action: string, date: string, details?: string }[];
+  reimbursable_categories_with_budgets?: { category: string; auto_approval_budget?: number | null }[];
 }
 
 export interface SubCategoryCondition {
