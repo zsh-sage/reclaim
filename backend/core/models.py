@@ -192,8 +192,9 @@ class PolicySection(SQLModel, table=True):
         default={},
         sa_column=Column("metadata", JSONB)
     )
-    embedding: List[float] = Field(
-        sa_column=Column(Vector(1536))
+    embedding: Optional[List[float]] = Field(
+        default=None,
+        sa_column=Column(Vector(1536), nullable=True)
     )
 
 

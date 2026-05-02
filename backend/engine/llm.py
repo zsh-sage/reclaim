@@ -123,9 +123,11 @@ def get_text_llm() -> _GLMWithGeminiFallback:
 
 @lru_cache(maxsize=1)
 def get_embeddings() -> OpenAIEmbeddings:
-    """Text embeddings via OpenRouter (openai/text-embedding-3-small, 1536 dims)."""
+    """Text embeddings via OpenRouter (openai/text-embedding-3-small, 1536 dims).
+    30-second timeout prevents hung connections from blocking uploads indefinitely."""
     return OpenAIEmbeddings(
         base_url=settings.OPENROUTER_BASE_URL,
         api_key=settings.OPENROUTER_API_KEY,
         model=settings.EMBEDDING_MODEL,
+        timeout=30,
     )

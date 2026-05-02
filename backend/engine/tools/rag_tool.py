@@ -41,7 +41,7 @@ def search_policy_sections(
             sql = text("""
                 SELECT section_id, content
                 FROM policy_sections
-                WHERE policy_id = :policy_id
+                WHERE policy_id = :policy_id AND embedding IS NOT NULL
                 ORDER BY embedding <=> CAST(:qvec AS vector)
                 LIMIT :lim
             """)
