@@ -38,9 +38,9 @@ export default function StatsBand() {
         className="absolute inset-0 bg-[linear-gradient(transparent_96%,rgba(255,255,255,0.06)_96%),linear-gradient(90deg,transparent_96%,rgba(255,255,255,0.06)_96%)] bg-[size:32px_32px] opacity-30 pointer-events-none"
       />
 
-      <div className="relative mx-auto max-w-7xl px-5 sm:px-8 lg:px-12 py-20 lg:py-24">
+      <div className="relative mx-auto max-w-7xl px-5 sm:px-8 lg:px-12 py-14 lg:py-20">
         <motion.div
-          className="max-w-2xl text-on-primary mb-12"
+          className="max-w-2xl text-on-primary mb-10"
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-80px" }}

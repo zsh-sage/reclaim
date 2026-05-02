@@ -81,7 +81,7 @@ export default function HowItWorks() {
   return (
     <section
       id="how-it-works"
-      className="relative py-20 lg:py-28 px-5 sm:px-8 lg:px-12 bg-surface-container-low overflow-hidden"
+      className="relative py-14 lg:py-20 px-5 sm:px-8 lg:px-12 bg-surface-container-low overflow-hidden"
     >
       <div
         aria-hidden="true"
@@ -112,7 +112,7 @@ export default function HowItWorks() {
         </motion.div>
 
         <motion.div
-          className="mt-12 grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 items-stretch"
+          className="mt-10 grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 items-stretch"
           variants={containerVariants}
           initial="hidden"
           whileInView="visible"

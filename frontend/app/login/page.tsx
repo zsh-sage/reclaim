@@ -59,6 +59,11 @@ function LoadingOverlay({ show }: { show: boolean }) {
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 
+const DEMO_CREDENTIALS: Record<"hr" | "employee", { email: string; password: string }> = {
+  hr: { email: "hr@example.com", password: "password" },
+  employee: { email: "employee@example.com", password: "password" },
+};
+
 export default function LoginPage() {
   const { login, isLoading } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
@@ -66,6 +71,7 @@ export default function LoginPage() {
   const [activePortal, setActivePortal] = useState<"employee" | "hr">("employee");
   const [restrictionToast, setRestrictionToast] = useState<string | null>(null);
   const [isValidating, setIsValidating] = useState(false);
+  const [demoBanner, setDemoBanner] = useState<"hr" | "employee" | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -87,6 +93,29 @@ export default function LoginPage() {
       setIsValidating(false);
     }
   }
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const role = params.get("role");
+    const demo = params.get("demo");
+
+    const target = demo === "hr" || role === "hr" ? "hr" : demo === "employee" || role === "employee" ? "employee" : null;
+    if (target) setActivePortal(target);
+
+    if (demo === "hr" || demo === "employee") {
+      const creds = DEMO_CREDENTIALS[demo];
+      form.setValue("email", creds.email);
+      form.setValue("password", creds.password);
+      setDemoBanner(demo);
+      setIsValidating(true);
+      login(creds.email, creds.password).catch((err: unknown) => {
+        const message = err instanceof Error ? err.message : "Demo sign-in failed. Try again.";
+        setError(message);
+        setDemoBanner(null);
+      }).finally(() => setIsValidating(false));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!restrictionToast) return;
@@ -174,6 +203,11 @@ export default function LoginPage() {
               </div>
 
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+                {demoBanner && !error && (
+                  <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-center text-xs font-semibold text-primary">
+                    Signing in as {demoBanner === "hr" ? "HR" : "Employee"} demo…
+                  </div>
+                )}
                 {error && <div className="bg-error-container text-error p-3 rounded-lg text-sm text-center">{error}</div>}
 
                 <div className="space-y-2">

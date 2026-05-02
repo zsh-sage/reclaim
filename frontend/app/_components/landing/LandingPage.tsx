@@ -12,8 +12,11 @@ import StatsBand from "./StatsBand";
 export default function LandingPage({ user }: { user: User | null }) {
   return (
     <div className="min-h-screen flex flex-col bg-surface">
+      <a href="#main" className="skip-link">
+        Skip to content
+      </a>
       <Header user={user} />
-      <main className="flex-1 scroll-smooth">
+      <main id="main" tabIndex={-1} className="flex-1 scroll-smooth focus:outline-none">
         <Hero user={user} />
         <ProblemSection />
         <HowItWorks />

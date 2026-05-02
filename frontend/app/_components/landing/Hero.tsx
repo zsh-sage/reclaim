@@ -66,8 +66,8 @@ export default function Hero({ user }: { user: User | null }) {
         className="absolute inset-0 bg-[linear-gradient(transparent_96%,rgba(255,255,255,0.06)_96%),linear-gradient(90deg,transparent_96%,rgba(255,255,255,0.06)_96%)] bg-[size:32px_32px] opacity-30 pointer-events-none"
       />
 
-      <div className="relative mx-auto max-w-7xl px-5 sm:px-8 lg:px-12 pt-16 pb-24 lg:pt-28 lg:pb-36">
-        <div className="grid lg:grid-cols-[1fr_auto] gap-12 lg:gap-16 items-center">
+      <div className="relative mx-auto max-w-7xl px-5 sm:px-8 lg:px-12 pt-12 pb-16 lg:pt-20 lg:pb-24">
+        <div className="grid lg:grid-cols-[1fr_auto] gap-8 lg:gap-12 items-center">
           <motion.div
             className="max-w-3xl text-on-primary"
             variants={containerVariants}
@@ -85,7 +85,7 @@ export default function Hero({ user }: { user: User | null }) {
             <motion.div variants={itemVariants} className="mt-6 flex items-center gap-4">
               <Image
                 src="/images/logo.svg"
-                alt="Reclaim Logo"
+                alt=""
                 width={64}
                 height={64}
                 className="w-14 h-14 lg:w-16 lg:h-16 object-contain brightness-0 invert"
@@ -100,30 +100,45 @@ export default function Hero({ user }: { user: User | null }) {
               variants={itemVariants}
               className="mt-6 font-headline text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight leading-[1.1]"
             >
-              AI-assisted expense reimbursement
-              <br className="hidden sm:block" /> with intelligent decision support.
+              Cut reimbursement review
+              <br className="hidden sm:block" /> from days to minutes.
             </motion.h1>
 
             <motion.p
               variants={itemVariants}
               className="mt-6 max-w-2xl text-base sm:text-lg opacity-90 font-light leading-relaxed"
             >
-              Reclaim places an intelligent compliance agent between receipt upload and HR review.
-              OCR extracts every line. A LangGraph agent reasons against your active policy.
-              HR opens a pre-classified triage queue — not a stack of attachments.
+              Receipts come in. AI extracts every line and checks them against your policy.
+              HR opens a pre-sorted queue — fast-track the clean claims, focus only on the ones that need judgment.
             </motion.p>
+
+            <motion.div
+              variants={scaleInVariants}
+              initial="hidden"
+              animate="visible"
+              className="mt-10 lg:hidden"
+            >
+              <Image
+                src="/images/example.png"
+                alt="Reclaim dashboard preview"
+                width={580}
+                height={749}
+                className="w-full max-w-md mx-auto h-auto rounded-2xl shadow-ambient-lg"
+                priority
+              />
+            </motion.div>
 
             <motion.div variants={itemVariants} className="mt-9 flex flex-wrap items-center gap-3">
               <Link
-                href="#demo"
-                className="inline-flex items-center gap-2 px-7 py-3.5 bg-on-primary text-primary rounded-full text-base font-bold shadow-ambient-lg hover:shadow-[0_0_30px_rgba(255,255,255,0.4)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+                href="/login?demo=employee"
+                className="inline-flex items-center gap-2 px-7 py-3.5 bg-on-primary text-primary rounded-full text-base font-bold shadow-ambient-lg hover:shadow-[0_0_30px_rgba(255,255,255,0.4)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/40"
               >
-                Try the Demo
+                Try the live demo
                 <ArrowRight className="w-4 h-4" />
               </Link>
               <a
                 href="#how-it-works"
-                className="inline-flex items-center gap-2 px-6 py-3.5 border border-white/40 text-on-primary rounded-full text-base font-semibold hover:bg-white/10 transition-colors"
+                className="inline-flex items-center gap-2 px-6 py-3.5 border border-white/40 text-on-primary rounded-full text-base font-semibold hover:bg-white/10 transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/40"
               >
                 How it works
                 <ChevronDown className="w-4 h-4" />
@@ -131,7 +146,7 @@ export default function Hero({ user }: { user: User | null }) {
               {user && (
                 <Link
                   href={dashHref}
-                  className="inline-flex items-center gap-2 px-5 py-3 text-on-primary text-sm font-semibold underline underline-offset-4 decoration-white/40 hover:decoration-white transition-colors"
+                  className="inline-flex items-center gap-2 px-5 py-3 text-on-primary text-sm font-semibold underline underline-offset-4 decoration-white/40 hover:decoration-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 rounded"
                 >
                   Already signed in — go to dashboard
                   <ArrowRight className="w-4 h-4" />
@@ -149,10 +164,10 @@ export default function Hero({ user }: { user: User | null }) {
             <motion.div variants={floatVariants} animate="animate">
               <Image
                 src="/images/example.png"
-                alt="Reclaim platform preview"
+                alt="Reclaim dashboard preview showing the HR triage queue"
                 width={580}
                 height={749}
-                className="h-[600px] w-auto scale-110 origin-center"
+                className="h-[760px] w-auto scale-110 origin-center"
                 priority
               />
             </motion.div>

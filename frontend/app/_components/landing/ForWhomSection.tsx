@@ -47,10 +47,10 @@ const listItemVariants: Variants = {
 
 export default function ForWhomSection() {
   return (
-    <section className="relative py-20 lg:py-28 px-5 sm:px-8 lg:px-12 bg-surface-container-low">
+    <section className="relative py-14 lg:py-20 px-5 sm:px-8 lg:px-12 bg-surface-container-low">
       <div className="mx-auto max-w-7xl">
         <motion.div
-          className="max-w-2xl mb-12"
+          className="max-w-2xl mb-10"
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-80px" }}
@@ -115,8 +115,8 @@ export default function ForWhomSection() {
                 ))}
               </motion.ul>
               <Link
-                href="/login"
-                className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:text-primary-dim transition-colors"
+                href="/login?role=hr"
+                className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:text-primary-dim transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded"
               >
                 Open HR Portal
                 <ArrowRight className="w-4 h-4" />
@@ -168,8 +168,8 @@ export default function ForWhomSection() {
                 ))}
               </motion.ul>
               <Link
-                href="/login"
-                className="inline-flex items-center gap-1.5 text-sm font-semibold text-tertiary hover:text-tertiary-dim transition-colors"
+                href="/login?role=employee"
+                className="inline-flex items-center gap-1.5 text-sm font-semibold text-tertiary hover:text-tertiary-dim transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tertiary/40 rounded"
               >
                 Open Employee Portal
                 <ArrowRight className="w-4 h-4" />

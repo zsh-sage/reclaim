@@ -7,6 +7,7 @@ import { ArrowRight, Check, Copy, KeyRound, ShieldCheck } from "lucide-react";
 
 interface DemoAccount {
   role: "HR" | "Employee";
+  slug: "hr" | "employee";
   email: string;
   password: string;
   description: string;
@@ -17,6 +18,7 @@ interface DemoAccount {
 const ACCOUNTS: DemoAccount[] = [
   {
     role: "HR",
+    slug: "hr",
     email: "hr@example.com",
     password: "password",
     description: "Manage policy, review the triage dashboard, exercise the final decision.",
@@ -25,6 +27,7 @@ const ACCOUNTS: DemoAccount[] = [
   },
   {
     role: "Employee",
+    slug: "employee",
     email: "employee@example.com",
     password: "password",
     description: "Submit a multi-receipt claim, verify the AI pre-fill, watch the pipeline run.",
@@ -50,7 +53,8 @@ function CopyField({ value }: { value: string }) {
     <button
       type="button"
       onClick={onCopy}
-      className="group flex w-full items-center justify-between gap-3 rounded-xl border border-outline/15 bg-surface px-4 py-3 text-left font-mono text-sm text-on-surface hover:border-primary/40 hover:bg-surface-container-low transition-colors"
+      aria-label={copied ? `Copied ${value}` : `Copy ${value}`}
+      className="group flex w-full items-center justify-between gap-3 rounded-xl border border-outline/15 bg-surface px-4 py-3 text-left font-mono text-sm text-on-surface hover:border-primary/40 hover:bg-surface-container-low transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:border-primary/60"
     >
       <span className="truncate">{value}</span>
       <span
@@ -89,7 +93,7 @@ export default function DemoSection() {
   return (
     <section
       id="demo"
-      className="relative py-20 lg:py-28 px-5 sm:px-8 lg:px-12 bg-surface overflow-hidden"
+      className="relative py-14 lg:py-20 px-5 sm:px-8 lg:px-12 bg-surface overflow-hidden"
     >
       <div
         aria-hidden="true"
@@ -109,15 +113,16 @@ export default function DemoSection() {
             Try the demo
           </span>
           <h2 className="mt-4 font-headline text-3xl sm:text-4xl lg:text-5xl font-extrabold text-on-surface tracking-tight">
-            Sign in with the seeded accounts.
+            One click. You&rsquo;re inside.
           </h2>
           <p className="mt-4 text-on-surface-variant text-base sm:text-lg leading-relaxed">
-            We&rsquo;ve pre-loaded two demo logins so you can experience both sides of the workflow without setting up your own users or policy.
+            Pick a role and we&rsquo;ll sign you straight in with seeded data — no setup, no typing.
+            Credentials are listed below if you want to copy them instead.
           </p>
         </motion.div>
 
         <motion.div
-          className="mt-12 grid grid-cols-1 lg:grid-cols-2 gap-6"
+          className="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-6"
           variants={containerVariants}
           initial="hidden"
           whileInView="visible"
@@ -148,28 +153,34 @@ export default function DemoSection() {
                 </div>
               </div>
 
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-[0.16em] text-on-surface-variant mb-1.5">
-                    Email
-                  </label>
-                  <CopyField value={acc.email} />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-[0.16em] text-on-surface-variant mb-1.5">
-                    Password
-                  </label>
-                  <CopyField value={acc.password} />
-                </div>
-              </div>
-
               <Link
-                href="/login"
-                className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-semibold text-white bg-gradient-to-r from-primary to-primary-dim shadow-ambient hover:shadow-[0_0_24px_rgba(70,71,211,0.4)] transition-shadow"
+                href={`/login?demo=${acc.slug}`}
+                className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 text-sm font-semibold text-white bg-gradient-to-r from-primary to-primary-dim shadow-ambient hover:shadow-[0_0_24px_rgba(70,71,211,0.4)] active:scale-[0.98] transition-all focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/30"
               >
                 Sign in as {acc.role}
                 <ArrowRight className="w-4 h-4" />
               </Link>
+
+              <details className="mt-5 group">
+                <summary className="cursor-pointer text-xs font-semibold text-on-surface-variant hover:text-on-surface transition-colors list-none flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 rounded">
+                  <span className="inline-block transition-transform group-open:rotate-90">›</span>
+                  Or copy credentials
+                </summary>
+                <div className="space-y-3 mt-3">
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-[0.16em] text-on-surface-variant mb-1.5">
+                      Email
+                    </label>
+                    <CopyField value={acc.email} />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-[0.16em] text-on-surface-variant mb-1.5">
+                      Password
+                    </label>
+                    <CopyField value={acc.password} />
+                  </div>
+                </div>
+              </details>
             </motion.div>
           ))}
         </motion.div>

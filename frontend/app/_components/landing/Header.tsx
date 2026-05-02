@@ -69,7 +69,7 @@ export default function Header({ user }: { user: User | null }) {
             <a
               key={l.href}
               href={l.href}
-              className="relative text-sm font-medium text-on-surface-variant hover:text-on-surface transition-colors group"
+              className="relative text-sm font-medium text-on-surface-variant hover:text-on-surface transition-colors group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded px-1"
             >
               {l.label}
               <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary group-hover:w-full transition-all duration-300" />
@@ -85,7 +85,7 @@ export default function Header({ user }: { user: User | null }) {
         >
           <Link
             href={ctaHref}
-            className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-gradient-to-r from-primary to-primary-dim text-white rounded-full text-sm font-semibold shadow-ambient hover:shadow-[0_0_24px_rgba(70,71,211,0.35)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+            className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-gradient-to-r from-primary to-primary-dim text-white rounded-full text-sm font-semibold shadow-ambient hover:shadow-[0_0_24px_rgba(70,71,211,0.35)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/30"
           >
             {ctaLabel}
             <ArrowRight className="w-4 h-4" />
@@ -95,8 +95,9 @@ export default function Header({ user }: { user: User | null }) {
         <button
           type="button"
           onClick={() => setMobileOpen((v) => !v)}
-          className="lg:hidden p-2 rounded-lg text-on-surface hover:bg-surface-container-high"
+          className="lg:hidden p-2 rounded-lg text-on-surface hover:bg-surface-container-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           aria-label="Toggle menu"
+          aria-expanded={mobileOpen}
         >
           {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
