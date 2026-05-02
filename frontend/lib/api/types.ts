@@ -282,6 +282,7 @@ export interface Policy {
   alias: string;
   title: string;
   reimbursable_categories: string[];
+  reimbursable_categories_with_budgets: PolicyCategoryBudget[];
   overview_summary: string;
   mandatory_conditions: string;
   status: "DRAFT" | "ACTIVE" | "DEPRECATED";
@@ -290,6 +291,11 @@ export interface Policy {
   source_file_url: string;
   created_by?: string;
   created_at?: string | null;
+}
+
+export interface PolicyCategoryBudget {
+  category: string;
+  auto_approval_budget: number | null;
 }
 
 export interface ExtractedData {

@@ -476,9 +476,10 @@ def save_reimbursement(state: ComplianceWorkflowState, session: Session) -> dict
     judgment_enum = _map_agent_status_to_enum(judgment_str)
 
     # Determine final status based on autonomous policy:
-    #   APPROVED + confidence>0.7 + no human edits → auto-approve (payout triggered by API layer)
-    #   REJECTED (any confidence)                  → auto-reject (no payout, employee notified)
-    #   anything else                              → REVIEW (HR Required Attention)
+    #   APPROVED + confidence>0.7 + no human edits + within budget → auto-approve (payout triggered by API layer)
+    #   APPROVED + confidence>0.7 + no human edits + over budget  → REVIEW (tagged "over budget")
+    #   REJECTED (any confidence)                                → auto-reject (no payout, employee notified)
+    #   anything else                                            → REVIEW (HR Required Attention)
     has_human_edits = any(
         r.get("_human_edit", {}).get("has_changes")
         for r in state.get("receipts", [])
@@ -486,13 +487,49 @@ def save_reimbursement(state: ComplianceWorkflowState, session: Session) -> dict
     confidence = state.get("confidence") or 0.0
     final_status = ReimbursementStatus.REVIEW
     reviewed_at = None
+    budget_violations = []
+
     if settings.AUTO_REIMBURSE_ENABLED:
         if judgment_enum == JudgmentResult.APPROVED and confidence > 0.7 and not has_human_edits:
-            final_status = ReimbursementStatus.APPROVED
-            reviewed_at = datetime.now(timezone.utc)
+            # Check category budgets
+            budget_violations = _check_category_budgets(
+                state.get("policy_id"),
+                state.get("totals", {}).get("by_category", {}),
+                session
+            )
+
+            if budget_violations:
+                # Over budget - route to REVIEW
+                final_status = ReimbursementStatus.REVIEW
+                reviewed_at = None  # Not auto-processed
+            else:
+                # Within budget - auto-approve
+                final_status = ReimbursementStatus.APPROVED
+                reviewed_at = datetime.now(timezone.utc)
         elif judgment_enum == JudgmentResult.REJECTED:
             final_status = ReimbursementStatus.REJECTED
             reviewed_at = datetime.now(timezone.utc)
+
+    # Include budget violations in summary and audit notes if present
+    final_summary = state.get("summary", "")
+    if budget_violations:
+        base_summary = state.get("summary", "")
+
+        # Add to summary for reimbursement record
+        budget_summary = " | ".join([f"{v['category']}: claimed {v['claimed']}, budget {v['budget']}" for v in budget_violations])
+        final_summary = f"{base_summary} [OVER BUDGET: {budget_summary}]" if base_summary else f"Claim exceeds category budgets: {budget_summary}"
+
+        # Add audit notes to line items for transparency (HR and employee can see)
+        # Find line items in over-budget categories and append budget info
+        line_items = state.get("line_items", [])
+        for item in line_items:
+            item_category = item.get("category", "")
+            matching_violation = next((v for v in budget_violations if v["category"] == item_category), None)
+            if matching_violation:
+                budget_note = f"Claim is over the budget for {item_category} category which is RM {matching_violation['budget']:.2f}"
+                existing_notes = item.get("audit_notes", [])
+                if isinstance(existing_notes, list):
+                    item["audit_notes"] = existing_notes + [{"tag": "OVER_BUDGET", "message": budget_note}]
 
     reimbursement = Reimbursement(
         user_id=UUID(state["user_id"]),
@@ -513,7 +550,7 @@ def save_reimbursement(state: ComplianceWorkflowState, session: Session) -> dict
         },
         status=final_status,
         reviewed_at=reviewed_at,
-        summary=state.get("summary", ""),
+        summary=final_summary,
     )
 
     try:
@@ -575,6 +612,42 @@ def save_reimbursement(state: ComplianceWorkflowState, session: Session) -> dict
         raise
 
     return {"reimbursement_id": str(reimbursement.reim_id)}
+
+
+def _check_category_budgets(policy_id: str, category_totals: dict, session: Session) -> list:
+    """
+    Check if claimed amounts exceed auto-approval budgets per category.
+
+    Returns list of violations: [{"category": "Meals", "claimed": 150.0, "budget": 100.0}, ...]
+    """
+    from core.models import PolicyReimbursableCategory
+    from sqlalchemy import select
+
+    violations = []
+
+    # Fetch all category budgets for this policy
+    stmt = select(PolicyReimbursableCategory).where(
+        PolicyReimbursableCategory.policy_id == UUID(policy_id)
+    )
+    result = session.execute(stmt)
+    policy_categories = {pc.category: pc.auto_approval_budget for pc in result.scalars()}
+
+    # Check each category in the claim
+    for category_name, claimed_amount in category_totals.items():
+        budget = policy_categories.get(category_name)
+
+        # Null budget = unlimited, skip check
+        if budget is None:
+            continue
+
+        if float(claimed_amount) > float(budget):
+            violations.append({
+                "category": category_name,
+                "claimed": float(claimed_amount),
+                "budget": float(budget)
+            })
+
+    return violations
 
 
 # -- Graph Assembly --------------------------------------------------------------

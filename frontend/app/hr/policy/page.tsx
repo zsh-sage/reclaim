@@ -1,10 +1,10 @@
 "use client";
 
 import React, { JSX, useRef, useState, useEffect } from 'react';
-import { Plus, Search, ChevronUp, ChevronDown, ChevronRight, FileText, Shield, Archive, Pencil, Trash2, ArrowLeft, X, SlidersHorizontal, Upload, Settings, CheckCircle2, ScanLine, Sparkles, History, Clock, User, PlusCircle, AlertCircle, ShieldCheck, Users, Calendar, BarChart3 } from 'lucide-react';
+import { Plus, Search, ChevronUp, ChevronDown, ChevronRight, FileText, Shield, Archive, Pencil, Trash2, ArrowLeft, X, SlidersHorizontal, Upload, Settings, CheckCircle2, ScanLine, Sparkles, History, Clock, User, PlusCircle, AlertCircle, ShieldCheck, Users, Calendar, BarChart3, Banknote } from 'lucide-react';
 import { MOCK_POLICIES, POLICY_STATUS_STYLE, Policy, PolicyStatus } from '../hr_components/mockData';
 import { uploadPolicy } from '@/lib/actions/hr';
-import { getPolicies, deletePolicy } from '@/lib/actions/policies';
+import { getPolicies, deletePolicy, updatePolicyCategories } from '@/lib/actions/policies';
 
 const SAVE_STEPS = [
   { id: "upload", label: "Uploading documents...", subtitle: "Securely storing policy files." },
@@ -161,6 +161,8 @@ export default function PolicyStudio() {
   const POLICY_MAX_SIZE = 10 * 1024 * 1024; // 10 MB
   const [conditionsModalOpen, setConditionsModalOpen] = useState(false);
   const [editConditions, setEditConditions] = useState<Record<string, any> | null>(null);
+  const [categoryBudgets, setCategoryBudgets] = useState<Record<string, string>>({});
+  const [editingPolicyId, setEditingPolicyId] = useState<string | null>(null);
   const [editOverviewSummary, setEditOverviewSummary] = useState<string>("");
   const [editHistory, setEditHistory] = useState<{ user: string, action: string, date: string, details?: string }[]>([]);
 
@@ -329,6 +331,22 @@ export default function PolicyStudio() {
         setExistingMainPolicyDeleted(false);
         setEditOverviewSummary(p.overview_summary || "");
         setEditConditions(p.aiConditions || null);
+        setEditingPolicyId(p.id || null);
+
+        // Initialize budgets from policy data (or from categories)
+        const budgets: Record<string, string> = {};
+        if (p.reimbursable_categories_with_budgets) {
+          p.reimbursable_categories_with_budgets.forEach((cat: any) => {
+            budgets[cat.category] = cat.auto_approval_budget?.toString() ?? "";
+          });
+        } else if (p.aiConditions) {
+          // Fallback: initialize empty budgets for each category
+          Object.keys(p.aiConditions).forEach(cat => {
+            budgets[cat] = "";
+          });
+        }
+        setCategoryBudgets(budgets);
+
         setEditHistory(p.history || [
           { user: "Sarah Miller", action: "Policy Created", date: "Oct 12, 2023", details: "Initial draft uploaded" },
           { user: "James Wilson", action: "Updated Appendix", date: "Jan 15, 2024", details: "Added W10 Requirements Review" }
@@ -352,6 +370,8 @@ export default function PolicyStudio() {
       setEditDate("");
       setEditOverviewSummary("");
       setEditConditions(null);
+      setEditingPolicyId(null);
+      setCategoryBudgets({});
       setMainPolicyFile(null);
       setAppendixFiles([]);
     }
@@ -1015,6 +1035,8 @@ export default function PolicyStudio() {
             isOpen={conditionsModalOpen}
             onClose={() => setConditionsModalOpen(false)}
             conditions={editConditions}
+            categoryBudgets={categoryBudgets}
+            policyId={editingPolicyId}
             onSave={(newConditions) => {
               setEditConditions(newConditions);
               setConditionsModalOpen(false);
@@ -1395,20 +1417,30 @@ function ConditionsModal({
   isOpen,
   onClose,
   conditions,
+  categoryBudgets,
+  policyId,
   onSave
 }: {
   isOpen: boolean;
   onClose: () => void;
   conditions: Record<string, any>;
+  categoryBudgets: Record<string, string>;
+  policyId: string | null;
   onSave: (newConditions: Record<string, any>) => void;
 }) {
   const [localConditions, setLocalConditions] = useState(conditions);
+  const [localBudgets, setLocalBudgets] = useState<Record<string, string>>(categoryBudgets);
+  const [isSaving, setIsSaving] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [isAddingCategory, setIsAddingCategory] = useState(false);
 
   useEffect(() => {
     setLocalConditions(conditions);
   }, [conditions]);
+
+  useEffect(() => {
+    setLocalBudgets(categoryBudgets);
+  }, [categoryBudgets]);
 
   if (!isOpen) return null;
 
@@ -1452,6 +1484,49 @@ function ConditionsModal({
       }));
       setNewCategoryName("");
       setIsAddingCategory(false);
+    }
+  };
+
+  const handleUpdateBudget = (category: string, value: string) => {
+    setLocalBudgets(prev => ({
+      ...prev,
+      [category]: value,
+    }));
+  };
+
+  const handleSaveBudgets = async () => {
+    if (!policyId) {
+      // No policy ID - just save conditions locally (existing behavior)
+      onSave(localConditions);
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      // Prepare categories with budgets
+      const categoriesWithBudgets = Object.keys(localConditions).map(category => ({
+        category,
+        auto_approval_budget: localBudgets[category]
+          ? parseFloat(localBudgets[category])
+          : null,
+      }));
+
+      // Call API to update budgets
+      const result = await updatePolicyCategories(policyId, categoriesWithBudgets);
+
+      if (result.ok) {
+        onSave(localConditions);
+        onClose();
+        // Refresh policies to get updated data
+        // Note: In a real app, you'd want to update the policies state here
+      } else {
+        alert(result.error || "Failed to update policy budgets");
+      }
+    } catch (error) {
+      console.error("Error saving budgets:", error);
+      alert("Failed to save budgets");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -1535,6 +1610,51 @@ function ConditionsModal({
             </div>
           ))}
 
+          {/* Auto-Approval Budgets Section */}
+          <div className="bg-gradient-to-br from-primary/5 to-tertiary/5 rounded-2xl p-6 border border-primary/10">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
+                <Banknote className="w-5 h-5 text-primary" strokeWidth={2} />
+              </div>
+              <div>
+                <h4 className="font-headline font-bold text-base text-on-surface">Auto-Approval Budgets</h4>
+                <p className="text-xs text-on-surface-variant">
+                  Set the maximum amount per category for auto-approval. Leave blank for unlimited.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {Object.keys(localConditions).map((category) => {
+                const currentBudget = localBudgets[category] ?? "";
+
+                return (
+                  <div key={category} className="flex items-center gap-3">
+                    <div className="flex-1">
+                      <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1 block">
+                        {category}
+                      </label>
+                      <div className="relative group">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/60 text-sm font-medium group-focus-within:text-primary transition-colors">
+                          MYR
+                        </span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={currentBudget}
+                          onChange={(e) => handleUpdateBudget(category, e.target.value)}
+                          placeholder="Unlimited"
+                          className="w-full pl-12 pr-4 py-2.5 bg-surface-container-lowest border border-outline-variant/20 rounded-xl text-sm text-on-surface font-mono tabular-nums focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all placeholder:text-on-surface-variant/40"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Add New Category UI */}
           {isAddingCategory ? (
             <div className="bg-primary/5 rounded-2xl p-6 border-2 border-dashed border-primary/20 animate-in slide-in-from-bottom-2 duration-300">
@@ -1579,15 +1699,24 @@ function ConditionsModal({
         <div className="p-6 border-t border-outline-variant/10 bg-surface-container-low/30 flex justify-between items-center shrink-0">
           <button
             onClick={onClose}
-            className="px-6 py-3 text-on-surface-variant font-body font-bold hover:bg-surface-container-high rounded-xl transition-all cursor-pointer"
+            disabled={isSaving}
+            className="px-6 py-3 text-on-surface-variant font-body font-bold hover:bg-surface-container-high rounded-xl transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancel
           </button>
           <button
-            onClick={() => onSave(localConditions)}
-            className="px-8 py-3 bg-primary text-white rounded-xl font-body font-bold hover:shadow-lg hover:shadow-primary/20 transition-all active:scale-95 cursor-pointer"
+            onClick={handleSaveBudgets}
+            disabled={isSaving}
+            className="px-8 py-3 bg-primary text-white rounded-xl font-body font-bold hover:shadow-lg hover:shadow-primary/20 transition-all active:scale-95 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed flex items-center gap-2"
           >
-            Save Conditions
+            {isSaving ? (
+              <>
+                <Settings className="w-4 h-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              "Save Conditions & Budgets"
+            )}
           </button>
         </div>
       </div>

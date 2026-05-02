@@ -10,7 +10,7 @@ from sqlmodel import Session, select
 
 from api import deps
 from api.rate_limit import limiter
-from api.schemas import PolicyResponse
+from api.schemas import PolicyResponse, PolicyCategoryWithBudget, PolicyCategoriesUpdateRequest
 from core.models import User, Policy, PolicyReimbursableCategory, PolicySection
 from core.enums import PolicyStatus, UserRole
 from engine.agents.policy_agent import run_policy_workflow
@@ -29,37 +29,16 @@ def health():
 def list_policies(
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_user),
-) -> List[dict]:
+) -> List[PolicyResponse]:
     policies = db.exec(select(Policy)).all()
-    if policies:
-        policy_ids = [p.policy_id for p in policies]
-        all_cats = db.exec(
-            select(PolicyReimbursableCategory).where(
-                PolicyReimbursableCategory.policy_id.in_(policy_ids)
-            )
-        ).all()
-        cats_by_policy: dict = {}
-        for c in all_cats:
-            cats_by_policy.setdefault(c.policy_id, []).append(c.category)
-    else:
-        cats_by_policy = {}
 
-    result = []
-    for p in policies:
-        cats = cats_by_policy.get(p.policy_id, [])
-        result.append({
-            "policy_id": str(p.policy_id),
-            "alias": p.alias,
-            "title": p.title,
-            "reimbursable_categories": cats,
-            "overview_summary": p.overview_summary,
-            "mandatory_conditions": p.mandatory_conditions,
-            "status": ((p.status.value if p.status and hasattr(p.status, "value") else p.status) if p.status and hasattr(p.status, "value") else p.status),
-            "effective_date": p.effective_date.isoformat() if p.effective_date else None,
-            "expiry_date": p.expiry_date.isoformat() if p.expiry_date else None,
-            "source_file_url": p.source_file_url,
-        })
-    return result
+    # Use helper to get policies with budgets
+    policies_with_budgets = []
+    for policy in policies:
+        policy_response = _get_policy_with_categories(policy.policy_id, db)
+        policies_with_budgets.append(policy_response)
+
+    return policies_with_budgets
 
 
 @router.post("/upload")
@@ -123,36 +102,13 @@ def get_policy(
     policy_id: str,
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_user),
-) -> dict:
+) -> PolicyResponse:
     try:
         p_uuid = UUID(policy_id)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid policy_id")
 
-    policy = db.get(Policy, p_uuid)
-    if not policy:
-        raise HTTPException(status_code=404, detail="Policy not found")
-
-    cats = db.exec(
-        select(PolicyReimbursableCategory).where(
-            PolicyReimbursableCategory.policy_id == policy.policy_id
-        )
-    ).all()
-
-    return {
-        "policy_id": str(policy.policy_id),
-        "alias": policy.alias,
-        "title": policy.title,
-        "reimbursable_categories": [c.category for c in cats],
-        "overview_summary": policy.overview_summary,
-        "mandatory_conditions": policy.mandatory_conditions,
-        "status": ((policy.status.value if policy.status and hasattr(policy.status, "value") else policy.status) if policy.status and hasattr(policy.status, "value") else policy.status),
-        "effective_date": policy.effective_date.isoformat() if policy.effective_date else None,
-        "expiry_date": policy.expiry_date.isoformat() if policy.expiry_date else None,
-        "source_file_url": policy.source_file_url,
-        "created_by": str(policy.created_by) if policy.created_by else None,
-        "created_at": policy.created_at.isoformat() if policy.created_at else None,
-    }
+    return _get_policy_with_categories(p_uuid, db)
 
 
 @router.patch("/{policy_id}/deprecate")
@@ -242,3 +198,85 @@ def delete_policy(
     db.commit()
 
     return {"policy_id": str(policy.policy_id), "deleted": True}
+
+
+@router.patch("/{policy_id}/categories")
+def update_policy_categories(
+    policy_id: str,
+    request: PolicyCategoriesUpdateRequest,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_hr_user),
+) -> PolicyResponse:
+    """
+    Update auto-approval budgets for policy categories.
+    Only HR users can update category budgets.
+    """
+    try:
+        p_uuid = UUID(policy_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid policy_id")
+
+    # Fetch policy
+    policy = db.get(Policy, p_uuid)
+    if not policy:
+        raise HTTPException(status_code=404, detail="Policy not found")
+
+    # Delete existing categories
+    from sqlalchemy import delete
+    db.exec(
+        delete(PolicyReimbursableCategory).where(
+            PolicyReimbursableCategory.policy_id == policy.policy_id
+        )
+    )
+
+    # Insert updated categories with budgets
+    for cat_data in request.categories:
+        new_cat = PolicyReimbursableCategory(
+            policy_id=policy.policy_id,
+            category=cat_data.category,
+            auto_approval_budget=cat_data.auto_approval_budget,
+        )
+        db.add(new_cat)
+
+    db.commit()
+
+    # Fetch and return updated policy
+    return _get_policy_with_categories(policy.policy_id, db)
+
+
+def _get_policy_with_categories(policy_id: UUID, db: Session) -> PolicyResponse:
+    """Helper to fetch policy with category budgets."""
+    policy = db.get(Policy, policy_id)
+    if not policy:
+        raise HTTPException(status_code=404, detail="Policy not found")
+
+    # Fetch categories with budgets
+    cats = db.exec(
+        select(PolicyReimbursableCategory).where(
+            PolicyReimbursableCategory.policy_id == policy_id
+        )
+    ).all()
+
+    categories_with_budgets = [
+        PolicyCategoryWithBudget(
+            category=c.category,
+            auto_approval_budget=float(c.auto_approval_budget) if c.auto_approval_budget else None
+        )
+        for c in cats
+    ]
+
+    return PolicyResponse(
+        policy_id=policy.policy_id,
+        alias=policy.alias,
+        title=policy.title,
+        effective_date=policy.effective_date,
+        expiry_date=policy.expiry_date,
+        overview_summary=policy.overview_summary,
+        mandatory_conditions=policy.mandatory_conditions,
+        source_file_url=policy.source_file_url,
+        reimbursable_categories=[c.category for c in categories_with_budgets],
+        reimbursable_categories_with_budgets=categories_with_budgets,
+        status=policy.status,
+        created_by=policy.created_by,
+        created_at=policy.created_at,
+    )

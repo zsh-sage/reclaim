@@ -115,12 +115,24 @@ class PolicyResponse(BaseModel):
     mandatory_conditions: str
     source_file_url: str
     reimbursable_categories: List[str]
+    reimbursable_categories_with_budgets: List[PolicyCategoryWithBudget] = []
     status: PolicyStatus
     created_by: UUID
     created_at: datetime
 
     class Config:
         from_attributes = True
+
+
+class PolicyCategoryWithBudget(BaseModel):
+    """Policy reimbursable category with auto-approval budget."""
+    category: str
+    auto_approval_budget: Optional[float] = None
+
+
+class PolicyCategoriesUpdateRequest(BaseModel):
+    """Request to update category budgets."""
+    categories: List[PolicyCategoryWithBudget]
 
 
 # =============================================================================
