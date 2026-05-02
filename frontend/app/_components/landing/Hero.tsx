@@ -118,9 +118,14 @@ export default function Hero({ user }: { user: User | null }) {
               animate="visible"
               className="mt-10 lg:hidden"
             >
-              <div className="w-full max-w-md mx-auto aspect-[4/3] rounded-2xl shadow-ambient-lg bg-gradient-to-br from-primary/20 to-tertiary/10 border border-white/10 flex items-center justify-center">
-                <span className="text-on-primary/60 font-headline font-bold text-lg">Dashboard Preview</span>
-              </div>
+              <Image
+                src="/images/example.png"
+                alt="Reclaim dashboard preview"
+                width={580}
+                height={749}
+                className="w-full max-w-md mx-auto h-auto rounded-2xl shadow-ambient-lg"
+                priority
+              />
             </motion.div>
 
             <motion.div variants={itemVariants} className="mt-9 flex flex-wrap items-center gap-3">
@@ -157,9 +162,14 @@ export default function Hero({ user }: { user: User | null }) {
             animate="visible"
           >
             <motion.div variants={floatVariants} animate="animate">
-              <div className="h-[760px] w-[580px] scale-110 origin-center rounded-3xl bg-gradient-to-br from-primary/20 to-tertiary/10 border border-white/10 flex items-center justify-center shadow-ambient-lg">
-                <span className="text-on-primary/60 font-headline font-bold text-xl">Dashboard Preview</span>
-              </div>
+              <Image
+                src="/images/example.png"
+                alt="Reclaim dashboard preview showing the HR triage queue"
+                width={580}
+                height={749}
+                className="h-[760px] w-auto scale-110 origin-center"
+                priority
+              />
             </motion.div>
           </motion.div>
         </div>
