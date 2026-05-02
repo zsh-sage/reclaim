@@ -2,89 +2,28 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { 
-  Users, 
-  Search, 
-  Plus, 
-  Pencil, 
-  MoreVertical, 
-  Mail, 
-  Building2, 
-  ShieldCheck, 
-  ShieldAlert,
+import {
+  Users,
+  Search,
+  Plus,
+  Pencil,
+  MoreVertical,
+  Mail,
+  Building2,
   ChevronRight
 } from "lucide-react";
-
-// ─── Mock Data ───────────────────────────────────────────────────────────────
-
-interface Employee {
-  id: string;
-  name: string;
-  email: string;
-  department: string;
-  role: "HR" | "Employee";
-  status: "Active" | "Inactive";
-  joinedDate: string;
-}
-
-const MOCK_EMPLOYEES: Employee[] = [
-  {
-    id: "EMP-001",
-    name: "Sarah Jenkins",
-    email: "sarah.jenkins@reclaim.my",
-    department: "Human Resources",
-    role: "HR",
-    status: "Active",
-    joinedDate: "Jan 12, 2024",
-  },
-  {
-    id: "EMP-002",
-    name: "Alex Tan Wei Ming",
-    email: "alex.tan@reclaim.my",
-    department: "Product & Engineering",
-    role: "Employee",
-    status: "Active",
-    joinedDate: "Feb 05, 2024",
-  },
-  {
-    id: "EMP-003",
-    name: "Michael Chen",
-    email: "michael.chen@reclaim.my",
-    department: "Sales",
-    role: "Employee",
-    status: "Active",
-    joinedDate: "Mar 20, 2024",
-  },
-  {
-    id: "EMP-004",
-    name: "Emma Larson",
-    email: "emma.larson@reclaim.my",
-    department: "Marketing",
-    role: "Employee",
-    status: "Active",
-    joinedDate: "Apr 02, 2024",
-  },
-  {
-    id: "EMP-005",
-    name: "James Okafor",
-    email: "james.okafor@reclaim.my",
-    department: "Operations",
-    role: "Employee",
-    status: "Inactive",
-    joinedDate: "Nov 15, 2023",
-  },
-];
+import { getEmployees, type EmployeeRecord } from "@/lib/actions/employees";
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
-function EmployeeModal({ 
-  isOpen, 
+function EmployeeModal({
+  isOpen,
   onClose,
-  employee 
-}: { 
-  isOpen: boolean; 
+  employee
+}: {
+  isOpen: boolean;
   onClose: () => void;
-  employee?: Employee | null;
+  employee?: EmployeeRecord | null;
 }) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
@@ -98,11 +37,11 @@ function EmployeeModal({
   return createPortal(
     <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 sm:p-6">
       {/* Overlay */}
-      <div 
+      <div
         className="absolute inset-0 bg-inverse-surface/60 backdrop-blur-md cursor-default"
         onClick={onClose}
       />
-      
+
       {/* Modal */}
       <div className="relative w-full max-w-2xl bg-surface-container-lowest rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         <div className="px-8 py-6 border-b border-outline-variant/10 flex items-center justify-between bg-surface-container-low/50">
@@ -114,7 +53,7 @@ function EmployeeModal({
               {isEdit ? `Modifying details for ${employee.name}` : "Fill in the details to register a new member."}
             </p>
           </div>
-          <button 
+          <button
             onClick={onClose}
             className="p-2 rounded-full hover:bg-surface-container transition-colors cursor-pointer"
           >
@@ -124,7 +63,7 @@ function EmployeeModal({
 
         <form className="p-8 overflow-y-auto max-h-[70dvh] custom-scrollbar" onSubmit={(e) => { e.preventDefault(); onClose(); }}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            
+
             {/* Basic Info */}
             <div className="space-y-4 md:col-span-2">
                <h4 className="text-[10px] font-bold uppercase tracking-widest text-primary border-b border-primary/10 pb-1">Primary Information</h4>
@@ -137,7 +76,7 @@ function EmployeeModal({
 
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-on-surface-variant ml-1">Company ID</label>
-              <input type="text" defaultValue={employee?.id} placeholder="e.g. EMP-12345" className="w-full px-4 py-3 bg-surface-container-low rounded-xl border border-outline-variant/20 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm" required />
+              <input type="text" defaultValue={employee?.user_code ?? ""} placeholder="e.g. EMP-12345" className="w-full px-4 py-3 bg-surface-container-low rounded-xl border border-outline-variant/20 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm" required />
             </div>
 
             <div className="space-y-1.5">
@@ -147,21 +86,7 @@ function EmployeeModal({
 
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-on-surface-variant ml-1">Contact Number</label>
-              <input type="tel" placeholder="+60 12-345 6789" className="w-full px-4 py-3 bg-surface-container-low rounded-xl border border-outline-variant/20 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm" required />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-on-surface-variant ml-1">IC / Passport Number</label>
-              <input type="text" placeholder="000000-00-0000" className="w-full px-4 py-3 bg-surface-container-low rounded-xl border border-outline-variant/20 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm" required />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-on-surface-variant ml-1">Job Grade</label>
-              <select className="w-full px-4 py-3 bg-surface-container-low rounded-xl border border-outline-variant/20 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm appearance-none cursor-pointer">
-                <option>Grade 1-5 (Staff)</option>
-                <option>Grade 6-8 (Manager)</option>
-                <option>Grade 9+ (Executive)</option>
-              </select>
+              <input type="tel" placeholder="+60 12-345 6789" className="w-full px-4 py-3 bg-surface-container-low rounded-xl border border-outline-variant/20 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm" />
             </div>
 
             {/* Employment */}
@@ -171,21 +96,14 @@ function EmployeeModal({
 
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-on-surface-variant ml-1">Department</label>
-              <select defaultValue={employee?.department} className="w-full px-4 py-3 bg-surface-container-low rounded-xl border border-outline-variant/20 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm appearance-none cursor-pointer">
-                <option>Human Resources</option>
-                <option>Product & Engineering</option>
-                <option>Sales & Marketing</option>
-                <option>Finance</option>
-                <option>Operations</option>
-              </select>
+              <input type="text" defaultValue={employee?.department_name ?? ""} placeholder="e.g. Human Resources" className="w-full px-4 py-3 bg-surface-container-low rounded-xl border border-outline-variant/20 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm" />
             </div>
 
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-on-surface-variant ml-1">System Role</label>
-              <select defaultValue={employee?.role} className="w-full px-4 py-3 bg-surface-container-low rounded-xl border border-outline-variant/20 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm appearance-none cursor-pointer">
+              <select defaultValue={employee?.role ?? "Employee"} className="w-full px-4 py-3 bg-surface-container-low rounded-xl border border-outline-variant/20 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm appearance-none cursor-pointer">
                 <option value="Employee">Employee</option>
                 <option value="HR">HR Admin</option>
-                <option value="Manager">Manager Approver</option>
               </select>
             </div>
 
@@ -195,26 +113,26 @@ function EmployeeModal({
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-on-surface-variant ml-1">Bank Name</label>
-              <input type="text" placeholder="Maybank / CIMB / etc." className="w-full px-4 py-3 bg-surface-container-low rounded-xl border border-outline-variant/20 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm" />
+              <label className="text-xs font-bold text-on-surface-variant ml-1">Bank Code</label>
+              <input type="text" defaultValue={employee?.bank_code ?? ""} placeholder="e.g. MBBEMYKL" className="w-full px-4 py-3 bg-surface-container-low rounded-xl border border-outline-variant/20 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm" />
             </div>
 
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-on-surface-variant ml-1">Bank Account Number</label>
-              <input type="text" placeholder="Enter account number" className="w-full px-4 py-3 bg-surface-container-low rounded-xl border border-outline-variant/20 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm" />
+              <input type="text" defaultValue={employee?.bank_account_number ?? ""} placeholder="Enter account number" className="w-full px-4 py-3 bg-surface-container-low rounded-xl border border-outline-variant/20 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm" />
             </div>
 
           </div>
 
           <div className="mt-10 flex gap-3">
-            <button 
+            <button
               type="button"
               onClick={onClose}
               className="flex-1 px-6 py-3.5 rounded-xl border border-outline-variant/20 font-headline font-bold text-sm text-on-surface-variant hover:bg-surface-container transition-all cursor-pointer"
             >
               Cancel
             </button>
-            <button 
+            <button
               type="submit"
               className="flex-2 px-10 py-3.5 bg-primary text-on-primary rounded-xl font-headline font-bold text-sm hover:bg-primary-dim transition-all shadow-[0_8px_24px_rgba(70,71,211,0.25)] cursor-pointer"
             >
@@ -233,25 +151,36 @@ function EmployeeModal({
 export default function ManageEmployeePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [selectedEmployee, setSelectedEmployee] = useState<EmployeeRecord | null>(null);
+  const [employees, setEmployees] = useState<EmployeeRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    getEmployees().then((data) => {
+      setEmployees(data);
+      setIsLoading(false);
+    }).catch(() => setIsLoading(false));
+  }, []);
 
   const filteredEmployees = useMemo(() => {
-    return MOCK_EMPLOYEES.filter(emp => 
+    return employees.filter(emp =>
       emp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       emp.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      emp.department.toLowerCase().includes(searchQuery.toLowerCase())
+      (emp.department_name ?? "").toLowerCase().includes(searchQuery.toLowerCase())
     );
-  }, [searchQuery]);
+  }, [searchQuery, employees]);
 
   const handleCreate = () => {
     setSelectedEmployee(null);
     setIsModalOpen(true);
   };
 
-  const handleEdit = (emp: Employee) => {
+  const handleEdit = (emp: EmployeeRecord) => {
     setSelectedEmployee(emp);
     setIsModalOpen(true);
   };
+
+  const hrCount = employees.filter(e => e.role === "HR").length;
 
   return (
     <div className="relative min-h-full p-6 md:p-10 lg:p-12">
@@ -266,7 +195,7 @@ export default function ManageEmployeePage() {
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
           <div className="max-w-2xl">
-            <h2 
+            <h2
               className="font-headline font-extrabold text-on-background mb-2 tracking-tight"
               style={{ fontSize: "2.5rem", letterSpacing: "-0.02em" }}
             >
@@ -277,7 +206,7 @@ export default function ManageEmployeePage() {
             </p>
           </div>
 
-          <button 
+          <button
             onClick={handleCreate}
             className="flex items-center justify-center gap-2 rounded-xl h-12 px-6 bg-gradient-to-r from-primary to-primary-dim text-on-primary font-body text-base font-semibold transition-all hover:shadow-[0_8px_30px_rgba(70,71,211,0.4)] hover:scale-[0.98] active:scale-95 cursor-pointer"
           >
@@ -289,8 +218,8 @@ export default function ManageEmployeePage() {
         {/* Stats Summary */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
           {[
-            { label: "Total Employees", value: MOCK_EMPLOYEES.length, color: "text-primary", bg: "bg-primary/5", hoverBg: "group-hover:bg-primary/15", hoverShadow: "hover:shadow-[0_16px_48px_-12px_rgba(70,71,211,0.12)]" },
-            { label: "HR Admins", value: MOCK_EMPLOYEES.filter(e => e.role === "HR").length, color: "text-amber-600", bg: "bg-amber-500/5", hoverBg: "group-hover:bg-amber-500/15", hoverShadow: "hover:shadow-[0_16px_48px_-12px_rgba(245,158,11,0.12)]" },
+            { label: "Total Employees", value: employees.length, color: "text-primary", bg: "bg-primary/5", hoverBg: "group-hover:bg-primary/15", hoverShadow: "hover:shadow-[0_16px_48px_-12px_rgba(70,71,211,0.12)]" },
+            { label: "HR Admins", value: hrCount, color: "text-amber-600", bg: "bg-amber-500/5", hoverBg: "group-hover:bg-amber-500/15", hoverShadow: "hover:shadow-[0_16px_48px_-12px_rgba(245,158,11,0.12)]" },
           ].map((stat, i) => (
             <div key={i} className={`bg-surface-container-lowest/70 backdrop-blur-2xl rounded-xl p-6 shadow-[0_8px_40px_-12px_rgba(44,47,49,0.06)] relative overflow-hidden group ${stat.hoverShadow} hover:-translate-y-0.5 transition-all duration-300`}>
               <div className="relative z-10">
@@ -299,7 +228,7 @@ export default function ManageEmployeePage() {
                 </p>
                 <div className="flex items-end gap-3">
                   <span className="text-4xl font-extrabold font-headline text-on-surface">
-                    {stat.value}
+                    {isLoading ? "—" : stat.value}
                   </span>
                   <span className="text-sm text-on-surface-variant font-medium mb-1">
                     active members
@@ -312,9 +241,9 @@ export default function ManageEmployeePage() {
         </div>
 
         {/* Employee Modal (Create/Edit) */}
-        <EmployeeModal 
-          isOpen={isModalOpen} 
-          onClose={() => setIsModalOpen(false)} 
+        <EmployeeModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
           employee={selectedEmployee}
         />
 
@@ -322,21 +251,13 @@ export default function ManageEmployeePage() {
         <div className="bg-surface-container-low/50 backdrop-blur-md border border-outline-variant/10 rounded-2xl p-4 mb-6 flex flex-col sm:flex-row gap-4">
           <div className="flex-1 relative group">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant group-focus-within:text-primary transition-colors w-4 h-4" />
-            <input 
+            <input
               type="text"
               placeholder="Search by name, email, or department..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-11 pr-4 py-3 bg-surface-container-lowest border border-outline-variant/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-on-surface-variant/50"
             />
-          </div>
-          <div className="flex gap-2">
-            <select className="bg-surface-container-lowest border border-outline-variant/10 rounded-xl px-4 py-3 text-sm font-medium text-on-surface-variant outline-none focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer">
-              <option>All Departments</option>
-              <option>Human Resources</option>
-              <option>Product & Engineering</option>
-              <option>Sales</option>
-            </select>
           </div>
         </div>
 
@@ -355,8 +276,12 @@ export default function ManageEmployeePage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/5">
-                {filteredEmployees.map((emp) => (
-                  <tr key={emp.id} className="hover:bg-surface-container/30 transition-colors group">
+                {isLoading ? (
+                  <tr>
+                    <td colSpan={5} className="py-12 text-center text-on-surface-variant text-sm">Loading employees...</td>
+                  </tr>
+                ) : filteredEmployees.map((emp) => (
+                  <tr key={emp.user_id} className="hover:bg-surface-container/30 transition-colors group">
                     <td className="py-4 px-6">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-linear-to-br from-primary-container to-tertiary-container flex items-center justify-center font-bold text-xs text-on-primary-container border-2 border-surface-container-lowest shadow-sm">
@@ -374,7 +299,7 @@ export default function ManageEmployeePage() {
                     <td className="py-4 px-6 hidden md:table-cell">
                       <div className="flex items-center gap-2">
                         <Building2 className="w-3.5 h-3.5 text-on-surface-variant/70" />
-                        <p className="text-sm text-on-surface-variant">{emp.department}</p>
+                        <p className="text-sm text-on-surface-variant">{emp.department_name ?? "—"}</p>
                       </div>
                     </td>
                     <td className="py-4 px-6">
@@ -386,15 +311,15 @@ export default function ManageEmployeePage() {
                     </td>
                     <td className="py-4 px-6">
                       <div className="flex items-center gap-1.5">
-                        <div className={`w-1.5 h-1.5 rounded-full ${emp.status === "Active" ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-on-surface-variant/30"}`} />
-                        <p className={`text-xs font-medium ${emp.status === "Active" ? "text-emerald-700" : "text-on-surface-variant"}`}>
-                          {emp.status}
+                        <div className={`w-1.5 h-1.5 rounded-full ${emp.is_active ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-on-surface-variant/30"}`} />
+                        <p className={`text-xs font-medium ${emp.is_active ? "text-emerald-700" : "text-on-surface-variant"}`}>
+                          {emp.is_active ? "Active" : "Inactive"}
                         </p>
                       </div>
                     </td>
                     <td className="py-4 px-6 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <button 
+                        <button
                           onClick={() => handleEdit(emp)}
                           className="p-2 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-lg transition-all active:scale-90 cursor-pointer"
                           title="Edit Employee"
@@ -414,8 +339,10 @@ export default function ManageEmployeePage() {
 
           {/* Mobile Card List */}
           <div className="md:hidden flex flex-col gap-2 p-3">
-            {filteredEmployees.map((emp) => (
-              <div key={emp.id} className="bg-surface-container-lowest rounded-xl p-4 border border-outline-variant/10 active:scale-[0.98] transition-all">
+            {isLoading ? (
+              <div className="py-12 text-center text-on-surface-variant text-sm">Loading employees...</div>
+            ) : filteredEmployees.map((emp) => (
+              <div key={emp.user_id} className="bg-surface-container-lowest rounded-xl p-4 border border-outline-variant/10 active:scale-[0.98] transition-all">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-linear-to-br from-primary-container to-tertiary-container flex items-center justify-center font-bold text-xs text-on-primary-container border-2 border-surface-container-lowest shadow-sm shrink-0">
@@ -429,7 +356,7 @@ export default function ManageEmployeePage() {
                       </div>
                       <div className="flex items-center gap-1.5 mt-0.5">
                         <Building2 className="w-3 h-3 text-on-surface-variant/60 shrink-0" />
-                        <p className="text-[11px] text-on-surface-variant">{emp.department}</p>
+                        <p className="text-[11px] text-on-surface-variant">{emp.department_name ?? "—"}</p>
                       </div>
                     </div>
                   </div>
@@ -440,15 +367,15 @@ export default function ManageEmployeePage() {
                       {emp.role}
                     </span>
                     <div className="flex items-center gap-1.5">
-                      <div className={`w-1.5 h-1.5 rounded-full ${emp.status === "Active" ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-on-surface-variant/30"}`} />
-                      <p className={`text-[11px] font-medium ${emp.status === "Active" ? "text-emerald-700" : "text-on-surface-variant"}`}>
-                        {emp.status}
+                      <div className={`w-1.5 h-1.5 rounded-full ${emp.is_active ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-on-surface-variant/30"}`} />
+                      <p className={`text-[11px] font-medium ${emp.is_active ? "text-emerald-700" : "text-on-surface-variant"}`}>
+                        {emp.is_active ? "Active" : "Inactive"}
                       </p>
                     </div>
                   </div>
                 </div>
                 <div className="flex items-center justify-end gap-2 mt-3 pt-3 border-t border-outline-variant/10">
-                  <button 
+                  <button
                     onClick={() => handleEdit(emp)}
                     className="p-2 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-lg transition-all active:scale-90 cursor-pointer"
                     title="Edit Employee"
@@ -462,8 +389,8 @@ export default function ManageEmployeePage() {
               </div>
             ))}
           </div>
-          
-          {filteredEmployees.length === 0 && (
+
+          {!isLoading && filteredEmployees.length === 0 && (
             <div className="p-12 text-center">
               <div className="inline-flex p-4 bg-surface-container rounded-full mb-4">
                 <Search className="w-8 h-8 text-on-surface-variant/40" />
@@ -473,12 +400,13 @@ export default function ManageEmployeePage() {
             </div>
           )}
 
-          <div className="p-5 text-center border-t border-outline-variant/15">
-            <button className="inline-flex items-center gap-2 text-sm font-semibold font-headline text-primary hover:text-primary-dim transition-all duration-200 active:scale-95 group/cta px-4 py-2 rounded-xl hover:bg-primary/5 cursor-pointer">
-              View All Employees
-              <ChevronRight className="w-4 h-4 group-hover/cta:translate-x-0.5 transition-transform duration-150" strokeWidth={2.5} />
-            </button>
-          </div>
+          {!isLoading && (
+            <div className="p-5 text-center border-t border-outline-variant/15">
+              <span className="text-sm text-on-surface-variant font-body">
+                Showing {filteredEmployees.length} of {employees.length} employees
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </div>

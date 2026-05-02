@@ -7,7 +7,7 @@ import { ArrowRight, Check, UserCircle2, Users } from "lucide-react";
 const HR_ITEMS = [
   "Policy Studio — upload, edit, audit company policy",
   "Triage Dashboard — Bucket A (passed) vs Bucket B (attention)",
-  "Final decision authority on every claim",
+  "AI auto-clears clean claims, you handle edge cases",
   "Full immutable audit trail per reimbursement",
 ];
 
@@ -92,7 +92,7 @@ export default function ForWhomSection() {
                 For HR Teams
               </h3>
               <p className="text-sm text-on-surface-variant mb-5">
-                Manage policy, triage claims, exercise final approval authority.
+                Manage policy, monitor autonomous processing, handle edge cases.
               </p>
               <motion.ul
                 className="space-y-3 mb-7"

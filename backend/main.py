@@ -25,7 +25,6 @@ from api.policies import router as policies_router
 from api.reimbursements import router as reimbursements_router
 from api.drafts import router as drafts_router
 from api.departments import router as departments_router
-from api.test_ui import router as test_ui_router
 from api.push import router as push_router
 from api import deps
 from core.models import User
@@ -81,8 +80,6 @@ app.include_router(payouts_router, prefix=f"{settings.API_V1_STR}/payouts", tags
 app.include_router(employee_router, prefix=f"{settings.API_V1_STR}/employee", tags=["employee"])
 app.include_router(departments_router, prefix=f"{settings.API_V1_STR}/departments", tags=["departments"])
 app.include_router(drafts_router, prefix=f"{settings.API_V1_STR}/drafts", tags=["drafts"])
-# DISPOSABLE — Remove before production
-app.include_router(test_ui_router, prefix="/test", tags=["test-ui"])
 app.include_router(push_router, prefix=f"{settings.API_V1_STR}/push", tags=["push"])
 
 @app.get("/")

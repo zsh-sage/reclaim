@@ -97,7 +97,7 @@ export default function LoginPage() {
           ></div>
           <div className="relative z-10 text-on-primary max-w-xl">
             <span className="inline-flex items-center rounded-full border border-white/35 bg-white/10 px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.15em] shadow-sm backdrop-blur-sm">
-              Every receipt reviewed. Every decision yours.
+              From receipt to reimbursement — in minutes, not days
             </span>
             <div className="flex items-center gap-4 mb-4">
               <Image src="/images/logo.svg" alt="Reclaim Logo" width={64} height={64} className="w-16 h-16 object-contain brightness-0 invert" priority />
@@ -127,7 +127,7 @@ export default function LoginPage() {
                 </h2>
               </div>
               <span className="inline-flex items-center rounded-full border border-white/35 bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.12em]">
-                Every receipt reviewed. Every decision yours.
+                From receipt to reimbursement — in minutes, not days
               </span>
             </div>
 

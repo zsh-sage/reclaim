@@ -26,7 +26,7 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: "Reclaim",
-  description: "Every receipt reviewed. Every decision yours. Smart Reimbursement Automation System",
+  description: "From receipt to reimbursement — in minutes, not days Smart Reimbursement Automation System",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -39,7 +39,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "Reclaim",
-    description: "Every receipt reviewed. Every decision yours. Smart Reimbursement Automation System",
+    description: "From receipt to reimbursement — in minutes, not days Smart Reimbursement Automation System",
     images: [
       {
         url: "/images/logo.svg",
@@ -53,7 +53,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Reclaim",
-    description: "Every receipt reviewed. Every decision yours. Smart Reimbursement Automation System",
+    description: "From receipt to reimbursement — in minutes, not days Smart Reimbursement Automation System",
     images: ["/images/logo.svg"],
   },
 };

@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     # (OpenRouter) for vision and embedding model
     OPENROUTER_API_KEY: str = ""
     OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"
-    VISION_MODEL: str = "meta-llama/llama-3.2-11b-vision-instruct"
+    VISION_MODEL: str = "qwen/qwen3.5-flash-02-23"
     EMBEDDING_MODEL: str = "openai/text-embedding-3-small"
 
     # Xendit

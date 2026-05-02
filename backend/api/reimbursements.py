@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 from starlette.requests import Request
 from sqlalchemy.orm import joinedload
+from sqlalchemy import func
 from sqlmodel import Session, select
 
 from api import deps
@@ -70,9 +71,13 @@ def _build_reimbursement_response(
                 ReimbursementSubCategory.reim_id == r.reim_id
             )
         ).all()
+        receipt_count = len(line_items)
     else:
         line_items = []
         sub_cats = []
+        receipt_count = db.exec(
+            select(func.count()).where(LineItem.reim_id == r.reim_id)
+        ).one()
 
     # Use pre-fetched names if provided, otherwise look up
     if employee_name is None or department_name is None:
@@ -116,7 +121,7 @@ def _build_reimbursement_response(
         "created_at": r.created_at.isoformat() if r.created_at else None,
         "updated_at": r.updated_at.isoformat() if r.updated_at else None,
         "sub_categories": [sc.sub_category for sc in sub_cats],
-        "receipt_count": len(line_items),
+        "receipt_count": receipt_count,
     }
 
     if include_line_items:
@@ -181,7 +186,7 @@ def list_reimbursements(
     if status:
         stmt = stmt.where(Reimbursement.status == status)
 
-    stmt = stmt.offset(offset).limit(limit)
+    stmt = stmt.order_by(Reimbursement.created_at.desc()).offset(offset).limit(limit)
     reimbursements = db.exec(stmt).all()
 
     # Bulk fetch employee and department names to avoid N+1
@@ -513,13 +518,20 @@ async def analyze_reimbursement(
                 # 4. Unmatched receipts → direct MANUAL_REVIEW (no agent)
                 if unmatched_doc_ids:
                     logger.info("[API_ANALYZE_BG] Creating MANUAL_REVIEW for %d unmatched receipts", len(unmatched_doc_ids))
+                    unmatched_receipts = [
+                        r for r in all_receipts
+                        if r.document_id and str(r.document_id) in unmatched_doc_ids
+                    ]
+                    unmatched_total = Decimal(str(sum(
+                        float(r.claimed_amount or 0) for r in unmatched_receipts
+                    )))
                     unmatched_reim = Reimbursement(
                         user_id=UUID(user_id_str),
                         policy_id=None,
                         settlement_id=settlement_uuid,
                         main_category="Uncategorized",
                         currency=settlement_currency,
-                        total_claimed_amount=Decimal("0"),
+                        total_claimed_amount=unmatched_total,
                         judgment=JudgmentResult.NEEDS_INFO,
                         status=ReimbursementStatus.REVIEW,
                         summary="No matching active policy found for these receipts. Manual review required.",

@@ -69,7 +69,7 @@ export default function Footer() {
               </span>
             </div>
             <p className="mt-4 text-sm opacity-80 max-w-md leading-relaxed">
-              Every receipt reviewed. Every decision yours. An AI-native expense reimbursement platform built around accountability and human judgment.
+              From receipt to reimbursement — in minutes, not days. An AI-native expense reimbursement platform built around accountability and human judgment.
             </p>
           </motion.div>
 
