@@ -5,7 +5,7 @@ export function proxy(request: NextRequest) {
   const token = request.cookies.get('session')?.value;
   const { pathname } = request.nextUrl;
 
-  // Public paths — landing, login, API, and static assets bypass the auth gate
+  // Public paths — landing, login, API, and PWA/static assets bypass the auth gate
   if (
     pathname === '/' ||
     pathname.startsWith('/login') ||
@@ -29,5 +29,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|login).*)'],
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|manifest.json|sw.js|icons|login).*)'],
 };

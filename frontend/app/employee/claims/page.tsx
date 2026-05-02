@@ -130,8 +130,8 @@ function CustomSelect({ options, value, onChange, placeholder, disabled = false 
         onClick={() => setIsOpen(o => !o)}
         disabled={disabled}
         className={`w-full flex items-center justify-between text-left text-base rounded-2xl px-4 py-4 transition-all duration-200 font-body ${disabled
-            ? "bg-surface-container-low border border-outline-variant/20 text-on-surface-variant cursor-not-allowed"
-            : "bg-surface-container-lowest border border-outline-variant/30 text-on-surface cursor-pointer shadow-[0_2px_12px_rgba(44,47,49,0.06)] hover:border-primary/50 focus:border-primary focus:ring-4 focus:ring-primary/10"
+          ? "bg-surface-container-low border border-outline-variant/20 text-on-surface-variant cursor-not-allowed"
+          : "bg-surface-container-lowest border border-outline-variant/30 text-on-surface cursor-pointer shadow-[0_2px_12px_rgba(44,47,49,0.06)] hover:border-primary/50 focus:border-primary focus:ring-4 focus:ring-primary/10"
           }`}
       >
         <span className={value ? "text-on-surface truncate pr-4" : "text-on-surface-variant/70 truncate pr-4"}>
@@ -169,8 +169,8 @@ function CustomSelect({ options, value, onChange, placeholder, disabled = false 
                   type="button"
                   onClick={() => { onChange(opt); setIsOpen(false); setSearch(""); }}
                   className={`w-full text-left px-4 py-3 text-sm font-body transition-colors ${value === opt
-                      ? "bg-primary/10 text-primary font-semibold"
-                      : "text-on-surface hover:bg-surface-container-highest/50 active:bg-surface-container-highest"
+                    ? "bg-primary/10 text-primary font-semibold"
+                    : "text-on-surface hover:bg-surface-container-highest/50 active:bg-surface-container-highest"
                     }`}
                 >
                   {opt}
@@ -309,8 +309,8 @@ function FileCard({ file, index, isActive, onSelect, onRemove, onRename }: FileC
     <div
       onClick={onSelect}
       className={`flex items-center gap-3 rounded-xl px-3 py-2.5 cursor-pointer transition-all duration-150 group ${isActive
-          ? "bg-primary/8 border border-primary/30 shadow-[0_0_0_2px_rgba(70,71,211,0.12)]"
-          : "bg-surface-container-lowest border border-outline-variant/15 hover:border-primary/20 hover:bg-primary/3 shadow-[0_2px_8px_-2px_rgba(44,47,49,0.06)]"
+        ? "bg-primary/8 border border-primary/30 shadow-[0_0_0_2px_rgba(70,71,211,0.12)]"
+        : "bg-surface-container-lowest border border-outline-variant/15 hover:border-primary/20 hover:bg-primary/3 shadow-[0_2px_8px_-2px_rgba(44,47,49,0.06)]"
         }`}
     >
       {/* Thumbnail */}
@@ -438,8 +438,8 @@ function BatchDropzone({ isFull, isLoading, onAdd, inputRef, cameraRef }: BatchD
         onDrop={handleDrop}
         onClick={() => inputRef.current?.click()}
         className={`hidden md:flex border-2 border-dashed rounded-2xl flex-col items-center justify-center py-9 px-6 text-center cursor-pointer transition-all duration-200 group ${dragging
-            ? "border-primary/60 bg-primary/5"
-            : "border-outline-variant/40 bg-surface-container-lowest hover:border-primary/40 hover:bg-primary/3"
+          ? "border-primary/60 bg-primary/5"
+          : "border-outline-variant/40 bg-surface-container-lowest hover:border-primary/40 hover:bg-primary/3"
           }`}
       >
         {isLoading ? (
@@ -521,14 +521,14 @@ function CaptureReceiptContent() {
   const [showSuccess, setShowSuccess] = useState(false);
 
   // ── Draft state ────────────────────────────────────────────────────────────
-  const [isSavingDraft, setIsSavingDraft]         = useState(false);
-  const [draftSaved, setDraftSaved]               = useState(false);
-  const [loadedDraftId, setLoadedDraftId]         = useState<string | null>(null);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const [draftSaved, setDraftSaved] = useState(false);
+  const [loadedDraftId, setLoadedDraftId] = useState<string | null>(null);
   /**
    * Ref mirror of loadedDraftId — written synchronously so click handlers
    * can never read a stale null due to React batching or render timing.
    */
-  const loadedDraftIdRef                           = useRef<string | null>(null);
+  const loadedDraftIdRef = useRef<string | null>(null);
   /** Always call this instead of setLoadedDraftId directly. */
   function setDraftId(id: string | null) {
     loadedDraftIdRef.current = id; // synchronous — safe to read in any handler
@@ -539,19 +539,19 @@ function CaptureReceiptContent() {
    * Computed state caused bugs: loading a draft immediately triggered the guard,
    * and saving could never clear it.
    */
-  const [isDirty, setIsDirty]                     = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
 
   // ── Unsaved-changes guard state ────────────────────────────────────────────
-  const [showLeaveModal, setShowLeaveModal]       = useState(false);
-  const [leaveModalStep, setLeaveModalStep]       = useState<"confirm" | "name">("confirm");
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
+  const [leaveModalStep, setLeaveModalStep] = useState<"confirm" | "name">("confirm");
   /**
    * "leaving"  → triggered by nav interception; after save, navigate to pendingNavHref.
    * "saving"   → triggered by the explicit Save Draft button; after save, just close.
    */
-  const [leaveModalMode, setLeaveModalMode]       = useState<"leaving" | "saving">("leaving");
-  const [pendingNavHref, setPendingNavHref]       = useState<string | null>(null);
+  const [leaveModalMode, setLeaveModalMode] = useState<"leaving" | "saving">("leaving");
+  const [pendingNavHref, setPendingNavHref] = useState<string | null>(null);
   const [pendingDraftTitle, setPendingDraftTitle] = useState("");
-  const [isSavingLeave, setIsSavingLeave]         = useState(false);
+  const [isSavingLeave, setIsSavingLeave] = useState(false);
   /** Names of original File objects (can't serialise blobs — shown in resume banner) */
   const [restoredFileNames, setRestoredFileNames] = useState<string[]>([]);
 
@@ -758,10 +758,10 @@ function CaptureReceiptContent() {
       onComplete: (completeResult: Record<string, unknown>) => {
         handleProcessResult(completeResult, filesList.map(f => f.name));
       },
-        onError: (error: string) => {
-          console.error("OCR SSE error:", error);
-          handleProcessResult(result as unknown as DocumentUploadResponse, files.map(f => f.name));
-        },
+      onError: (error: string) => {
+        console.error("OCR SSE error:", error);
+        handleProcessResult(result as unknown as DocumentUploadResponse, files.map(f => f.name));
+      },
     });
   }
 
@@ -1254,13 +1254,12 @@ function CaptureReceiptContent() {
                 id="save-draft-btn"
                 onClick={handleSaveDraftButton}
                 disabled={isSavingDraft || (!mainCategory && files.length === 0 && ocrReceipts.length === 0)}
-                className={`flex-1 px-6 py-3 rounded-xl font-semibold text-sm font-body text-center transition-all duration-200 ${
-                  draftSaved
+                className={`flex-1 px-6 py-3 rounded-xl font-semibold text-sm font-body text-center transition-all duration-200 ${draftSaved
                     ? "bg-green-100 text-green-700 border border-green-300"
                     : isSavingDraft
-                    ? "bg-surface-container text-on-surface-variant/50 cursor-wait"
-                    : "text-on-surface-variant bg-surface-container hover:bg-surface-container-high active:scale-[0.97]"
-                }`}
+                      ? "bg-surface-container text-on-surface-variant/50 cursor-wait"
+                      : "text-on-surface-variant bg-surface-container hover:bg-surface-container-high active:scale-[0.97]"
+                  }`}
               >
                 {isSavingDraft ? "Saving…" : draftSaved ? "✓ Draft Saved!" : "Save Draft"}
               </button>
@@ -1269,8 +1268,8 @@ function CaptureReceiptContent() {
                 disabled={!canProcess}
                 onClick={handleProcessReceipts}
                 className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm font-body transition-all duration-200 ${canProcess
-                    ? "bg-linear-to-r from-primary to-primary-dim text-on-primary shadow-[0_4px_16px_rgba(70,71,211,0.35)] hover:shadow-[0_6px_24px_rgba(70,71,211,0.45)] hover:scale-[1.02] active:scale-[0.97]"
-                    : "bg-primary/30 text-on-primary/70 cursor-not-allowed"
+                  ? "bg-linear-to-r from-primary to-primary-dim text-on-primary shadow-[0_4px_16px_rgba(70,71,211,0.35)] hover:shadow-[0_6px_24px_rgba(70,71,211,0.45)] hover:scale-[1.02] active:scale-[0.97]"
+                  : "bg-primary/30 text-on-primary/70 cursor-not-allowed"
                   }`}
               >
                 {files.length > 0
@@ -1393,11 +1392,10 @@ function CaptureReceiptContent() {
                     id="draft-save-confirm-btn"
                     onClick={handleSaveAndLeave}
                     disabled={(!loadedDraftId && !pendingDraftTitle.trim()) || isSavingLeave}
-                    className={`flex-1 py-3 rounded-2xl font-semibold text-sm font-body transition-all duration-200 ${
-                      (loadedDraftId || pendingDraftTitle.trim()) && !isSavingLeave
+                    className={`flex-1 py-3 rounded-2xl font-semibold text-sm font-body transition-all duration-200 ${(loadedDraftId || pendingDraftTitle.trim()) && !isSavingLeave
                         ? "bg-primary text-on-primary shadow-[0_4px_16px_rgba(70,71,211,0.3)] hover:scale-[1.02] active:scale-[0.97]"
                         : "bg-primary/30 text-on-primary/60 cursor-not-allowed"
-                    }`}
+                      }`}
                   >
                     {isSavingLeave ? "Saving…" : leaveModalMode === "saving" ? "Save Draft" : "Save & Leave"}
                   </button>

@@ -23,18 +23,17 @@ services:
   backend:
     build:
       context: ./backend
-      # dockerfile: Dockerfile
       dockerfile: uv.Dockerfile
     container_name: reclaim_backend
     restart: unless-stopped
     volumes:
       - ./backend:/app:z
-      - /app/.venv
+      - backend_venv:/app/.venv
     ports:
       - "8000:8000"
     environment:
       - WATCHFILES_FORCE_POLLING=true
-      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_URL=postgresql://admin:password@db:5432/smart_reimburse
       - SECRET_KEY=${SECRET_KEY}
       - LLM_API_KEY=${LLM_API_KEY}
       - LLM_BASE_URL=${LLM_BASE_URL}
@@ -50,10 +49,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    command: bash -c "python -c 'from core.database import init_db; init_db()' && alembic stamp head && exec uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
-    # command: bash -c "python -c 'from core.database import init_db; init_db()' && alembic stamp head && python seed_demo_employees.py && python seed_mock_policy.py && python seed_mock_data.py && exec uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
+    command: bash -c "uv sync --frozen --no-dev && python -c 'from core.database import init_db; init_db()' && alembic stamp head && exec uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
     healthcheck:
-      # test: [ "CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" ]
       test: [ "CMD", "/app/.venv/bin/python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" ]
       interval: 10s
       timeout: 5s
@@ -91,3 +88,4 @@ services:
 volumes:
   postgres_data:
   next_cache:
+  backend_venv:

@@ -15,6 +15,7 @@ import {
   getCurrentUser,
 } from "@/lib/actions/auth";
 import type { User } from "@/lib/api/types";
+import LoadingOverlay from "@/components/LoadingOverlay";
 
 // Module-level cache — survives remounts within the same page lifecycle
 let _sessionCache: { user: User | null; ts: number } | null = null;
@@ -113,13 +114,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <AuthContext.Provider value={{ user, isLoading, login, logout }}>
-      {isLoading ? (
-        <div className="flex items-center justify-center min-h-screen bg-surface">
-          <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-        </div>
-      ) : (
-        children
-      )}
+      {isLoading ? <LoadingOverlay show={true} /> : children}
     </AuthContext.Provider>
   );
 };
