@@ -1,11 +1,62 @@
 "use client";
 
-import { useAuth } from "@/context/AuthContext";
-import { Bell, HelpCircle } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
+import { useAuth } from "@/context/AuthContext";
+import { getNotifications, markAllNotificationsRead } from "@/lib/actions/notifications";
+import type { Notification } from "@/lib/api/types";
+import { Bell, HelpCircle, CheckCircle2, AlertCircle, Info } from "lucide-react";
+
+let _notifCache: { data: Notification[]; ts: number } | null = null;
+const NOTIF_TTL_MS = 15_000;
+
+const NOTIF_ICON_MAP: Record<Notification["type"], { icon: typeof CheckCircle2; bg: string; text: string }> = {
+  success: { icon: CheckCircle2, bg: "bg-primary/10",       text: "text-primary" },
+  warning: { icon: AlertCircle,  bg: "bg-tertiary/20",      text: "text-tertiary" },
+  error:   { icon: AlertCircle,  bg: "bg-error/10",         text: "text-error" },
+  info:    { icon: Info,         bg: "bg-surface-variant",  text: "text-on-surface-variant" },
+};
 
 export default function TopNav() {
   const { user } = useAuth();
+
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const notifRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const now = Date.now();
+    if (_notifCache && now - _notifCache.ts < NOTIF_TTL_MS) {
+      setNotifications(_notifCache.data);
+      return;
+    }
+    getNotifications().then((data) => {
+      _notifCache = { data, ts: Date.now() };
+      setNotifications(data);
+    });
+  }, []);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setShowNotifications(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
+
+  async function handleMarkAllRead() {
+    await markAllNotificationsRead();
+    setNotifications((prev) => {
+      const updated = prev.map((n) => ({ ...n, isRead: true }));
+      _notifCache = { data: updated, ts: Date.now() };
+      return updated;
+    });
+    setShowNotifications(false);
+  }
 
   return (
     <header
@@ -28,15 +79,81 @@ export default function TopNav() {
         {/* ── Right: Actions + Avatar ───────────────── */}
         <div className="flex items-center gap-1 md:gap-2">
 
-          <button
-            id="topnav-notification-btn"
-            aria-label="Notifications"
-            className="relative p-2.5 rounded-xl text-on-surface hover:bg-surface-container-low active:scale-95 transition-all cursor-pointer"
-          >
-            <Bell className="w-5 h-5" strokeWidth={1.75} />
-            {/* Unread badge */}
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-error border-2 border-surface pointer-events-none" />
-          </button>
+          {/* Notifications */}
+          <div className="relative" ref={notifRef}>
+            <button
+              id="topnav-notification-btn"
+              aria-label="Notifications"
+              onClick={() => setShowNotifications(!showNotifications)}
+              className={`relative p-2.5 rounded-xl transition-all active:scale-95 cursor-pointer ${
+                showNotifications ? "bg-surface-container-high text-primary" : "text-on-surface hover:bg-surface-container-low"
+              }`}
+            >
+              <Bell className="w-5 h-5" strokeWidth={1.75} />
+              {unreadCount > 0 && (
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-error border-2 border-surface pointer-events-none" />
+              )}
+            </button>
+
+            {showNotifications && (
+              <div className="absolute right-0 mt-2 w-80 bg-surface border border-outline-variant/20 rounded-2xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 z-70">
+                <div className="flex items-center justify-between p-4 border-b border-outline-variant/10 bg-surface-container-lowest">
+                  <h3 className="font-headline font-bold text-sm text-on-surface">Notifications</h3>
+                  <button
+                    className="text-[10px] font-bold text-primary hover:underline uppercase tracking-wider"
+                    onClick={handleMarkAllRead}
+                  >
+                    Mark all read
+                  </button>
+                </div>
+
+                <div className="max-h-72 overflow-y-auto">
+                  {notifications.length === 0 ? (
+                    <p className="text-xs text-on-surface-variant text-center py-8 px-4">
+                      No notifications
+                    </p>
+                  ) : (
+                    notifications.map((notif) => {
+                      const iconConfig = NOTIF_ICON_MAP[notif.type];
+                      const IconComponent = iconConfig.icon;
+                      return (
+                        <div
+                          key={notif.id}
+                          role="listitem"
+                          className={`w-full text-left flex gap-3 p-4 border-b border-outline-variant/5 ${
+                            !notif.isRead ? "bg-tertiary/5" : ""
+                          }`}
+                        >
+                          <div className="relative">
+                            <div className={`p-2 h-fit ${iconConfig.bg} ${iconConfig.text} rounded-full shrink-0`}>
+                              <IconComponent className="w-4 h-4" />
+                            </div>
+                            {!notif.isRead && (
+                              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-error rounded-full border-2 border-surface" />
+                            )}
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-on-surface">{notif.title}</p>
+                            <p className="text-xs text-on-surface-variant mt-0.5 leading-relaxed">{notif.message}</p>
+                            <span className="text-[10px] font-bold text-on-surface-variant/50 mt-1 block">{notif.timestamp}</span>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                <div className="p-2 border-t border-outline-variant/10 text-center bg-surface-container-lowest">
+                  <button
+                    className="text-xs font-bold text-on-surface-variant hover:text-on-surface transition-colors"
+                    onClick={() => setShowNotifications(false)}
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
 
           <button
             id="topnav-help-btn"
@@ -59,8 +176,8 @@ export default function TopNav() {
           >
             {user?.name?.charAt(0).toUpperCase() ?? "U"}
           </button>
-        </div>
 
+        </div>
       </div>
     </header>
   );

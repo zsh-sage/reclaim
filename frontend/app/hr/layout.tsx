@@ -10,20 +10,20 @@ export default function HRLayout({
 }) {
   return (
     <HRRoleGuard>
-      <div className="flex h-screen overflow-hidden bg-surface text-on-surface">
+      <div className="flex min-h-screen lg:h-screen lg:overflow-hidden bg-surface text-on-surface">
 
         {/* ── Desktop Sidebar ──────────────────────── */}
         <SideNav />
 
         {/* ── Right Column ─────────────────────────── */}
-        <div className="flex-1 flex flex-col h-screen overflow-hidden min-w-0">
+        <div className="flex-1 flex flex-col lg:h-screen lg:overflow-hidden min-w-0">
 
           {/* Sticky top navigation */}
           <TopNav />
 
           <main
             id="main-content"
-            className="flex-1 overflow-y-auto bg-surface"
+            className="flex-auto lg:flex-1 lg:overflow-y-auto bg-surface pb-nav-safe"
           >
             {children}
           </main>

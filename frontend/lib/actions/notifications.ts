@@ -1,5 +1,11 @@
 "use server";
 
+// ─── Notifications Server Actions ─────────────────────────────────────────────
+// Provides notification data for the TopNav bell dropdown.
+// Backend is DB-backed and may prepend an ephemeral GLM-fallback notification
+// (sentinel UUID 00000000-0000-0000-0000-000000000fa1) when the model is degraded.
+// ──────────────────────────────────────────────────────────────────────────────
+
 import { apiGet, apiPost, API_PREFIX } from "@/lib/api/client";
 import type { Notification } from "@/lib/api/types";
 

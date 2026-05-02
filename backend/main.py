@@ -59,10 +59,10 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Set all CORS enabled origins
-_frontend_origin = os.environ.get("FRONTEND_URL", "http://localhost:3000")
+origins = settings.FRONTEND_URL.split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[_frontend_origin],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

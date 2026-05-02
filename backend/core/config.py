@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = "postgresql://admin:password@localhost:5432/smart_reimburse"
 
+    # Frontend URL
+    FRONTEND_URL: str = "https://reclaimai.dev,http://localhost:3000"
+
     # LLM (ILMU API for chat model)
     LLM_API_KEY: str = ""
     LLM_BASE_URL: str = "https://api.ilmu.ai/v1"
