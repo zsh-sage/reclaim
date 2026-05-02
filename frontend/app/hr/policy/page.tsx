@@ -443,8 +443,9 @@ export default function PolicyStudio() {
         const updated = await getPolicies();
         if (updated.length > 0) {
           const mapped: Policy[] = updated.map((p) => ({
-            id: p.policy_id,
-            name: p.title,
+            policy_id: p.policy_id,
+            alias: p.alias,
+            title: p.title,
             version: "V1.0",
             department: "General",
             lastModified: p.effective_date
@@ -486,8 +487,9 @@ export default function PolicyStudio() {
 
     if (editingPolicy === "new") {
       const newPolicy: Policy = {
-        id: "pol-" + Math.random().toString(36).substr(2, 9),
-        name: editName || "New Policy",
+        policy_id: "pol-" + Math.random().toString(36).substr(2, 9),
+        alias: editName || "New Policy",
+        title: editName || "New Policy",
         version: editVersion || "V1.0",
         department: editDepartment || "General",
         lastModified: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
@@ -503,7 +505,8 @@ export default function PolicyStudio() {
     } else {
       const updatedPolicyData = {
         status: editStatus,
-        name: editName,
+        alias: editName,
+        title: editName,
         department: editDepartment,
         version: editVersion,
         existingAppendix: existingAppendix,
