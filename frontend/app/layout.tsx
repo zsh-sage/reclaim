@@ -28,7 +28,7 @@ export const metadata: Metadata = {
   themeColor: "#4647d3",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
+    statusBarStyle: "black-translucent",
     title: "Reclaim",
   },
   icons: {
