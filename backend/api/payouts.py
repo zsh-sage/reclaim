@@ -80,6 +80,22 @@ async def list_payout_channels(
     return await _xendit.get_channels(currency="MYR")
 
 
+@router.get("/webhook-url")
+async def get_webhook_url(request: Request):
+    """Returns the webhook URL for the current environment.
+    Frontend uses this to register webhook with Xendit dynamically.
+    """
+    from core.config import settings
+    # Detect environment from host header
+    host = request.headers.get("host", "")
+    is_development = "localhost" in host or "127.0.0.1" in host or "ngrok" in host
+
+    return {
+        "webhook_url": settings.XENDIT_WEBHOOK_URL,
+        "environment": "development" if is_development else "production"
+    }
+
+
 @router.post("/")
 async def create_payout(
     body: CreatePayoutRequest,

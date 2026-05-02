@@ -75,6 +75,10 @@ def seed():
                 rank=rank,
                 privilege_level=privilege,
                 is_active=True,
+                # Add bank details for demo employee
+                bank_code="MY_MAYBANK" if email == "employee@example.com" else None,
+                bank_account_number="1234567890" if email == "employee@example.com" else None,
+                bank_account_holder_name="Demo Employee" if email == "employee@example.com" else None,
             )
             db.add(user)
             print(f"Created user: {email} ({name})")
