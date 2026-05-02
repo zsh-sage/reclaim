@@ -142,7 +142,9 @@ export async function getHRClaims(): Promise<{
   const attention: Claim[] = [];
   const approved: Claim[] = [];
 
+  const hrDone = ["APPROVED", "REJECTED", "DISBURSING", "PAID", "DISBURSEMENT_FAILED"];
   for (const r of result.data) {
+    if (hrDone.includes(r.status)) continue;
     const claim = mapToClaim(r);
     if (claim.status === "Passed AI Review") {
       approved.push(claim);

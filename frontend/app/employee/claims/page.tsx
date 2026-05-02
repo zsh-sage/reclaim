@@ -838,6 +838,7 @@ function CaptureReceiptContent() {
         onComplete: (completeResult: Record<string, unknown>) => {
           setIsSubmitting(false);
           setAnalysisResult(completeResult as unknown as AnalyzeResponse);
+          setIsDirty(false);
           setShowSuccess(true);
         },
         onError: (error: string) => {
@@ -849,6 +850,7 @@ function CaptureReceiptContent() {
     } else {
       setIsSubmitting(false);
       setAnalysisResult(analyzeResult);
+      setIsDirty(false);
       setShowSuccess(true);
     }
   }

@@ -27,7 +27,7 @@ from core.models import (
 from core.enums import JudgmentResult, ReimbursementStatus
 from engine.llm import get_agent_llm
 from engine.prompts.compliance_prompts import RECEIPT_ANALYSIS_PROMPT, FINAL_JUDGMENT_PROMPT
-from engine.tools.compliance_tools import get_current_date, make_search_policy_rag_tool
+from engine.tools.compliance_tools import get_disparance_date, make_search_policy_rag_tool
 
 logger = logging.getLogger(__name__)
 
@@ -579,7 +579,7 @@ def run_compliance_workflow(
     Returns a dict with reimbursement_id, judgment, totals, line_items,
     confidence, and summary.
     """
-    tools = [get_current_date, make_search_policy_rag_tool(policy_id, session)]
+    tools = [get_disparance_date, make_search_policy_rag_tool(policy_id, session)]
     _progress = {"cb": progress_callback}
 
     def _load_context(state):
