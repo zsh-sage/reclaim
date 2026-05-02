@@ -12,17 +12,11 @@ export function subscribeToProgress(
     return { close: () => {} };
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL;
-  if (!baseUrl) {
-    callbacks.onError("NEXT_PUBLIC_API_URL is not configured");
-    return { close: () => {} };
-  }
   const path =
     endpoint === "reimbursements"
       ? `/api/v1/reimbursements/analyze/progress/${taskId}`
       : `/api/v1/documents/progress/${taskId}`;
-  const url = `${baseUrl}${path}`;
-  const eventSource = new EventSource(url);
+  const eventSource = new EventSource(path);
 
   eventSource.addEventListener("progress", (event: MessageEvent) => {
     const data = JSON.parse(event.data);
