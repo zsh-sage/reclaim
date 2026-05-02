@@ -46,7 +46,7 @@ services:
       - LANGCHAIN_PROJECT=${LANGCHAIN_PROJECT}
     depends_on:
       - db
-    command: bash -c "uv sync --frozen --no-dev && python -c 'from core.database import init_db; init_db()' && alembic stamp head && exec uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
+    command: bash -c "uv sync --frozen --no-dev && python -c 'from core.database import init_db; init_db()' && exec uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
     healthcheck:
       test: ["CMD", "/app/.venv/bin/python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 10s
