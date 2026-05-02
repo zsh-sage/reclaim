@@ -52,7 +52,7 @@ export default function HistoryList({ claims, onSelectClaim }: HistoryListProps)
                 <td className="p-4 text-on-surface">
                   <div className="flex flex-col">
                     <span className="font-semibold">{claim.merchant}</span>
-                    <span className="text-xs text-on-surface-variant">{claim.subCategory} • {claim.id}</span>
+                    <span className="text-xs text-on-surface-variant">{claim.subCategory} • <span title={claim.id}>{claim.id.slice(0, 8)}</span></span>
                   </div>
                 </td>
                 <td className="p-4 font-bold text-on-surface tabular-nums">

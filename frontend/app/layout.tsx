@@ -19,16 +19,16 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: "cover",
   interactiveWidget: "resizes-visual",
+  themeColor: "#f5f7f9",
 };
 
 export const metadata: Metadata = {
   title: "Reclaim",
   description: "Every receipt reviewed. Every decision yours. Smart Reimbursement Automation System",
   manifest: "/manifest.json",
-  themeColor: "#4647d3",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translucent",
+    statusBarStyle: "default",
     title: "Reclaim",
   },
   icons: {

@@ -1040,19 +1040,19 @@ export default function PolicyStudio() {
         
         {/* Bottom Action Bar */}
         <div className="shrink-0 bg-surface-bright/80 backdrop-blur-xl border-t border-surface-container-low p-4 z-40">
-          <div className="max-w-7xl mx-auto flex justify-between items-center gap-6 px-8">
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 sm:gap-6 px-4 sm:px-8">
             <button onClick={() => setEditingPolicy(null)} className="px-6 py-3 border border-outline-variant text-on-surface rounded-xl font-body font-medium hover:bg-surface-container-low transition-colors active:scale-95 cursor-pointer">
               Cancel
             </button>
-            <div className="flex items-center gap-6">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-6">
               {saveError && (
-                <p className="text-xs text-error font-body max-w-xs text-right">{saveError}</p>
+                <p className="text-xs text-error font-body max-w-xs text-center sm:text-right">{saveError}</p>
               )}
-              <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center sm:justify-start gap-3">
                 <span className="font-body text-sm text-on-surface-variant hidden sm:block">Policy Status:</span>
                 <StatusDropdown />
               </div>
-              <button onClick={handleSave} className="bg-gradient-to-r from-primary to-primary-dim text-white rounded-xl px-8 py-3 font-body font-medium shadow-[0_0_20px_rgba(70,71,211,0.25)] hover:shadow-[0_0_30px_rgba(147,150,255,0.4)] active:scale-95 transition-all cursor-pointer">
+              <button onClick={handleSave} className="bg-gradient-to-r from-primary to-primary-dim text-white rounded-xl px-6 sm:px-8 py-3 font-body font-medium shadow-[0_0_20px_rgba(70,71,211,0.25)] hover:shadow-[0_0_30px_rgba(147,150,255,0.4)] active:scale-95 transition-all cursor-pointer">
                 {isNew ? "Create Policy" : "Save Changes"}
               </button>
             </div>
@@ -1120,12 +1120,12 @@ export default function PolicyStudio() {
                     />
                   </div>
 
-                  <div className="flex items-center bg-surface-container-low rounded-xl p-1 gap-1">
+                  <div className="flex items-center bg-surface-container-low rounded-xl p-1 gap-1 w-full lg:w-auto overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden snap-x scroll-pl-1">
                     {(["Active", "Impending", "Expired"] as PolicyStatus[]).map((status) => (
                       <button
                         key={status}
                         onClick={() => setActiveFilter(status)}
-                        className={`px-6 py-2 rounded-lg transition-all font-medium text-sm cursor-pointer ${activeFilter === status
+                        className={`px-6 py-2 rounded-lg transition-all font-medium text-sm cursor-pointer shrink-0 ${activeFilter === status
                           ? "bg-surface-container-lowest shadow-[0_4px_20px_rgba(44,47,49,0.04)] text-primary"
                           : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest/50"
                           }`}

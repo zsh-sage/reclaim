@@ -377,6 +377,7 @@ export default function ReviewPage() {
       setDecision(null);
     }
     setShowSuccessModal(true);
+    router.push("/hr/dashboard");
   }
 
   async function handleTriggerPayout() {

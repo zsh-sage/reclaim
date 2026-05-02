@@ -15,132 +15,11 @@ import {
   Filter,
 } from "lucide-react";
 import Link from "next/link";
+import { getHRHistory, type HistoryClaim } from "@/lib/actions/hr";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type ClaimStatus = "Approved" | "Rejected" | "Paid";
-
-interface HistoryClaim {
-  id: string;
-  employeeName: string;
-  employeeInitial: string;
-  department: string;
-  policyName: string;
-  amount: number;
-  currency: string;
-  dateSubmitted: string;
-  dateResolved: string;
-  status: ClaimStatus;
-}
-
-// ─── Mock Data ────────────────────────────────────────────────────────────────
-
-const MOCK_CLAIMS: HistoryClaim[] = [
-  {
-    id: "CLM-2024-0041",
-    employeeName: "Alex Tan Wei Ming",
-    employeeInitial: "A",
-    department: "Product & Engineering",
-    policyName: "Business Travel Allowance",
-    amount: 1360.5,
-    currency: "MYR",
-    dateSubmitted: "Apr 10, 2024",
-    dateResolved: "Apr 14, 2024",
-    status: "Paid",
-  },
-  {
-    id: "CLM-2024-0039",
-    employeeName: "Sarah Jenkins",
-    employeeInitial: "S",
-    department: "Human Resources",
-    policyName: "Daily Trip Allowance Policy",
-    amount: 240.0,
-    currency: "MYR",
-    dateSubmitted: "Apr 08, 2024",
-    dateResolved: "Apr 11, 2024",
-    status: "Approved",
-  },
-  {
-    id: "CLM-2024-0037",
-    employeeName: "Michael Chen",
-    employeeInitial: "M",
-    department: "Sales",
-    policyName: "Client Entertainment Policy",
-    amount: 4070.0,
-    currency: "MYR",
-    dateSubmitted: "Apr 05, 2024",
-    dateResolved: "Apr 09, 2024",
-    status: "Rejected",
-  },
-  {
-    id: "CLM-2024-0034",
-    employeeName: "Emma Larson",
-    employeeInitial: "E",
-    department: "Marketing",
-    policyName: "Business Travel Allowance",
-    amount: 820.75,
-    currency: "MYR",
-    dateSubmitted: "Mar 28, 2024",
-    dateResolved: "Apr 02, 2024",
-    status: "Paid",
-  },
-  {
-    id: "CLM-2024-0031",
-    employeeName: "James Okafor",
-    employeeInitial: "J",
-    department: "Operations",
-    policyName: "Equipment & Tools Policy",
-    amount: 1500.0,
-    currency: "MYR",
-    dateSubmitted: "Mar 21, 2024",
-    dateResolved: "Mar 26, 2024",
-    status: "Approved",
-  },
-  {
-    id: "CLM-2024-0028",
-    employeeName: "Alex Tan Wei Ming",
-    employeeInitial: "A",
-    department: "Product & Engineering",
-    policyName: "Training & Development",
-    amount: 3200.0,
-    currency: "MYR",
-    dateSubmitted: "Mar 15, 2024",
-    dateResolved: "Mar 20, 2024",
-    status: "Approved",
-  },
-  {
-    id: "CLM-2024-0024",
-    employeeName: "Sarah Jenkins",
-    employeeInitial: "S",
-    department: "Human Resources",
-    policyName: "Office Supplies Policy",
-    amount: 185.5,
-    currency: "MYR",
-    dateSubmitted: "Mar 10, 2024",
-    dateResolved: "Mar 12, 2024",
-    status: "Paid",
-  },
-  {
-    id: "CLM-2024-0019",
-    employeeName: "Michael Chen",
-    employeeInitial: "M",
-    department: "Sales",
-    policyName: "Business Travel Allowance",
-    amount: 6400.0,
-    currency: "MYR",
-    dateSubmitted: "Mar 01, 2024",
-    dateResolved: "Mar 07, 2024",
-    status: "Rejected",
-  },
-];
-
-// ─── Mock Fetch ───────────────────────────────────────────────────────────────
-
-function fetchHistoryData(): Promise<HistoryClaim[]> {
-  return new Promise((resolve) => {
-    setTimeout(() => resolve(MOCK_CLAIMS), 1000);
-  });
-}
 
 // ─── Status Config ────────────────────────────────────────────────────────────
 
@@ -201,7 +80,7 @@ export default function HRHistoryPage() {
 
   useEffect(() => {
     setIsLoading(true);
-    fetchHistoryData()
+    getHRHistory()
       .then(setData)
       .catch(() => setError("Failed to load claim history. Please try again."))
       .finally(() => setIsLoading(false));
@@ -384,34 +263,23 @@ export default function HRHistoryPage() {
           </div>
         )}
 
-        {/* ── Table ── */}
-        <div className="bg-surface-container-lowest/80 backdrop-blur-xl rounded-xl shadow-[0_12px_60px_-15px_rgba(44,47,49,0.08)] overflow-hidden relative z-10">
-          <table className="w-full table-fixed text-left border-collapse">
-            <thead>
-              <tr className="bg-surface-container-low/50 text-on-surface-variant uppercase tracking-wider text-[10px] font-bold font-headline">
-                <th className="py-4 px-6 w-32">
-                  Claim ID
-                </th>
-                <th className="py-4 px-6">
-                  Employee
-                </th>
-                <th className="py-4 px-6">
-                  Policy / Category
-                </th>
-                <th className="py-4 px-6 w-32 text-right">
-                  Amount
-                </th>
-                <th className="py-4 px-6 w-32">
-                  Resolved
-                </th>
-                <th className="py-4 px-6 w-28">
-                  Status
-                </th>
-                <th className="py-4 px-6 w-24 text-right">
-                  Action
-                </th>
-              </tr>
-            </thead>
+        {/* ── Table / Cards ── */}
+        <div className="bg-surface-container-lowest/80 backdrop-blur-xl rounded-xl shadow-[0_12px_60px_-15px_rgba(44,47,49,0.08)] relative z-10">
+
+          {/* Desktop Table */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full table-fixed text-left border-collapse">
+              <thead>
+                <tr className="bg-surface-container-low/50 text-on-surface-variant uppercase tracking-wider text-[10px] font-bold font-headline">
+                  <th className="py-4 px-6 w-32">Claim ID</th>
+                  <th className="py-4 px-6">Employee</th>
+                  <th className="py-4 px-6">Policy / Category</th>
+                  <th className="py-4 px-6 w-32 text-right">Amount</th>
+                  <th className="py-4 px-6 w-32">Resolved</th>
+                  <th className="py-4 px-6 w-28">Status</th>
+                  <th className="py-4 px-6 w-24 text-right">Action</th>
+                </tr>
+              </thead>
               <tbody className="divide-y divide-outline-variant/5">
                 {/* Skeleton */}
                 {isLoading &&
@@ -421,7 +289,6 @@ export default function HRHistoryPage() {
                 {!isLoading &&
                   paginated.map((claim) => {
                     const cfg = STATUS_CONFIG[claim.status];
-                    const StatusIcon = cfg.icon;
                     const formatted = `RM ${new Intl.NumberFormat("en-MY", {
                       minimumFractionDigits: 2,
                     }).format(claim.amount)}`;
@@ -433,8 +300,11 @@ export default function HRHistoryPage() {
                       >
                         {/* Claim ID */}
                         <td className="py-4 px-6 align-middle whitespace-nowrap">
-                          <span className="font-mono text-xs font-semibold text-on-surface-variant bg-surface-container px-2 py-1 rounded-lg">
-                            {claim.id}
+                          <span
+                            className="font-mono text-xs font-semibold text-on-surface-variant bg-surface-container px-2 py-1 rounded-lg"
+                            title={claim.id}
+                          >
+                            {claim.id.slice(0, 8)}
                           </span>
                         </td>
 
@@ -506,6 +376,65 @@ export default function HRHistoryPage() {
                   })}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Card List */}
+          <div className="md:hidden flex flex-col gap-3 p-4">
+            {isLoading &&
+              [...Array(ITEMS_PER_PAGE)].map((_, i) => (
+                <div key={i} className="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant/10 flex items-center gap-3 animate-pulse">
+                  <div className="w-9 h-9 rounded-full bg-surface-container shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-3 bg-surface-container rounded-full w-2/3" />
+                    <div className="h-2.5 bg-surface-container rounded-full w-1/2" />
+                  </div>
+                  <div className="h-3 bg-surface-container rounded-full w-16 shrink-0" />
+                </div>
+              ))}
+
+            {!isLoading &&
+              paginated.map((claim) => {
+                const cfg = STATUS_CONFIG[claim.status];
+                const formatted = `RM ${new Intl.NumberFormat("en-MY", {
+                  minimumFractionDigits: 2,
+                }).format(claim.amount)}`;
+
+                return (
+                  <Link
+                    href={`/hr/view/${claim.id}`}
+                    key={claim.id}
+                    className="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant/10 flex items-center justify-between hover:bg-surface-container-highest/30 transition-colors active:scale-[0.98] cursor-pointer"
+                  >
+                    <div className="flex items-center gap-3 overflow-hidden">
+                      <div className="w-9 h-9 rounded-full bg-linear-to-br from-primary-container to-tertiary-container flex items-center justify-center font-bold text-[10px] text-on-primary-container border-2 border-surface-container-lowest shadow-sm shrink-0">
+                        {claim.employeeInitial}
+                      </div>
+                      <div className="min-w-0 pr-2">
+                        <h4 className="font-headline font-bold text-sm text-on-surface mb-0.5 truncate">
+                          {claim.employeeName}
+                        </h4>
+                        <p className="font-body text-xs text-on-surface-variant truncate">
+                          {claim.policyName}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <div className="text-right shrink-0">
+                        <p className="font-headline font-bold text-sm text-on-surface mb-1 tabular-nums">
+                          {formatted}
+                        </p>
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${cfg.bg} ${cfg.text}`}>
+                          <span className={`w-1 h-1 rounded-full ${cfg.dot}`} />
+                          {cfg.label}
+                        </span>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-on-surface-variant opacity-60" />
+                    </div>
+                  </Link>
+                );
+              })}
+          </div>
+
         </div>
 
           {/* Empty State */}
