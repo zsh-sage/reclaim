@@ -559,17 +559,23 @@ function CaptureReceiptContent() {
     }));
 
     // Map failed/skipped receipts — these were previously dropped entirely
-    const skippedReceipts: OcrReceiptData[] = ((result.skipped_receipts as any[]) || []).map((r: any, idx: number) => ({
-      receiptIndex: successReceipts.length + idx,
-      success: false,
-      expenseDate: r.date ?? "",
-      merchant: (r.extracted_data?.merchant_name as string) ?? r.description ?? "",
-      transport: r.transportation ?? 0,
-      accommodation: r.accommodation ?? 0,
-      meals: r.meals ?? 0,
-      others: r.others ?? 0,
-      notes: r.description ?? "",
-    }));
+    const skippedReceipts: OcrReceiptData[] = ((result.skipped_receipts as any[]) || []).map((r: any, idx: number) => {
+      // Detect low-confidence: backend adds "Low confidence OCR result: …" to warnings when confidence < 0.7
+      const warnings: string[] = r.warnings ?? [];
+      const isLowConfidence = warnings.some((w: string) => w.toLowerCase().startsWith("low confidence"));
+      return {
+        receiptIndex: successReceipts.length + idx,
+        success: false,
+        lowConfidence: isLowConfidence,
+        expenseDate: r.date ?? "",
+        merchant: (r.extracted_data?.merchant_name as string) ?? r.description ?? "",
+        transport: r.transportation ?? 0,
+        accommodation: r.accommodation ?? 0,
+        meals: r.meals ?? 0,
+        others: r.others ?? 0,
+        notes: r.description ?? "",
+      };
+    });
 
     // Merge both — successful first, then failed (for display order)
     const mappedReceipts = [...successReceipts, ...skippedReceipts];

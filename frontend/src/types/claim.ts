@@ -15,9 +15,14 @@ export interface DbEmployee {
 
 /** OCR extraction result for a single uploaded receipt. */
 export interface OcrReceiptData {
-  receiptIndex:  number;
-  /** false = OCR failed; all amount fields will be 0, form fields left blank */
-  success:       boolean;
+  receiptIndex:   number;
+  /** false = OCR failed or was skipped; all amount fields will be 0, form fields left blank */
+  success:        boolean;
+  /**
+   * true = OCR ran but returned low-confidence results (confidence < 0.7).
+   * Only meaningful when success = false.
+   */
+  lowConfidence?: boolean;
   expenseDate:   string;  // "YYYY-MM-DD"
   merchant:      string;
   transport:     number;  // RM

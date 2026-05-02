@@ -160,7 +160,9 @@ function ReceiptCard({ receipt, index, onChange }: ReceiptCardProps) {
         <div className="mx-4 mb-3 px-3 py-2.5 rounded-xl bg-amber-100/80 border border-amber-200/60 flex items-start gap-2">
           <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" strokeWidth={1.75} />
           <p className="text-xs text-amber-700 font-body leading-relaxed">
-            OCR could not read this receipt. Please fill in all fields manually.
+            {receipt.lowConfidence
+              ? "Low confident! OCR could make mistake reading this receipt. Please check!"
+              : "OCR could not read this receipt. Please fill in all fields manually."}
           </p>
         </div>
       )}
