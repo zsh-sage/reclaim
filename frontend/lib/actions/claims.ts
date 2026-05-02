@@ -9,6 +9,7 @@ import type {
   ClaimSummary,
   DetailedClaim,
   ReimbursementRaw,
+  PayoutInfo,
   DocumentUploadResponse,
   EditDocumentRequest,
   EditDocumentResponse,
@@ -163,5 +164,11 @@ export async function deleteDraft(draftId: string): Promise<{ error?: string }> 
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to delete draft" };
   }
+}
+
+export async function getPayoutStatus(reimId: string): Promise<PayoutInfo | null> {
+  const result = await apiGet<PayoutInfo>(`${API_PREFIX}/payouts/${reimId}`);
+  if (result.data) return result.data;
+  return null;
 }
 

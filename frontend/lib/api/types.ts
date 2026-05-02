@@ -55,7 +55,7 @@ export interface DashboardStats {
 
 // ─── Claims ──────────────────────────────────────────────────────────────────
 
-export type ClaimStatus = "Pending" | "Approved" | "Paid" | "Rejected";
+export type ClaimStatus = "Pending" | "Approved" | "Paid" | "Rejected" | "Disbursing";
 
 export interface ClaimSummary {
   id: string;
@@ -105,10 +105,12 @@ export interface ReimbursementRaw {
   judgment: "APPROVED" | "REJECTED" | "PARTIAL" | "NEEDS_INFO";
   confidence: number | null;
   ai_reasoning: Record<string, unknown>;
-  status: "PENDING" | "REVIEW" | "APPROVED" | "REJECTED" | "APPEALED";
+  status: "PENDING" | "REVIEW" | "APPROVED" | "REJECTED" | "APPEALED" | "DISBURSING" | "PAID" | "DISBURSEMENT_FAILED";
   summary: string;
   reviewed_by?: string | null;
   reviewed_at?: string | null;
+  ready_for_payout?: boolean;
+  payout?: PayoutInfo | null;
   created_at: string | null;
   updated_at?: string | null;
   sub_categories: string[];
@@ -134,8 +136,10 @@ export function mapReimbursementToClaim(r: ReimbursementRaw): ClaimSummary {
     PENDING: "Pending",
     REVIEW: "Pending",
     APPEALED: "Pending",
-    Paid: "Paid",
+    DISBURSING: "Disbursing",
     PAID: "Paid",
+    DISBURSEMENT_FAILED: "Rejected",
+    Paid: "Paid",
   };
 
   return {
@@ -314,16 +318,47 @@ export interface Notification {
 // ─── Settings & Banking ──────────────────────────────────────────────────────
 
 export interface BankingDetails {
-  id: string;
-  institutionName: string;
-  accountLastFour: string;
-  routingType: string;
-  updatedAt: string;
+  bank_code: string | null;
+  bank_account_number: string | null;
+  bank_account_holder_name: string | null;
+  bank_name: string | null;
+}
+
+export interface BankingUpdateRequest {
+  bank_code: string;
+  bank_account_number: string;
+  bank_account_holder_name: string;
 }
 
 export interface UserProfileUpdate {
   name: string;
   email: string;
+}
+
+// ─── Payouts ──────────────────────────────────────────────────────────────────
+
+export interface PayoutInfo {
+  payout_id: string;
+  amount: number;
+  currency: string;
+  status: "ACCEPTED" | "REQUESTED" | "SUCCEEDED" | "FAILED" | "CANCELLED" | "REVERSED";
+  xendit_id?: string | null;
+  channel_code: string;
+  failure_code?: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface PayoutChannel {
+  channel_code: string;
+  channel_category: string;
+  currency: string;
+  channel_name: string;
+  amount_limits: {
+    minimum: number;
+    maximum: number;
+    minimum_increment: number;
+  };
 }
 
 // ─── Document Upload ─────────────────────────────────────────────────────────

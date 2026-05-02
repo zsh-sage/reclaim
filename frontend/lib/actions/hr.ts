@@ -6,8 +6,8 @@
 // Maps backend ReimbursementRaw → Claim (list row) and ClaimBundle (detail).
 // ──────────────────────────────────────────────────────────────────────────────
 
-import { apiGet, apiPatch, apiPostMultipart, API_PREFIX } from "@/lib/api/client";
-import type { ReimbursementRaw, Claim, ClaimBundle, AiStatus } from "@/lib/api/types";
+import { apiGet, apiPatch, apiPost, apiPostMultipart, API_PREFIX } from "@/lib/api/client";
+import type { ReimbursementRaw, Claim, ClaimBundle, PayoutInfo, AiStatus } from "@/lib/api/types";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -192,4 +192,10 @@ export async function uploadPolicy(formData: FormData): Promise<{ ok: boolean; e
     return { ok: false, error: result.error };
   }
   return { ok: true };
+}
+
+export async function triggerPayout(reimId: string): Promise<{ payout: PayoutInfo | null; error: string | null }> {
+  const result = await apiPost<PayoutInfo>(`${API_PREFIX}/payouts/`, { reim_id: reimId });
+  if (result.error) return { payout: null, error: result.error };
+  return { payout: result.data, error: null };
 }

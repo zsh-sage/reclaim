@@ -1,20 +1,67 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Settings, User, Bell, Shield, Wallet, ChevronRight, Save, LifeBuoy } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
-import { getBankingDetails } from "@/lib/actions/settings";
+import { getBankingDetails, updateBankingDetails, getPayoutChannels } from "@/lib/actions/settings";
 import type { BankingDetails } from "@/lib/api/types";
+
+const CHANNEL_NAMES: Record<string, string> = {
+  MY_MAYBANK: "Maybank",
+  MY_CIMB: "CIMB Bank",
+  MY_PBB: "Public Bank",
+  MY_RHB: "RHB Bank",
+  MY_HLBB: "Hong Leong Bank",
+  MY_AMBANK: "AmBank",
+  MY_UOB: "UOB Malaysia",
+  MY_OCBC: "OCBC Malaysia",
+  MY_AFFIN: "Affin Bank",
+};
+
+function maskAccount(account: string | null | undefined): string {
+  if (!account) return "••••";
+  if (account.length <= 4) return account;
+  return "•••• " + account.slice(-4);
+}
 
 export default function SettingsLegacyContent() {
   const { user } = useAuth();
   const [banking, setBanking] = useState<BankingDetails | null>(null);
+  const [channels, setChannels] = useState<{ channel_code: string; channel_name: string }[]>([]);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  // Fetch banking details via server action
+  const [bankCode, setBankCode] = useState("");
+  const [accountNumber, setAccountNumber] = useState("");
+  const [holderName, setHolderName] = useState("");
+
   useEffect(() => {
-    getBankingDetails().then(setBanking);
+    getBankingDetails().then((data) => {
+      setBanking(data);
+      setBankCode(data.bank_code || "");
+      setAccountNumber(data.bank_account_number || "");
+      setHolderName(data.bank_account_holder_name || "");
+    });
+    getPayoutChannels().then(setChannels);
   }, []);
+
+  const handleSave = useCallback(async () => {
+    if (!bankCode || !accountNumber || !holderName) return;
+    setSaving(true);
+    const updated = await updateBankingDetails({
+      bank_code: bankCode,
+      bank_account_number: accountNumber,
+      bank_account_holder_name: holderName,
+    });
+    setBanking(updated);
+    setEditing(false);
+    setSaving(false);
+  }, [bankCode, accountNumber, holderName]);
+
+  const bankDisplayName = banking?.bank_code
+    ? CHANNEL_NAMES[banking.bank_code] || banking.bank_code
+    : null;
 
   return (
     <div className="relative min-h-full p-6 md:p-10 lg:p-12">
@@ -112,29 +159,97 @@ export default function SettingsLegacyContent() {
               </div>
             </section>
 
-            {/* Banking MVP Section */}
+            {/* Banking Section */}
             <section className="bg-surface-container-lowest border border-outline-variant/10 rounded-2xl overflow-hidden shadow-sm">
               <div className="p-6 border-b border-outline-variant/10">
                 <h2 className="font-headline font-bold text-lg text-on-surface mb-1">Banking & Payouts</h2>
                 <p className="font-body text-sm text-on-surface-variant">Where should we send your reimbursements?</p>
               </div>
               <div className="p-6">
-                <div className="flex items-center justify-between p-4 border border-outline-variant/20 rounded-xl bg-surface-container-low hover:bg-surface-container cursor-pointer transition-colors group">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 bg-primary-container text-on-primary-container rounded-lg">
-                      <Wallet className="w-5 h-5" />
+                {!editing ? (
+                  <div
+                    className="flex items-center justify-between p-4 border border-outline-variant/20 rounded-xl bg-surface-container-low hover:bg-surface-container cursor-pointer transition-colors group"
+                    onClick={() => setEditing(true)}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="p-3 bg-primary-container text-on-primary-container rounded-lg">
+                        <Wallet className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="font-headline font-bold text-sm text-on-surface">
+                          {bankDisplayName
+                            ? `${bankDisplayName} ${maskAccount(banking?.bank_account_number)}`
+                            : "No bank account set up"}
+                        </p>
+                        <p className="font-body text-xs text-on-surface-variant">
+                          {banking?.bank_account_holder_name
+                            ? `${banking.bank_account_holder_name}`
+                            : "Tap to add your banking details"}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-headline font-bold text-sm text-on-surface">
-                        {banking ? `${banking.institutionName} •••• ${banking.accountLastFour}` : "Loading…"}
-                      </p>
-                      <p className="font-body text-xs text-on-surface-variant">
-                        {banking ? `${banking.routingType} • Updated ${banking.updatedAt}` : ""}
-                      </p>
+                    <ChevronRight className="w-5 h-5 text-on-surface-variant group-hover:translate-x-1 transition-transform" />
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="space-y-1.5">
+                      <label className="font-label text-xs font-bold text-on-surface-variant uppercase tracking-wider">Bank</label>
+                      <select
+                        value={bankCode}
+                        onChange={(e) => setBankCode(e.target.value)}
+                        className="w-full bg-surface-container text-on-surface px-4 py-2.5 rounded-xl border border-transparent focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all appearance-none"
+                      >
+                        <option value="">Select your bank</option>
+                        {channels.map((c) => (
+                          <option key={c.channel_code} value={c.channel_code}>
+                            {c.channel_name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="font-label text-xs font-bold text-on-surface-variant uppercase tracking-wider">Account Holder Name</label>
+                      <input
+                        type="text"
+                        value={holderName}
+                        onChange={(e) => setHolderName(e.target.value)}
+                        placeholder="Ali Baba"
+                        className="w-full bg-surface-container text-on-surface px-4 py-2.5 rounded-xl border border-transparent focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="font-label text-xs font-bold text-on-surface-variant uppercase tracking-wider">Account Number</label>
+                      <input
+                        type="text"
+                        value={accountNumber}
+                        onChange={(e) => setAccountNumber(e.target.value)}
+                        placeholder="1234567890"
+                        className="w-full bg-surface-container text-on-surface px-4 py-2.5 rounded-xl border border-transparent focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+                      />
+                    </div>
+                    <div className="flex justify-end gap-3 pt-2">
+                      <button
+                        onClick={() => {
+                          setEditing(false);
+                          setBankCode(banking?.bank_code || "");
+                          setAccountNumber(banking?.bank_account_number || "");
+                          setHolderName(banking?.bank_account_holder_name || "");
+                        }}
+                        className="px-4 py-2 rounded-xl text-sm font-semibold text-on-surface-variant hover:bg-surface-container transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleSave}
+                        disabled={saving || !bankCode || !accountNumber || !holderName}
+                        className="flex items-center gap-2 bg-primary text-on-primary px-5 py-2.5 rounded-xl font-bold text-sm hover:shadow-md hover:-translate-y-0.5 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <Save className="w-4 h-4" />
+                        {saving ? "Saving…" : "Save Banking Details"}
+                      </button>
                     </div>
                   </div>
-                  <ChevronRight className="w-5 h-5 text-on-surface-variant group-hover:translate-x-1 transition-transform" />
-                </div>
+                )}
               </div>
             </section>
 

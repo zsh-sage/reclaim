@@ -14,6 +14,7 @@ from core.enums import (
     JudgmentResult,
     DocumentClass,
     PolicyStatus,
+    PayoutStatus,
 )
 
 
@@ -60,6 +61,18 @@ class User(SQLModel, table=True):
     is_active: bool = Field(
         default=True,
         sa_column=Column(Boolean, nullable=False)
+    )
+    bank_code: Optional[str] = Field(
+        default=None,
+        sa_column=Column(String)
+    )
+    bank_account_number: Optional[str] = Field(
+        default=None,
+        sa_column=Column(String)
+    )
+    bank_account_holder_name: Optional[str] = Field(
+        default=None,
+        sa_column=Column(String)
     )
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
@@ -606,4 +619,98 @@ class ClaimDraft(SQLModel, table=True):
     updated_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(DateTime(timezone=True))
+    )
+
+
+# ---------------------------------------------------------------------------
+# 15. payouts
+# ---------------------------------------------------------------------------
+
+class Payout(SQLModel, table=True):
+    __tablename__ = "payouts"
+
+    payout_id: UUID = Field(
+        default_factory=uuid4,
+        primary_key=True
+    )
+    reim_id: UUID = Field(
+        foreign_key="reimbursements.reim_id",
+        index=True
+    )
+    user_id: UUID = Field(
+        foreign_key="employees.user_id",
+        index=True
+    )
+    amount: float = Field(
+        sa_column=Column(Numeric(12, 2), nullable=False)
+    )
+    currency: str = Field(
+        sa_column=Column(String(3), nullable=False)
+    )
+    status: PayoutStatus = Field(
+        default=PayoutStatus.ACCEPTED,
+        sa_column=Column(String, nullable=False, index=True)
+    )
+    xendit_id: Optional[str] = Field(
+        default=None,
+        sa_column=Column(String)
+    )
+    idempotency_key: str = Field(
+        sa_column=Column(String, nullable=False)
+    )
+    reference_id: str = Field(
+        sa_column=Column(String, nullable=False)
+    )
+    channel_code: str = Field(
+        sa_column=Column(String, nullable=False)
+    )
+    failure_code: Optional[str] = Field(
+        default=None,
+        sa_column=Column(String)
+    )
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(DateTime(timezone=True))
+    )
+    updated_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(DateTime(timezone=True))
+    )
+
+
+# ---------------------------------------------------------------------------
+# 16. notifications
+# ---------------------------------------------------------------------------
+
+class Notification(SQLModel, table=True):
+    __tablename__ = "notifications"
+
+    notification_id: UUID = Field(
+        default_factory=uuid4,
+        primary_key=True
+    )
+    user_id: UUID = Field(
+        foreign_key="employees.user_id",
+        index=True
+    )
+    type: str = Field(
+        sa_column=Column(String, nullable=False)
+    )
+    title: str = Field(
+        sa_column=Column(String(255), nullable=False)
+    )
+    message: str = Field(
+        sa_column=Column(Text, nullable=False)
+    )
+    link: Optional[str] = Field(
+        default=None,
+        sa_column=Column(String)
+    )
+    is_read: bool = Field(
+        default=False,
+        sa_column=Column(Boolean, nullable=False)
+    )
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(DateTime(timezone=True), index=True)
     )

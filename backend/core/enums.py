@@ -18,6 +18,18 @@ class ReimbursementStatus(str, enum.Enum):
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
     APPEALED = "APPEALED"
+    DISBURSING = "DISBURSING"
+    PAID = "PAID"
+    DISBURSEMENT_FAILED = "DISBURSEMENT_FAILED"
+
+
+class PayoutStatus(str, enum.Enum):
+    ACCEPTED = "ACCEPTED"
+    REQUESTED = "REQUESTED"
+    SUCCEEDED = "SUCCEEDED"
+    FAILED = "FAILED"
+    CANCELLED = "CANCELLED"
+    REVERSED = "REVERSED"
 
 
 class JudgmentResult(str, enum.Enum):

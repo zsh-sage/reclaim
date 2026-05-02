@@ -27,6 +27,12 @@ class Settings(BaseSettings):
     VISION_MODEL: str = "meta-llama/llama-3.2-11b-vision-instruct"
     EMBEDDING_MODEL: str = "openai/text-embedding-3-small"
 
+    # Xendit
+    XENDIT_API_KEY: str = ""
+    XENDIT_WEBHOOK_TOKEN: str = ""
+    XENDIT_BASE_URL: str = "https://api.xendit.co"
+    XENDIT_MOCK_MODE: bool = False
+
     model_config = SettingsConfigDict(env_file="../.env", env_file_encoding="utf-8", extra="ignore")
 
     @model_validator(mode="after")

@@ -24,7 +24,7 @@ from api.schemas import (
 from core.models import (
     User, Reimbursement, SupportingDocument, TravelSettlement, Policy,
     LineItem, ReimbursementSubCategory, SettlementCategory,
-    Department,
+    Department, Payout, Notification,
 )
 from core.enums import UserRole, ReimbursementStatus, JudgmentResult, PolicyStatus
 from core.database import engine as db_engine
@@ -40,6 +40,9 @@ _STATUS_TO_JUDGMENT = {
     ReimbursementStatus.APPROVED: JudgmentResult.APPROVED,
     ReimbursementStatus.REJECTED: JudgmentResult.REJECTED,
     ReimbursementStatus.REVIEW:   JudgmentResult.NEEDS_INFO,
+    ReimbursementStatus.DISBURSING: JudgmentResult.APPROVED,
+    ReimbursementStatus.PAID: JudgmentResult.APPROVED,
+    ReimbursementStatus.DISBURSEMENT_FAILED: JudgmentResult.APPROVED,
 }
 
 
@@ -134,6 +137,23 @@ def _build_reimbursement_response(
             }
             for li in line_items
         ]
+
+    # Include payout info if one exists
+    payout = db.exec(
+        select(Payout).where(Payout.reim_id == r.reim_id)
+    ).first()
+    if payout:
+        result["payout"] = {
+            "payout_id": str(payout.payout_id),
+            "amount": float(payout.amount),
+            "currency": payout.currency,
+            "status": _enum_val(payout.status),
+            "xendit_id": payout.xendit_id,
+            "channel_code": payout.channel_code,
+            "failure_code": payout.failure_code,
+            "created_at": payout.created_at.isoformat() if payout.created_at else None,
+            "updated_at": payout.updated_at.isoformat() if payout.updated_at else None,
+        }
 
     return result
 
@@ -272,10 +292,37 @@ def update_reimbursement_status(
         r.ai_reasoning = reasoning
     r.updated_at = datetime.now(timezone.utc)
     db.add(r)
+
+    # Create notification for the employee
+    reim_short = str(r.reim_id)[:8]
+    if body.status == ReimbursementStatus.APPROVED:
+        notif = Notification(
+            user_id=r.user_id,
+            type="success",
+            title=f"Claim RC-{reim_short} approved",
+            message=f"Your claim for MYR {float(r.total_approved_amount or 0):,.2f} has been approved and is ready for payout.",
+            link=f"/employee/history?id={r.reim_id}",
+            is_read=False,
+        )
+        db.add(notif)
+    elif body.status == ReimbursementStatus.REJECTED:
+        hr_note_text = body.hr_note or "No reason provided"
+        notif = Notification(
+            user_id=r.user_id,
+            type="error",
+            title=f"Claim RC-{reim_short} rejected",
+            message=f"Your claim was rejected. Reason: {hr_note_text[:200]}",
+            link=f"/employee/history?id={r.reim_id}",
+            is_read=False,
+        )
+        db.add(notif)
+
     db.commit()
     db.refresh(r)
 
-    return _build_reimbursement_response(r, db, include_line_items=True)
+    result = _build_reimbursement_response(r, db, include_line_items=True)
+    result["ready_for_payout"] = body.status == ReimbursementStatus.APPROVED
+    return result
 
 
 @router.get("/{reim_id}/line-items")

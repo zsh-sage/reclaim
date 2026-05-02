@@ -19,6 +19,8 @@ from api.rate_limit import limiter
 from api.auth import router as auth_router
 from api.documents import router as documents_router
 from api.notifications import router as notifications_router
+from api.payouts import router as payouts_router
+from api.employee import router as employee_router
 from api.policies import router as policies_router
 from api.reimbursements import router as reimbursements_router
 from api.drafts import router as drafts_router
@@ -71,6 +73,8 @@ app.include_router(documents_router, prefix=f"{settings.API_V1_STR}/documents", 
 app.include_router(notifications_router, prefix=f"{settings.API_V1_STR}/notifications", tags=["notifications"])
 app.include_router(policies_router, prefix=f"{settings.API_V1_STR}/policies", tags=["policies"])
 app.include_router(reimbursements_router, prefix=f"{settings.API_V1_STR}/reimbursements", tags=["reimbursements"])
+app.include_router(payouts_router, prefix=f"{settings.API_V1_STR}/payouts", tags=["payouts"])
+app.include_router(employee_router, prefix=f"{settings.API_V1_STR}/employee", tags=["employee"])
 app.include_router(departments_router, prefix=f"{settings.API_V1_STR}/departments", tags=["departments"])
 app.include_router(drafts_router, prefix=f"{settings.API_V1_STR}/drafts", tags=["drafts"])
 # DISPOSABLE — Remove before production

@@ -32,7 +32,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   return {
     awaitingReview: bucket(["REVIEW", "PENDING", "APPEALED"]),
     reimbursedThisMonth: bucket(["APPROVED"]),
-    alreadyPaid: bucket(["Paid", "PAID"]),
+    alreadyPaid: bucket(["PAID"]),
   };
 }
 
