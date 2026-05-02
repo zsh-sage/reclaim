@@ -77,7 +77,7 @@ Compliance per-receipt ReAct agents run in parallel (≤4 workers, ≤5 tool cal
 ### LLM Configuration (`core/config.py`)
 
 Three model roles, all configurable via `.env`:
-- `CHAT_MODEL` via `LLM_BASE_URL` (primary text — currently Gemini via OpenRouter, GLM-5.1 deactivated)
+- `CHAT_MODEL` via `LLM_BASE_URL` (primary text — GLM-5.1 via ILMU API, with per-call Gemini fallback via `_GLMWithGeminiFallback`)
 - `VISION_MODEL` via `OPENROUTER_BASE_URL` (image OCR — Qwen3.5-flash)
 - `EMBEDDING_MODEL` via OpenRouter (policy embeddings — text-embedding-3-small)
 
@@ -123,4 +123,4 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 - **Human-in-the-loop required:** No claim reaches `APPROVED`/`REJECTED` status without an explicit HR action. The AI produces a `judgment` field; the `status` field reflects the final HR decision.
 - **Fraud trap is immutable:** When an employee edits an AI-extracted field, `human_edited=True` and the `change_summary` JSONB are written once and never overwritten. Do not add update paths for these fields.
 - **Pipeline failures default to MANUAL_REVIEW:** Any unhandled exception in the Compliance Agent must resolve to `MANUAL_REVIEW`, not a dropped claim. This is enforced in the final `save_reimbursement` node.
-- **GLM-5.1 is deactivated:** The `check_glm_health()` call in `main.py` and ILMU API references remain in the codebase but are bypassed. Do not remove the dead code — it may be re-enabled when upstream stabilizes.
+- **GLM-5.1 startup health check is bypassed:** `check_glm_health()` in `main.py` is a no-op. Resilience is enforced per-call via `_GLMWithGeminiFallback` in `engine/llm.py` — if GLM returns an error or empty body, the call retries on Gemini and triggers a 5-minute push notification via `core/notification_store.py`.

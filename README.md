@@ -49,8 +49,8 @@ Reclaim is not a black box. Every judgment is explainable — every policy rule 
 - 📸 **Multi-Modal OCR Submission**
   Employees upload up to 10 receipt files (JPEG, PNG, PDF) per submission. Image receipts are routed to **`qwen3.5-flash-02-23`** (via OpenRouter) using multimodal base64 prompting. PDF receipts are converted to markdown via **PyMuPDF4LLM** and routed to **`gemini-3.1-flash-lite-preview`** in JSON mode. Both routes extract the same structured payload: merchant name, date, amount, currency, category, items summary, confidence score, and anomaly flags. Up to 4 receipts are processed in parallel via `ThreadPoolExecutor`, keeping processing time proportional to the slowest individual receipt rather than the sum.
 
-- 🔄 **Robust LLM Architecture**
-  *(Note: The original GLM-5.1 and GLM-4V integrations have been temporarily deactivated due to upstream API instability. **`google/gemini-3.1-flash-lite-preview`** currently serves as the primary text engine, and **`qwen3.5-flash-02-23`** serves as the primary vision engine.)* All three agent workflows (Policy, Document, Compliance) operate seamlessly on the new configuration.
+- 🔄 **Resilient LLM Architecture with Live Fallback**
+  GLM-5.1 (ILMU API) is the primary text engine. If GLM fails or returns an empty response on any call, the system transparently retries that call using **`google/gemini-3.1-flash-lite-preview`** via OpenRouter — no request is dropped. When the fallback is triggered, a system notification is pushed to all authenticated users for 5 minutes: *"AI model degraded — using Gemini backup model."* All three agent workflows (Policy, Document, Compliance) work seamlessly on either engine.
 
 - 🧠 **Living Policy Intelligence (Policy Studio)**
   HR uploads company policy PDFs via the Policy Studio. The **Policy Agent** runs a 5-node LangGraph pipeline: `process_pdfs → extract_categories_and_summary → extract_conditions → save_to_db → embed_and_save_sections`. Gemini is called twice — once to extract reimbursable categories and a 150-word overview summary, and once to extract per-category mandatory conditions as structured JSON. A fifth node batch-embeds all policy text chunks via `text-embedding-3-small` and writes them as `policy_sections` rows with 1536-dim **pgvector** embeddings, enabling RAG-based policy lookup by the Compliance Agent at evaluation time.
@@ -129,11 +129,10 @@ Compliance Agent (5 nodes):
 
 | Model | Provider | Route | Role |
 |---|---|---|---|
-| `google/gemini-3.1-flash-lite-preview` | OpenRouter | Primary text | Policy extraction, PDF receipt OCR (JSON mode), per-receipt & final compliance ReAct agents (Replaces GLM-5.1 due to instability) |
+| `ilmu-glm-5.1` | ILMU API | Primary text | Policy extraction, PDF receipt OCR (JSON mode), per-receipt & final compliance ReAct agents |
+| `google/gemini-3.1-flash-lite-preview` | OpenRouter | Text fallback | Automatic per-call fallback when GLM fails or returns empty. Triggers a 5-minute push notification to all users. |
 | `qwen/qwen3.5-flash-02-23` | OpenRouter | Vision | Image receipt OCR (JPEG/PNG) — multimodal base64 prompting |
 | `text-embedding-3-small` | OpenRouter | Embedding | Policy section chunk embeddings (1536-dim, pgvector, batch at policy upload) + RAG query embeddings at evaluation time |
-| `GLM-5.1` | ILMU API | Deactivated | Original primary text model. Startup health check and failover logic remains in codebase but is currently bypassed. |
-| `GLM-4V` (GLM 4.6 Vision) | OpenRouter | Deactivated | Original primary vision model. Deactivated due to upstream API instability. |
 
 ### 📈 Infrastructure & Observability
 
@@ -156,7 +155,7 @@ Compliance Agent (5 nodes):
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/<your-org>/reclaim.git
+git clone https://github.com/zsh-sage/reclaim.git
 cd reclaim
 ```
 
@@ -168,44 +167,41 @@ cp backend/.env.example backend/.env
 ```
 
 ```env
-# backend/.env
+# .env (root)
 
 # Database
-DATABASE_URL=postgresql://postgres:password@localhost:5432/reclaim
-
-# LLM Providers
-ILMU_API_KEY=your_ilmu_api_key           # GLM-5.1 & GLM-4V (Currently Deactivated)
-OPENROUTER_API_KEY=your_openrouter_key   # Gemini text + Qwen vision + OpenAI embeddings
-
-# LLM Base URL
-LLM_BASE_URL=https://api.ilmu.ai/v1
-# LLM_BASE_URL=https://openrouter.ai/api/v1               # Fallback if GLM 5.1 is not available
-OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
-
-# LLM Models
-CHAT_MODEL=ilmu-glm-5.1                           
-# CHAT_MODEL=google/gemini-3.1-flash-lite-preview         # Fallback if GLM 5.1 is not available
-VISION_MODEL=qwen/qwen3.5-flash-02-23
-EMBEDDING_MODEL=openai/text-embedding-3-small
+POSTGRES_USER=admin
+POSTGRES_PASSWORD=password
+POSTGRES_DB=smart_reimburse
+DATABASE_URL=postgresql://admin:password@localhost:5432/smart_reimburse
 
 # Auth
 SECRET_KEY=your_secret_key_here
 
+# CORS
+FRONTEND_URLS="https://your-domain.com,http://localhost:3000"
+
+# Primary text LLM (GLM-5.1 via ILMU)
+LLM_API_KEY=your_ilmu_api_key
+LLM_BASE_URL=https://api.ilmu.ai/v1
+CHAT_MODEL=ilmu-glm-5.1
+
+# Vision + embedding + Gemini fallback (OpenRouter)
+OPENROUTER_API_KEY=your_openrouter_key
+OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
+VISION_MODEL=qwen/qwen3.5-flash-02-23
+EMBEDDING_MODEL=openai/text-embedding-3-small
+
 # Observability (optional — tracing disabled if unset)
-LANGSMITH_API_KEY=your_langsmith_api_key
-LANGCHAIN_TRACING_V2=true
+LANGCHAIN_TRACING=true
+LANGCHAIN_ENDPOINT=https://api.smith.langchain.com
+LANGCHAIN_API_KEY=your_langsmith_api_key
 LANGCHAIN_PROJECT=um_hackathon
-```
 
-**Frontend:**
-```bash
-cp frontend/.env.example frontend/.env.local
-```
-
-```env
-# frontend/.env.local
-
-NEXT_PUBLIC_API_URL=http://localhost:8000
+# Frontend (Docker Compose)
+NODE_ENV=production
+NEXT_PUBLIC_API_URL=http://localhost:3000
+INTERNAL_API_URL=http://backend:8000
 ```
 
 ### 3. Start the Application
@@ -217,7 +213,7 @@ Both the frontend and backend are run via Docker Compose for maximum stability a
 docker compose up --build -d
 ```
 
-> **Note:** The backend previously probed GLM-5.1 with a 15-second health check at startup. Due to API instability, this has been bypassed, and `google/gemini-3.1-flash-lite-preview` is used directly as the primary text engine via OpenRouter.
+> **Note:** Resilience is enforced per-call via the `_GLMWithGeminiFallback` wrapper: if GLM returns an error or an empty body, the same request is retried transparently on Gemini and all authenticated users receive a temporary push notification.
 
 The services will be available at:
 - **Frontend App:** `http://localhost:3000`

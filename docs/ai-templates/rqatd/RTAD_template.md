@@ -30,30 +30,13 @@ _Execute the tests drafted in_ _**Part 1** . You must provide a link to visual p
 
 |**Test**<br>**Case ID**|**Test Type &**<br>**Mapped**<br>**Feature**|**Test Description**|**Expected**<br>**Result**|**Actual**<br>**Result**|**Status**|**Proof of**<br>**Execution**<br>**(Required**<br>**for**<br>**P0/Critical**<br>**tests)**|
 |---|---|---|---|---|---|---|
-|_TC-01_|**_Happy Case_**<br>**_(Entire_**<br>**_Flow):_**_[e.g._<br>_User places_<br>_order of_<br>_food, end to_<br>_end]_|_[e.g. Verifies that_<br>_a registered users_<br>_can do browse_<br>_the restaurants,_<br>_adding items to_<br>_the cart, and does_<br>_checkout_<br>_successfully.]_|_[e.g. Order_<br>_gets_<br>_confirmed._<br>_ID is_<br>_generated,_<br>_status is_<br>_updated to_<br>_processing_<br>_and Riders_|_[e.g. Order_<br>_Placed,_<br>_confirmation_<br>_displayed,_<br>_but with_<br>_Incorrect_<br>_summaries]._|_[e.g. Fail]_|_[Screenshot]_|
-
-
-
-_© UMHackathon 2026_ 
-
-_Email: umhackathon@um.edu.my_ 
-
-3 
-
-|**Test**<br>**Case ID**|**Test Type &**<br>**Mapped**<br>**Feature**|**Test Description**|**Expected**<br>**Result**|**Actual**<br>**Result**|**Status**|**Proof of**<br>**Execution**<br>**(Required**<br>**for**<br>**P0/Critical**<br>**tests)**|
-|---|---|---|---|---|---|---|
-||||_gets_<br>_assigned.]_||||
+|_TC-01_|**_Happy Case_**<br>**_(Entire_**<br>**_Flow):_**_[e.g._<br>_User places_<br>_order of_<br>_food, end to_<br>_end]_|_[e.g. Verifies that_<br>_a registered users_<br>_can do browse_<br>_the restaurants,_<br>_adding items to_<br>_the cart, and does_<br>_checkout_<br>_successfully.]_|_[e.g. Order_<br>_gets_<br>_confirmed._<br>_ID is_<br>_generated,_<br>_status is_<br>_updated to_<br>_processing_<br>_and Riders_<br>_gets_<br>_assigned.]_|_[e.g. Order_<br>_Placed,_<br>_confirmation_<br>_displayed,_<br>_but with_<br>_Incorrect_<br>_summaries]._|_[e.g. Fail]_|_[Screenshot]_|
 |_TC-02_|**_Specific_**<br>**_Case_**<br>**_(Negative):_**<br>_[e.g._<br>_Checkout_<br>_with Empty_<br>_Cart]_|_[e.g. Verify that_<br>_the system we_<br>_built blocks_<br>_checkout when_<br>_the cart is_<br>_completely empty_<br>_and shows the_<br>_appropriate_<br>_errors.]_|_[e.g._<br>_Checkout_<br>_button_<br>_entirely_<br>_disables and_<br>_returns error_<br>_like “Your_<br>_cart is_<br>_Empty”, but_<br>_don’t crash.]_|_[e.g._<br>_Checkout_<br>_Blocked._<br>_Error_<br>_displayed_<br>_clearly and_<br>_application_<br>_didn’t fail.]_|_Pass_|_[Screenshot]_|
 |_TC-03_|**_NFR_**<br>**_(Performan_**<br>**_ce):_**<br>_Concurrent_<br>_Order API_<br>_Load_|_[e.g. For our case,_<br>_API maintains_<br>_sub-800ms_<br>_latency especially_<br>_under 50 requests_<br>_coming_<br>_simultaneously]_|_Average_<br>_response_<br>_time of ours_<br>_should be_<br>_<800 with_<br>_0% error_<br>_rate._|_Average_<br>_response_<br>_time was_<br>_913ms._<br>_Though 0_<br>_errors._|_Failed_|_[Screenshot_<br>_URL of_<br>_Postman_<br>_Runner_<br>_results /_<br>_Terminal_<br>_output]_|
 |_TC- AI-01_|**_AI Output_**<br>**_Validation:_**<br>_GLM_<br>_dish/Food_<br>_Recommend_<br>_ation_|_[e.g. Sent a_<br>_prompt to Z.AI_<br>_GLM with a user’s_<br>_last 5 orders and_<br>_their preference_<br>_of Diet and_<br>_returned_<br>_hallucination free_<br>_recommendation._|_GLM does_<br>_return 3 dish_<br>_recommenda_<br>_tion. The_<br>_food was_<br>_according to_<br>_diet._|_[Received_<br>_Output]_|_Passed_|_[Screenshot_<br>_of Prompt &_<br>_Response +_<br>_Parsed_<br>_Recommend_<br>_ation]_|
 
 
 
-_© UMHackathon 2026_ 
-
-_Email: umhackathon@um.edu.my_ 
-
-4 
 
 ## _**2. Automated Testing Pipeline**_ 
 
@@ -75,11 +58,6 @@ _Unit testing is primarily focused on Isolation of the individual components or 
 
 _**Execution Proof** : [Screenshot of your terminal with the tests conducted or CI/CD proof of Github conducting the tests with results is also applicable]_ 
 
-_© UMHackathon 2026_ 
-
-_Email: umhackathon@um.edu.my_ 
-
-5 
 
 ## **2.2. Integration & API Testing (System Modules)** 
 
@@ -99,11 +77,7 @@ _This test is mainly conducting communicate (e.g., Frontend to Backend, Backend 
 
 **Execution Proof:** [Screenshot of Postman Test Runner Results/ Terminal output of integration tests] 
 
-_© UMHackathon 2026_ 
 
-_Email: umhackathon@um.edu.my_ 
-
-6 
 
 ## **3. Defect Log & Fix Traceability (Root Cause Analysis)** 
 
@@ -127,20 +101,7 @@ _**Note: Proactively documenting minor issues demonstrates engineering maturity 
 |---|---|---|---|
 |_DEF-02_|**_Technical Debt:_**_The admin login_<br>_is currently hardcoded and_<br>_doesn't verify against the_<br>_database._|_Low priority UI glitch._<br>_Focused on fixing database_<br>_auth logic instead._|_[Link to open issue e.g.,_<br>_github.com/repo/issues_<br>_/4]_|
 |_DEF-03_|**_UI Glitch:_**_Dashboard profile_<br>_image stutters when resizing the_<br>_browser window to mobile size._|_Not a core functional_<br>_blocker. Lack of time to_<br>_implement responsive CSS._|_[Link to open issue]_|
-|_DEF-04_|_[e.g., Data resets if the browser_<br>_is refreshed because we used_|_[e.g., Free tier database_<br>_limits.]_|_[Link to open issue]_|
-
-
-
-_© UMHackathon 2026_ 
-
-_Email: umhackathon@um.edu.my_ 
-
-7 
-
-|**Bug ID**|**Description & Impact (Bug or**<br>**Technical Debt)**|**Reason for Deferral**|**GitHub Issue Link**|
-|---|---|---|---|
-||_local storage instead of a_<br>_persistent DB.]_|||
-
+|_DEF-04_|_[e.g., Data resets if the browser_<br>_is refreshed because we used_local storage instead of a_<br>_persistent DB.]_|_[e.g., Free tier database_<br>_limits.]_|_[Link to open issue]_|
 
 
 ## **5. Live Demo / UAT Risks** 
@@ -156,10 +117,4 @@ _Claiming a prototype has zero risks or boundaries after a rapid development cyc
 - **Risk 2:** _[e.g., "The 'Export to PDF' button takes 10-15 seconds to generate. Please click it only once and wait."]_ 
 
 - _**Risk 3:** [e.g., Browser Compatibility: "This prototype was optimized specifically for Google Chrome. Safari or mobile browsers may experience layout degradation."]_ 
-
-_© UMHackathon 2026_ 
-
-_Email: umhackathon@um.edu.my_ 
-
-8 
 
