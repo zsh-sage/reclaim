@@ -51,6 +51,7 @@ export interface HistoryClaim {
   amountNumeric: number;
   approvedAmount: number;
   status: ClaimStatus;
+  aiNote?: string;
   hrNote?: string;
   lineItems: LineItem[];
   receiptCount: number;

@@ -6,7 +6,7 @@ import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
 import { getNotifications, markAllNotificationsRead } from "@/lib/actions/notifications";
 import type { Notification } from "@/lib/api/types";
-import { Search, Upload, Bell, HelpCircle, CheckCircle2, AlertCircle, Info } from "lucide-react";
+import { Upload, Bell, HelpCircle, CheckCircle2, AlertCircle, Info } from "lucide-react";
 
 let _notifCache: { data: Notification[]; ts: number } | null = null;
 const NOTIF_TTL_MS = 15_000;

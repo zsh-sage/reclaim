@@ -89,13 +89,13 @@ function LineStatusBadge({ s }: { s: LineItem["lineStatus"] }) {
 
 // ─── HR Note Banner ───────────────────────────────────────────────────────────
 
-function HRNoteBanner({ note }: { note: string }) {
+function HRNoteBanner({ note, type }: { note: string; type: "AI" | "HR" }) {
   return (
     <div className="flex gap-3 p-3.5 rounded-xl bg-primary/5 border border-primary/15">
       <Info className="w-4 h-4 text-primary shrink-0 mt-0.5" />
       <div>
         <p className="font-headline font-semibold text-xs text-primary mb-0.5 uppercase tracking-wider">
-          HR Note
+          {type === "AI" ? "AI Note" : "HR Note"}
         </p>
         <p className="font-body text-sm text-on-surface-variant leading-relaxed">{note}</p>
       </div>
@@ -618,7 +618,8 @@ export default function ClaimSidebar({ claim, onClose, isLoading = false }: Clai
             </div>
 
             {/* ② HR NOTE ─────────────────────────────────────────────────── */}
-            {claim.hrNote && <HRNoteBanner note={claim.hrNote} />}
+            {claim.aiNote && <HRNoteBanner note={claim.aiNote} type="AI" />}
+{claim.hrNote && <HRNoteBanner note={claim.hrNote} type="HR" />}
 
             {/* CONTEXT META ──────────────────────────────────────────────── */}
             <div className="flex flex-wrap gap-3 text-xs text-on-surface-variant">
