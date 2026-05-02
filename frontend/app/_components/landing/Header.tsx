@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, type Variants } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, Menu, X } from "lucide-react";
@@ -37,7 +37,7 @@ export default function Header({ user }: { user: User | null }) {
     <motion.header
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
       className={`sticky top-0 z-50 w-full transition-all duration-300 ${
         scrolled
           ? "bg-surface/80 backdrop-blur-xl border-b border-surface-container-high/60 shadow-ambient"

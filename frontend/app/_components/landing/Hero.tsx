@@ -1,44 +1,44 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, type Variants } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, ChevronDown, Sparkles } from "lucide-react";
 import type { User } from "@/lib/api/types";
 
-const containerVariants = {
+const containerVariants: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
     transition: { staggerChildren: 0.12, delayChildren: 0.1 },
   },
-};
+} as const;
 
-const itemVariants = {
+const itemVariants: Variants = {
   hidden: { opacity: 0, y: 30 },
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] },
+    transition: { duration: 0.6, ease: "easeOut" },
   },
-};
+} as const;
 
-const floatVariants = {
+const floatVariants: Variants = {
   animate: {
     y: [0, -12, 0],
     transition: { duration: 5, repeat: Infinity, ease: "easeInOut" },
   },
-};
+} as const;
 
-const scaleInVariants = {
+const scaleInVariants: Variants = {
   hidden: { opacity: 0, scale: 0.85, y: 40 },
   visible: {
     opacity: 1,
     scale: 1,
     y: 0,
-    transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1], delay: 0.3 },
+    transition: { duration: 0.8, ease: "easeOut", delay: 0.3 },
   },
-};
+} as const;
 
 export default function Hero({ user }: { user: User | null }) {
   const dashHref = user?.role === "HR" ? "/hr/dashboard" : "/employee/dashboard";

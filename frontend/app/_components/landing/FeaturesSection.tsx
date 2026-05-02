@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, type Variants } from "framer-motion";
 import { FileLock2, LayoutGrid, ShieldAlert, UserCheck } from "lucide-react";
 
 const FEATURES = [
@@ -26,23 +26,23 @@ const FEATURES = [
   },
 ];
 
-const containerVariants = {
+const containerVariants: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
     transition: { staggerChildren: 0.15, delayChildren: 0.1 },
   },
-};
+} as const;
 
-const itemVariants = {
+const itemVariants: Variants = {
   hidden: { opacity: 0, y: 40, scale: 0.95 },
   visible: {
     opacity: 1,
     y: 0,
     scale: 1,
-    transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] },
+    transition: { duration: 0.6, ease: "easeOut" },
   },
-};
+} as const;
 
 export default function FeaturesSection() {
   return (
@@ -56,7 +56,7 @@ export default function FeaturesSection() {
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: 0.7, ease: "easeOut" }}
         >
           <span className="inline-flex items-center rounded-full border border-tertiary/20 bg-tertiary/5 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-tertiary">
             Core Features

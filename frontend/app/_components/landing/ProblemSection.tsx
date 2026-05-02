@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, type Variants } from "framer-motion";
 import { TrendingUp, FileSearch, GitCompareArrows, Hourglass } from "lucide-react";
 
 const PROBLEMS = [
@@ -26,23 +26,23 @@ const PROBLEMS = [
   },
 ];
 
-const containerVariants = {
+const containerVariants: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
     transition: { staggerChildren: 0.12, delayChildren: 0.1 },
   },
-};
+} as const;
 
-const itemVariants = {
+const itemVariants: Variants = {
   hidden: { opacity: 0, y: 30, scale: 0.95 },
   visible: {
     opacity: 1,
     y: 0,
     scale: 1,
-    transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] },
+    transition: { duration: 0.55, ease: "easeOut" },
   },
-};
+} as const;
 
 export default function ProblemSection() {
   return (
@@ -56,7 +56,7 @@ export default function ProblemSection() {
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: 0.7, ease: "easeOut" }}
         >
           <span className="inline-flex items-center rounded-full border border-error/20 bg-error-container/30 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-error">
             The Problem
