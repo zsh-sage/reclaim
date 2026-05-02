@@ -11,6 +11,7 @@ from core.enums import (
     JudgmentResult,
     DocumentClass,
     PolicyStatus,
+    PayoutStatus,
 )
 
 
@@ -347,6 +348,74 @@ class ClaimDraftSummary(BaseModel):
 class ClaimDraftFull(ClaimDraftSummary):
     settlement_id: Optional[UUID] = None
     draft_data: dict = {}
+
+    class Config:
+        from_attributes = True
+
+
+# =============================================================================
+# Payout Schemas
+# =============================================================================
+
+class BankingDetailsRequest(BaseModel):
+    bank_code: str
+    bank_account_number: str
+    bank_account_holder_name: str
+
+
+class BankingDetailsResponse(BaseModel):
+    bank_code: Optional[str] = None
+    bank_account_number: Optional[str] = None
+    bank_account_holder_name: Optional[str] = None
+    bank_name: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class CreatePayoutRequest(BaseModel):
+    reim_id: UUID
+
+
+class PayoutChannelResponse(BaseModel):
+    channel_code: str
+    channel_category: str
+    currency: str
+    channel_name: str
+    amount_limits: dict
+
+
+class PayoutResponse(BaseModel):
+    payout_id: UUID
+    reim_id: UUID
+    user_id: UUID
+    amount: float
+    currency: str
+    status: PayoutStatus
+    xendit_id: Optional[str] = None
+    reference_id: str
+    channel_code: str
+    failure_code: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# =============================================================================
+# Notification Schemas
+# =============================================================================
+
+class NotificationResponse(BaseModel):
+    notification_id: UUID
+    user_id: UUID
+    type: str
+    title: str
+    message: str
+    link: Optional[str] = None
+    is_read: bool
+    created_at: datetime
 
     class Config:
         from_attributes = True

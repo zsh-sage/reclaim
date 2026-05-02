@@ -178,9 +178,9 @@ export default function SettingsLegacyContent() {
                     <div>
                       <p className="font-headline font-semibold text-sm text-on-surface">Corporate Bank Account</p>
                       <p className="font-body text-xs text-on-surface-variant mt-0.5">
-                        {banking
-                          ? `${banking.institutionName} •••• ${banking.accountLastFour}`
-                          : "Maybank •••• 4321"}
+                        {banking?.bank_code
+                          ? `${banking.bank_code} ${banking.bank_account_number ? '•••• ' + banking.bank_account_number.slice(-4) : ''}`
+                          : "No bank account set up"}
                       </p>
                     </div>
                   </div>

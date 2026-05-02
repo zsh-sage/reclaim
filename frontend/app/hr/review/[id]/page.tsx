@@ -2,10 +2,10 @@
 import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 
-import { ArrowLeft, AlertTriangle, Clock, ShieldCheck, ShieldX, ChevronDown, ZoomIn, Pencil, FileText, ExternalLink, Download, X, Loader2 } from "lucide-react";
+import { ArrowLeft, AlertTriangle, Clock, ShieldCheck, ShieldX, ChevronDown, ZoomIn, Pencil, FileText, ExternalLink, Download, X, Loader2, Send, CheckCircle2 } from "lucide-react";
 import type { ClaimBundle } from "@/lib/api/types";
 import { MOCK_BUNDLES } from "../../hr_components/mockData";
-import { CheckCircle2, LayoutDashboard } from "lucide-react";
+import { LayoutDashboard } from "lucide-react";
 import { SuccessModal } from "../../hr_components/SuccessModal";
 import { useAuth } from "@/context/AuthContext";
 import { getHRClaimBundle, updateReimbursementStatus } from "@/lib/actions/hr";
@@ -301,6 +301,10 @@ export default function ReviewPage() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [payoutSubmitting, setPayoutSubmitting] = useState(false);
+  const [payoutError, setPayoutError] = useState<string | null>(null);
+  const [payoutInfo, setPayoutInfo] = useState<any>(null);
+  const [reviewedStatus, setReviewedStatus] = useState<string | null>(null);
 
   const didInitRef = useRef(false);
 
@@ -366,8 +370,25 @@ export default function ReviewPage() {
       setSubmitError(res.error ?? "Failed to update status.");
       return;
     }
+    setReviewedStatus(status);
+    if (status === "APPROVED") {
+      setDecision(null);
+    }
     setShowSuccessModal(true);
-    router.push("/hr/dashboard");
+  }
+
+  async function handleTriggerPayout() {
+    setPayoutSubmitting(true);
+    setPayoutError(null);
+    const { triggerPayout } = await import("@/lib/actions/hr");
+    const res = await triggerPayout(bundle!.id);
+    setPayoutSubmitting(false);
+    if (res.error) {
+      setPayoutError(res.error);
+      return;
+    }
+    setPayoutInfo(res.payout);
+    setReviewedStatus("DISBURSING");
   }
 
   return (
@@ -700,6 +721,44 @@ export default function ReviewPage() {
               </button>
               {submitError && (
                 <p className="text-xs text-error text-center font-body mt-1">{submitError}</p>
+              )}
+
+              {reviewedStatus === "APPROVED" && !payoutInfo && (
+                <div className="border-t border-outline-variant/10 pt-4">
+                  <p className="text-xs text-on-surface-variant font-body mb-3">This claim has been approved and is ready for payout.</p>
+                  <button
+                    onClick={handleTriggerPayout}
+                    disabled={payoutSubmitting}
+                    className="w-full py-3 rounded-xl text-sm font-semibold font-headline transition-all active:scale-[0.97] flex items-center justify-center gap-2 bg-emerald-600 text-white shadow-[0_4px_16px_rgba(5,150,105,0.25)] hover:bg-emerald-700 cursor-pointer disabled:opacity-60"
+                  >
+                    {payoutSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                    <Send className="w-4 h-4" strokeWidth={2} />
+                    Send Payout (MYR {bundle.totals.net_approved.toFixed(2)})
+                  </button>
+                  {payoutError && (
+                    <p className="text-xs text-error text-center font-body mt-2">{payoutError}</p>
+                  )}
+                </div>
+              )}
+
+              {payoutInfo && payoutInfo.status === "ACCEPTED" && (
+                <div className="border-t border-outline-variant/10 pt-4">
+                  <div className="flex items-center gap-2 text-emerald-600">
+                    <Clock className="w-4 h-4 animate-pulse" />
+                    <p className="text-sm font-semibold font-headline">Payout Processing…</p>
+                  </div>
+                  <p className="text-xs text-on-surface-variant mt-1">Funds are being sent via Xendit. Status will update shortly.</p>
+                </div>
+              )}
+
+              {payoutInfo && payoutInfo.status === "SUCCEEDED" && (
+                <div className="border-t border-outline-variant/10 pt-4">
+                  <div className="flex items-center gap-2 text-emerald-600">
+                    <CheckCircle2 className="w-4 h-4" />
+                    <p className="text-sm font-semibold font-headline">Payment Sent</p>
+                  </div>
+                  <p className="text-xs text-on-surface-variant mt-1">Funds have been disbursed successfully.</p>
+                </div>
               )}
             </div>
           </Card>

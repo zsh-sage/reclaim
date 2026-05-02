@@ -114,10 +114,12 @@ export default function SettingsLegacyContent() {
                     </div>
                     <div>
                       <p className="font-headline font-bold text-sm text-on-surface">
-                        {banking ? `${banking.institutionName} •••• ${banking.accountLastFour}` : "Loading…"}
+                        {banking?.bank_code
+                          ? `${banking.bank_code} ${banking.bank_account_number ? '•••• ' + banking.bank_account_number.slice(-4) : ''}`
+                          : "No bank account set up"}
                       </p>
                       <p className="font-body text-xs text-on-surface-variant">
-                        {banking ? `${banking.routingType} • Updated ${banking.updatedAt}` : ""}
+                        {banking?.bank_account_holder_name || "Tap to add your banking details"}
                       </p>
                     </div>
                   </div>
