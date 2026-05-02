@@ -306,6 +306,13 @@ def update_reimbursement_status(
             is_read=False,
         )
         db.add(notif)
+
+        # Trigger automatic payout for HR-approved claims
+        try:
+            initiate_payout_sync(r.reim_id, db, loop=None)
+            logger.info("[HR_APPROVAL] Auto-payout initiated for reim=%s", r.reim_id)
+        except Exception:
+            logger.exception("[HR_APPROVAL] Auto-payout failed for reim=%s — claim stays APPROVED", r.reim_id)
     elif body.status == ReimbursementStatus.REJECTED:
         hr_note_text = body.hr_note or "No reason provided"
         notif = Notification(

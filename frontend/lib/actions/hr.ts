@@ -221,7 +221,8 @@ export async function getHRHistory(): Promise<HistoryClaim[]> {
       const isAutoProcessed = r.reviewed_by == null;
       const createdAt = r.created_at ? new Date(r.created_at) : null;
       const isRecent = createdAt != null && createdAt >= cutoff;
-      if (isAutoProcessed && isRecent) return false; // still in dashboard tabs
+      const isResolved = ["APPROVED", "DISBURSING", "PAID", "REJECTED"].includes(r.status);
+      if (isAutoProcessed && isRecent && !isResolved) return false; // exclude only unresolved
       return statusMap[r.status] != null;
     })
     .sort(
