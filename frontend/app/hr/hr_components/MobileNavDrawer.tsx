@@ -24,16 +24,11 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
   const panelRef = useRef<HTMLElement>(null);
 
   const [translateX, setTranslateX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
   const touchStart = useRef<{ x: number; y: number; time: number } | null>(null);
 
-  // Body scroll lock
   useEffect(() => {
-    if (open) {
-      document.body.style.overflow = "hidden";
-      setTranslateX(0);
-    } else {
-      document.body.style.overflow = "";
-    }
+    document.body.style.overflow = open ? "hidden" : "";
     return () => {
       document.body.style.overflow = "";
     };
@@ -53,6 +48,7 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
   const handleTouchStart = (e: React.TouchEvent) => {
     const t = e.touches[0];
     touchStart.current = { x: t.clientX, y: t.clientY, time: Date.now() };
+    setIsDragging(true);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
@@ -83,11 +79,12 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
 
     setTranslateX(0);
     touchStart.current = null;
+    setIsDragging(false);
   };
 
   const panelStyle: React.CSSProperties = {
     transform: `translate3d(${open ? translateX : 100}%, 0, 0)`,
-    transition: touchStart.current ? "none" : "transform 300ms cubic-bezier(0.16, 1, 0.3, 1)",
+    transition: isDragging ? "none" : "transform 300ms cubic-bezier(0.16, 1, 0.3, 1)",
   };
 
   return (
