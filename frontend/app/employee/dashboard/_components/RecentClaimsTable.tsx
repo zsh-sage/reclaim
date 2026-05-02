@@ -97,7 +97,11 @@ export default function RecentClaimsTable() {
                 onClick={() => router.push(`/employee/history?claimId=${claim.id}`)}
                 className="border-t border-outline-variant/5 hover:bg-surface-container-highest/40 transition-colors cursor-pointer group"
               >
-                <td className="p-4 font-medium text-on-surface">{claim.id}</td>
+                <td className="p-4 font-medium text-on-surface" title={claim.id}>
+                  <span className="font-mono text-xs bg-surface-container px-2 py-1 rounded-lg">
+                    {claim.id.slice(0, 8)}
+                  </span>
+                </td>
                 <td className="p-4 text-on-surface-variant">{claim.date}</td>
                 <td className="p-4">
                   <div className="flex items-center gap-2.5">
@@ -145,7 +149,7 @@ export default function RecentClaimsTable() {
                   {claim.category}
                 </h4>
                 <p className="font-body text-xs text-on-surface-variant">
-                  {claim.date.split(",")[0]} &bull; {claim.id}
+                  {claim.date.split(",")[0]} &bull; <span title={claim.id}>{claim.id.slice(0, 8)}</span>
                 </p>
               </div>
             </div>

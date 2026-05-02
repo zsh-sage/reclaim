@@ -5,7 +5,6 @@ import { useState, useEffect, useRef } from "react";
 import { ArrowLeft, AlertTriangle, Clock, ShieldCheck, ShieldX, ChevronDown, ZoomIn, Pencil, FileText, ExternalLink, Download, X, Loader2, Send, CheckCircle2 } from "lucide-react";
 import type { ClaimBundle } from "@/lib/api/types";
 import { MOCK_BUNDLES } from "../../hr_components/mockData";
-import { LayoutDashboard } from "lucide-react";
 import { SuccessModal } from "../../hr_components/SuccessModal";
 import { useAuth } from "@/context/AuthContext";
 import { getHRClaimBundle, updateReimbursementStatus } from "@/lib/actions/hr";
@@ -350,6 +349,9 @@ export default function ReviewPage() {
       li.document_id,
       String(mode === "full" ? li.requested_amount : mode === "ai" ? li.approved_amount : 0),
     ])));
+    if (mode === "full") setDecision("approve_full");
+    else if (mode === "ai") setDecision("approve_adjusted");
+    else setDecision("reject");
   }
 
   async function submit() {
@@ -375,6 +377,7 @@ export default function ReviewPage() {
       setDecision(null);
     }
     setShowSuccessModal(true);
+    router.push("/hr/dashboard");
   }
 
   async function handleTriggerPayout() {
@@ -667,6 +670,7 @@ export default function ReviewPage() {
                         // Allow only digits and at most one decimal point
                         const cleaned = raw.replace(/[^0-9.]/g, "").replace(/\.(?=.*\.)/g, "");
                         setApprovals(p => ({ ...p, [li.document_id]: cleaned }));
+                        if (decision !== "approve_adjusted") setDecision("approve_adjusted");
                       }}
                       onBlur={() => {
                         const raw = approvals[li.document_id] ?? "";
@@ -697,7 +701,15 @@ export default function ReviewPage() {
                     error: active ? "bg-error/10 text-error-dim border-error/30 ring-1 ring-error/20" : "border-outline-variant/20 text-on-surface-variant hover:border-error/30 hover:text-error-dim",
                   };
                   return (
-                    <button key={val} onClick={() => { setDecision(val); preset(p as "full" | "ai" | "zero"); }}
+                    <button key={val} onClick={() => {
+                      setDecision(val);
+                      if (val === "approve_adjusted") {
+                        const hasCustomAmounts = bundle!.line_items.some(li => approvals[li.document_id] !== String(li.approved_amount ?? 0));
+                        if (!hasCustomAmounts) preset("ai");
+                      } else {
+                        preset(p as "full" | "ai" | "zero");
+                      }
+                    }}
                       className={`flex items-center gap-3 w-full px-4 py-3.5 rounded-xl text-sm font-semibold font-headline transition-all active:scale-[0.98] cursor-pointer border text-left bg-surface-container-lowest ${s[color]}`}>
                       <Icon className="w-5 h-5 shrink-0" strokeWidth={2} />
                       <div><p>{label}</p><p className="text-[11px] font-normal mt-0.5 opacity-70">{sub}</p></div>

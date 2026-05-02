@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { getHRHistory, type HistoryClaim } from "@/lib/actions/hr";
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 type ClaimStatus = "Approved" | "Rejected" | "Paid";
 
@@ -258,103 +259,180 @@ export default function HRHistoryPage() {
           </div>
         )}
 
-        {/* ── Table ── */}
-        <div className="bg-surface-container-lowest/80 backdrop-blur-xl rounded-xl shadow-[0_12px_60px_-15px_rgba(44,47,49,0.08)] overflow-hidden">
-          <table className="w-full table-fixed text-left border-collapse">
-            <thead>
-              <tr className="bg-surface-container-low/50 text-on-surface-variant uppercase tracking-wider text-[10px] font-bold font-headline">
-                <th className="py-4 px-6 w-32">Claim ID</th>
-                <th className="py-4 px-6">Employee</th>
-                <th className="py-4 px-6">Policy / Category</th>
-                <th className="py-4 px-6 w-32 text-right">Amount</th>
-                <th className="py-4 px-6 w-32">Resolved</th>
-                <th className="py-4 px-6 w-28">Status</th>
-                <th className="py-4 px-6 w-24 text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-outline-variant/5">
-              {isLoading &&
-                [...Array(ITEMS_PER_PAGE)].map((_, i) => <SkeletonRow key={i} />)}
+        {/* ── Table / Cards ── */}
+        <div className="bg-surface-container-lowest/80 backdrop-blur-xl rounded-xl shadow-[0_12px_60px_-15px_rgba(44,47,49,0.08)] relative z-10">
 
-              {!isLoading &&
-                paginated.map((claim) => {
-                  const cfg = STATUS_CONFIG[claim.status];
-                  const StatusIcon = cfg.icon;
-                  const formatted = `RM ${new Intl.NumberFormat("en-MY", {
-                    minimumFractionDigits: 2,
-                  }).format(claim.amount)}`;
+          {/* Desktop Table */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full table-fixed text-left border-collapse">
+              <thead>
+                <tr className="bg-surface-container-low/50 text-on-surface-variant uppercase tracking-wider text-[10px] font-bold font-headline">
+                  <th className="py-4 px-6 w-32">Claim ID</th>
+                  <th className="py-4 px-6">Employee</th>
+                  <th className="py-4 px-6">Policy / Category</th>
+                  <th className="py-4 px-6 w-32 text-right">Amount</th>
+                  <th className="py-4 px-6 w-32">Resolved</th>
+                  <th className="py-4 px-6 w-28">Status</th>
+                  <th className="py-4 px-6 w-24 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-outline-variant/5">
+                {/* Skeleton */}
+                {isLoading &&
+                  [...Array(ITEMS_PER_PAGE)].map((_, i) => <SkeletonRow key={i} />)}
 
-                  return (
-                    <tr
-                      key={claim.id}
-                      className="hover:bg-surface-container/30 transition-colors group"
-                    >
-                      <td className="py-4 px-6 align-middle whitespace-nowrap">
-                        <span className="font-mono text-xs font-semibold text-on-surface-variant bg-surface-container px-2 py-1 rounded-lg">
-                          {claim.id}
-                        </span>
-                      </td>
+                {/* Rows */}
+                {!isLoading &&
+                  paginated.map((claim) => {
+                    const cfg = STATUS_CONFIG[claim.status];
+                    const StatusIcon = cfg.icon;
+                    const formatted = `RM ${new Intl.NumberFormat("en-MY", {
+                      minimumFractionDigits: 2,
+                    }).format(claim.amount)}`;
 
-                      <td className="py-4 px-6 align-middle overflow-hidden">
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-linear-to-br from-primary-container to-tertiary-container flex items-center justify-center font-bold text-[10px] text-on-primary-container border-2 border-surface-container-lowest shadow-sm shrink-0">
-                            {claim.employeeInitial}
+                    return (
+                      <tr
+                        key={claim.id}
+                        className="hover:bg-surface-container/30 transition-colors group"
+                      >
+                        {/* Claim ID */}
+                        <td className="py-4 px-6 align-middle whitespace-nowrap">
+                          <span
+                            className="font-mono text-xs font-semibold text-on-surface-variant bg-surface-container px-2 py-1 rounded-lg"
+                            title={claim.id}
+                          >
+                            {claim.id.slice(0, 8)}
+                          </span>
+                        </td>
+
+                        {/* Employee */}
+                        <td className="py-4 px-6 align-middle overflow-hidden">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-full bg-linear-to-br from-primary-container to-tertiary-container flex items-center justify-center font-bold text-[10px] text-on-primary-container border-2 border-surface-container-lowest shadow-sm shrink-0">
+                              {claim.employeeInitial}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="font-semibold text-sm text-on-surface truncate">
+                                {claim.employeeName}
+                              </p>
+                              <p className="text-[10px] text-on-surface-variant truncate">
+                                {claim.department}
+                              </p>
+                            </div>
                           </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="font-semibold text-sm text-on-surface truncate">
-                              {claim.employeeName}
-                            </p>
-                            <p className="text-[10px] text-on-surface-variant truncate">
-                              {claim.department}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
+                        </td>
 
-                      <td className="py-4 px-6 align-middle overflow-hidden">
-                        <p className="text-sm text-on-surface-variant truncate">
+                        {/* Policy */}
+                        <td className="py-4 px-6 align-middle overflow-hidden">
+                          <p className="text-sm text-on-surface-variant truncate">
+                            {claim.policyName}
+                          </p>
+                        </td>
+
+                        {/* Amount */}
+                        <td className="py-4 px-6 text-right align-middle">
+                          <div className="flex items-center justify-end gap-1 whitespace-nowrap">
+                            <span className="font-semibold text-sm text-on-surface font-mono tabular-nums">
+                              {formatted}
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* Resolved Date */}
+                        <td className="py-4 px-6 align-middle whitespace-nowrap overflow-hidden">
+                          <div className="flex items-center gap-1.5 truncate">
+                            <Clock className="w-3 h-3 text-on-surface-variant/50 shrink-0" />
+                            <span className="text-xs text-on-surface-variant truncate">
+                              {claim.dateResolved}
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* Status Badge */}
+                        <td className="py-4 px-6 align-middle">
+                          <span
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${cfg.bg} ${cfg.text}`}
+                          >
+                            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${cfg.dot}`} />
+                            {cfg.label}
+                          </span>
+                        </td>
+
+                        {/* View Action */}
+                        <td className="py-4 px-6 text-right align-middle whitespace-nowrap">
+                          <Link
+                            href={`/hr/view/${claim.reim_id}`}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-on-surface-variant hover:text-primary hover:bg-primary/10 transition-all active:scale-90 cursor-pointer"
+                          >
+                            View
+                            <ExternalLink className="w-3 h-3" strokeWidth={2} />
+                          </Link>
+                        </td>
+                      </tr>
+                    );
+                  })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile Card List */}
+          <div className="md:hidden flex flex-col gap-3 p-4">
+            {isLoading &&
+              [...Array(ITEMS_PER_PAGE)].map((_, i) => (
+                <div key={i} className="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant/10 flex items-center gap-3 animate-pulse">
+                  <div className="w-9 h-9 rounded-full bg-surface-container shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-3 bg-surface-container rounded-full w-2/3" />
+                    <div className="h-2.5 bg-surface-container rounded-full w-1/2" />
+                  </div>
+                  <div className="h-3 bg-surface-container rounded-full w-16 shrink-0" />
+                </div>
+              ))}
+
+            {!isLoading &&
+              paginated.map((claim) => {
+                const cfg = STATUS_CONFIG[claim.status];
+                const formatted = `RM ${new Intl.NumberFormat("en-MY", {
+                  minimumFractionDigits: 2,
+                }).format(claim.amount)}`;
+
+                return (
+                  <Link
+                    href={`/hr/view/${claim.reim_id}`}
+                    key={claim.id}
+                    className="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant/10 flex items-center justify-between hover:bg-surface-container-highest/30 transition-colors active:scale-[0.98] cursor-pointer"
+                  >
+                    <div className="flex items-center gap-3 overflow-hidden">
+                      <div className="w-9 h-9 rounded-full bg-linear-to-br from-primary-container to-tertiary-container flex items-center justify-center font-bold text-[10px] text-on-primary-container border-2 border-surface-container-lowest shadow-sm shrink-0">
+                        {claim.employeeInitial}
+                      </div>
+                      <div className="min-w-0 pr-2">
+                        <h4 className="font-headline font-bold text-sm text-on-surface mb-0.5 truncate">
+                          {claim.employeeName}
+                        </h4>
+                        <p className="font-body text-xs text-on-surface-variant truncate">
                           {claim.policyName}
                         </p>
-                      </td>
-
-                      <td className="py-4 px-6 text-right align-middle">
-                        <span className="font-semibold text-sm text-on-surface font-mono tabular-nums whitespace-nowrap">
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <div className="text-right shrink-0">
+                        <p className="font-headline font-bold text-sm text-on-surface mb-1 tabular-nums">
                           {formatted}
-                        </span>
-                      </td>
-
-                      <td className="py-4 px-6 align-middle whitespace-nowrap overflow-hidden">
-                        <div className="flex items-center gap-1.5 truncate">
-                          <Clock className="w-3 h-3 text-on-surface-variant/50 shrink-0" />
-                          <span className="text-xs text-on-surface-variant truncate">
-                            {claim.dateResolved}
-                          </span>
-                        </div>
-                      </td>
-
-                      <td className="py-4 px-6 align-middle">
-                        <span
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${cfg.bg} ${cfg.text}`}
-                        >
-                          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${cfg.dot}`} />
+                        </p>
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${cfg.bg} ${cfg.text}`}>
+                          <span className={`w-1 h-1 rounded-full ${cfg.dot}`} />
                           {cfg.label}
                         </span>
-                      </td>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-on-surface-variant opacity-60" />
+                    </div>
+                  </Link>
+                );
+              })}
+          </div>
 
-                      <td className="py-4 px-6 text-right align-middle whitespace-nowrap">
-                        <Link
-                          href={`/hr/view/${claim.reim_id}`}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-on-surface-variant hover:text-primary hover:bg-primary/10 transition-all active:scale-90 cursor-pointer"
-                        >
-                          View
-                          <ExternalLink className="w-3 h-3" strokeWidth={2} />
-                        </Link>
-                      </td>
-                    </tr>
-                  );
-                })}
-            </tbody>
-          </table>
+        </div>
 
           {/* Empty State */}
           {!isLoading && filtered.length === 0 && (
@@ -421,6 +499,5 @@ export default function HRHistoryPage() {
           )}
         </div>
       </div>
-    </div>
   );
 }

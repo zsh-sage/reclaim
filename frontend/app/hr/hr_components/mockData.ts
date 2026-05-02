@@ -21,7 +21,7 @@ export interface Policy {
   existingAppendix?: { name: string, size: string }[];
   mandatory_conditions?: Record<string, SubCategoryCondition>;
   history?: { user: string, action: string, date: string, details?: string }[];
-  reimbursable_categories_with_budgets?: { category: string; auto_approval_budget?: number }[];
+  reimbursable_categories_with_budgets?: { category: string; auto_approval_budget?: number | null }[];
 }
 
 export interface SubCategoryCondition {

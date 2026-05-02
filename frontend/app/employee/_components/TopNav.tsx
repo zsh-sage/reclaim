@@ -6,7 +6,7 @@ import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
 import { getNotifications, markAllNotificationsRead } from "@/lib/actions/notifications";
 import type { Notification } from "@/lib/api/types";
-import { Search, Upload, Bell, HelpCircle, CheckCircle2, AlertCircle, Info } from "lucide-react";
+import { Upload, Bell, HelpCircle, CheckCircle2, AlertCircle, Info } from "lucide-react";
 
 let _notifCache: { data: Notification[]; ts: number } | null = null;
 const NOTIF_TTL_MS = 15_000;
@@ -67,7 +67,7 @@ export default function TopNav() {
   return (
     <header
       aria-label="Top navigation"
-      className="sticky top-0 z-50 bg-surface/80 backdrop-blur-3xl border-b border-outline-variant/10 shadow-[0_4px_24px_-4px_rgba(44,47,49,0.06)]"
+      className="sticky top-0 z-50 bg-surface/80 backdrop-blur-3xl border-b border-outline-variant/10 shadow-[0_4px_24px_-4px_rgba(44,47,49,0.06)] pt-safe-top"
     >
       <div className="flex items-center justify-between px-4 md:px-6 py-3 md:py-4 w-full max-w-screen-2xl mx-auto gap-3">
 
