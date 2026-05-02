@@ -151,3 +151,8 @@ body {
 .pb-nav-safe {
   padding-bottom: calc(4rem + env(safe-area-inset-bottom, 0px));
 }
+
+/* Top safe padding for notched devices / status bar in PWA fullscreen mode */
+.pt-safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}

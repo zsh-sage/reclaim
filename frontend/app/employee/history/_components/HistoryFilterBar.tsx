@@ -47,7 +47,7 @@ export default function HistoryFilterBar({
       )}
 
       {/* ── Status Pills (Horizontal Scroll on Mobile) ── */}
-      <div className="w-full md:w-auto overflow-x-auto pb-2 md:pb-0 -mx-4 px-4 md:mx-0 md:px-0 flex items-center gap-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden snap-x relative z-30">
+      <div className="w-full md:w-auto overflow-x-auto pb-2 md:pb-0 -mx-4 px-4 md:mx-0 md:px-0 flex items-center gap-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden snap-x scroll-pl-4 relative z-30">
         {STATUSES.map((status) => {
           const isActive = status === currentStatus;
           return (

@@ -88,7 +88,14 @@ function HistoryPageContent() {
 
   useEffect(() => {
     getRawReimbursements().then((raw) => {
-      if (raw.length > 0) setClaims(raw.map(mapToHistoryClaim));
+      if (raw.length > 0) {
+        const sorted = [...raw].sort((a, b) => {
+          const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+          const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+          return dateB - dateA;
+        });
+        setClaims(sorted.map(mapToHistoryClaim));
+      }
     });
   }, []);
 

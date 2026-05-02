@@ -41,6 +41,11 @@ export async function getRecentClaims(limit = 5): Promise<ClaimSummary[]> {
   const result = await apiGet<ReimbursementRaw[]>(
     `${API_PREFIX}/reimbursements/?limit=${limit}`
   );
-  if (result.data) return result.data.map(mapReimbursementToClaim);
-  return [];
+  if (!result.data) return [];
+  const sorted = [...result.data].sort((a, b) => {
+    const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+    const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+    return dateB - dateA;
+  });
+  return sorted.map(mapReimbursementToClaim);
 }

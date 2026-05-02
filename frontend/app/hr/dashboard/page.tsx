@@ -242,7 +242,7 @@ export default function HRDashboardPage() {
                 key={claim.id}
                 onClick={() => {
                   const path = actionLabel === "View" ? `/hr/view/${claim.id}` : `/hr/review/${claim.id}`;
-                  window.location.href = path;
+                  handleNavigate(path);
                 }}
                 className="bg-surface-container-lowest rounded-xl p-4 border border-outline-variant/10 text-left active:scale-[0.98] transition-all flex items-center gap-3"
               >

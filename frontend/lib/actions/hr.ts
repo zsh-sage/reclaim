@@ -143,7 +143,15 @@ export async function getHRClaims(): Promise<{
   const approved: Claim[] = [];
 
   const hrDone = ["APPROVED", "REJECTED", "DISBURSING", "PAID", "DISBURSEMENT_FAILED"];
-  for (const r of result.data) {
+
+  // Sort raw data by created_at descending (most recent first) before mapping
+  const sortedData = [...result.data].sort((a, b) => {
+    const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+    const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+    return dateB - dateA;
+  });
+
+  for (const r of sortedData) {
     if (hrDone.includes(r.status)) continue;
     const claim = mapToClaim(r);
     if (claim.status === "Passed AI Review") {
@@ -154,6 +162,57 @@ export async function getHRClaims(): Promise<{
   }
 
   return { attention, approved };
+}
+
+// ─── History claim shape (aligned with frontend/app/hr/history/page.tsx) ───────
+
+export interface HistoryClaim {
+  id: string;
+  employeeName: string;
+  employeeInitial: string;
+  department: string;
+  policyName: string;
+  amount: number;
+  currency: string;
+  dateSubmitted: string;
+  dateResolved: string;
+  status: "Approved" | "Rejected" | "Paid";
+}
+
+/** Fetch resolved reimbursements for the HR history page. */
+export async function getHRHistory(): Promise<HistoryClaim[]> {
+  const result = await apiGet<ReimbursementRaw[]>(`${API_PREFIX}/reimbursements/`);
+  if (!result.data || result.data.length === 0) return [];
+
+  const hrDone = ["APPROVED", "REJECTED", "DISBURSING", "PAID", "DISBURSEMENT_FAILED"];
+  const statusMap: Record<string, "Approved" | "Rejected" | "Paid"> = {
+    APPROVED: "Approved",
+    REJECTED: "Rejected",
+    DISBURSING: "Approved",
+    PAID: "Paid",
+    DISBURSEMENT_FAILED: "Approved",
+  };
+
+  const doneClaims = result.data
+    .filter((r) => hrDone.includes(r.status))
+    .sort((a, b) => {
+      const dateA = new Date(a.reviewed_at ?? a.updated_at ?? a.created_at ?? 0).getTime();
+      const dateB = new Date(b.reviewed_at ?? b.updated_at ?? b.created_at ?? 0).getTime();
+      return dateB - dateA;
+    });
+
+  return doneClaims.map((r) => ({
+    id: r.reim_id,
+    employeeName: r.employee_name ?? "Unknown",
+    employeeInitial: getInitials(r.employee_name ?? "Unknown"),
+    department: r.department_name ?? "Unknown",
+    policyName: r.policy_name ?? r.main_category ?? "General",
+    amount: r.total_claimed_amount ?? 0,
+    currency: r.currency ?? "MYR",
+    dateSubmitted: formatDate(r.created_at),
+    dateResolved: formatDate(r.reviewed_at ?? r.updated_at ?? r.created_at),
+    status: statusMap[r.status] ?? "Approved",
+  }));
 }
 
 /** Fetch a single reimbursement by reim_id and map to ClaimBundle for detail view. */
