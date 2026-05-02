@@ -26,6 +26,7 @@ from api.reimbursements import router as reimbursements_router
 from api.drafts import router as drafts_router
 from api.departments import router as departments_router
 from api.test_ui import router as test_ui_router
+from api.push import router as push_router
 from api import deps
 from core.models import User
 
@@ -35,6 +36,9 @@ async def lifespan(app: FastAPI):
     # In production, use Alembic migrations
     init_db()
     check_glm_health()
+    # Initialize VAPID keys for push notifications
+    from core.push_service import init_vapid_keys
+    init_vapid_keys()
     yield
     # Clean up on shutdown
     engine.dispose()
@@ -79,6 +83,7 @@ app.include_router(departments_router, prefix=f"{settings.API_V1_STR}/department
 app.include_router(drafts_router, prefix=f"{settings.API_V1_STR}/drafts", tags=["drafts"])
 # DISPOSABLE — Remove before production
 app.include_router(test_ui_router, prefix="/test", tags=["test-ui"])
+app.include_router(push_router, prefix=f"{settings.API_V1_STR}/push", tags=["push"])
 
 @app.get("/")
 async def root():

@@ -716,3 +716,37 @@ class Notification(SQLModel, table=True):
         default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(DateTime(timezone=True), index=True)
     )
+
+
+# ---------------------------------------------------------------------------
+# 17. push_subscriptions
+# ---------------------------------------------------------------------------
+
+class PushSubscription(SQLModel, table=True):
+    __tablename__ = "push_subscriptions"
+
+    id: UUID = Field(
+        default_factory=uuid4,
+        primary_key=True
+    )
+    user_id: UUID = Field(
+        foreign_key="employees.user_id",
+        index=True
+    )
+    endpoint: str = Field(
+        sa_column=Column(Text, nullable=False)
+    )
+    p256dh: str = Field(
+        sa_column=Column(Text, nullable=False)
+    )
+    auth: str = Field(
+        sa_column=Column(Text, nullable=False)
+    )
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(DateTime(timezone=True))
+    )
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "endpoint", name="uq_push_sub_user_endpoint"),
+    )
