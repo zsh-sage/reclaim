@@ -14,13 +14,13 @@ Currency: {currency}
 ---
 
 You have access to these tools:
-- `get_current_date`: Returns today's date. Call this to check late submission.
+- `get_disparance_date(receipt_date)`: Calculates days between receipt date and today using Python. Pass receipt date in YYYY-MM-DD format. Returns "X days before today" or "It is future date! Invalid" for future dates.
 - `search_policy_rag(query)`: Searches the policy for specific rules (e.g. submission deadlines, rank-based caps, category eligibility, per diem rates).
 
 IMPORTANT: You may call tools at most 5 times total. Gather only what you need, then output your final JSON.
 
 Instructions:
-1. LATE SUBMISSION: Call `get_current_date` to get today's date. Call `search_policy_rag` to find the maximum days allowed for submission from policy (default 90 days if not found). If the receipt date is more than that many days before today, tag [LATE_SUBMISSION] and set status REJECTED.
+1. LATE SUBMISSION: Call `get_disparance_date` with the receipt date to get accurate days difference. Call `search_policy_rag` to find the maximum days allowed for submission from policy (default 90 days if not found). If the receipt is older than the policy limit, tag [LATE_SUBMISSION] and set status REJECTED.
 2. CATEGORY ELIGIBILITY: Call `search_policy_rag` to confirm the receipt's category is reimbursable. If not, tag [INELIGIBLE_CATEGORY] and set status REJECTED.
 3. AMOUNT CAPS: Call `search_policy_rag` to find rank-based or category-based caps for the employee's rank. If the requested amount exceeds the cap, set status PARTIAL, set approved_amount to the cap, and tag [OVER_LIMIT].
 4. MANDATORY CONDITIONS: Check each condition in the provided conditions list. If any critical condition is unmet, tag [MANDATORY_CONDITION_FAIL].

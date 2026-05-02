@@ -14,8 +14,12 @@ from engine.tools.rag_tool import search_policy_sections
 _session_lock = threading.Lock()
 
 
-class GetCurrentDateInput(BaseModel):
-    """No input required."""
+from datetime import datetime
+
+
+class GetDisparanceDateInput(BaseModel):
+    """Input for date disparance calculation."""
+    receipt_date: str
 
 
 class SearchPolicyInput(BaseModel):
@@ -23,10 +27,27 @@ class SearchPolicyInput(BaseModel):
     query: str
 
 
-@tool(args_schema=GetCurrentDateInput)
-def get_current_date() -> str:
-    """Returns today's date in YYYY-MM-DD format. Use this to check late submission policy."""
-    return date.today().isoformat()
+@tool(args_schema=GetDisparanceDateInput)
+def get_disparance_date(receipt_date: str) -> str:
+    """
+    Calculate the time difference between receipt date and today.
+    Returns the disparance in days (e.g., '23 days before today') or marks future dates as invalid.
+    This tool ensures accurate date comparison using Python instead of LLM reasoning.
+    """
+    try:
+        receipt_dt = datetime.strptime(receipt_date, "%Y-%m-%d").date()
+    except ValueError:
+        return f"Invalid date format: {receipt_date}. Use YYYY-MM-DD format."
+
+    today = date.today()
+
+    if receipt_dt > today:
+        return "It is future date! Invalid"
+    elif receipt_dt == today:
+        return "0 days before today (today)"
+    else:
+        delta = today - receipt_dt
+        return f"{delta.days} days before today"
 
 
 def make_search_policy_rag_tool(policy_id: str, session: Session):
