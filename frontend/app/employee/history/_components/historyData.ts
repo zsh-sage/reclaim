@@ -79,18 +79,18 @@ export interface HistoryClaim {
 // ─── Status helpers ───────────────────────────────────────────────────────────
 
 export const STATUS_BADGE: Record<ClaimStatus, string> = {
-  Pending:              "bg-secondary-container/50 text-on-secondary-container",
-  Approved:             "bg-primary/10 text-primary",
-  "Partially Approved": "bg-amber-500/10 text-amber-600",
-  Paid:                 "bg-tertiary/10 text-tertiary",
-  Rejected:             "bg-error/10 text-error",
+  Pending:              "bg-warning-container text-warning",
+  Approved:             "bg-primary-container text-on-primary-container",
+  "Partially Approved": "bg-secondary-container text-on-secondary-container",
+  Paid:                 "bg-success-container text-on-success-container",
+  Rejected:             "bg-error-container text-error",
 };
 
 export const STATUS_DOT: Record<ClaimStatus, string> = {
-  Pending:              "bg-secondary",
+  Pending:              "bg-warning",
   Approved:             "bg-primary",
-  "Partially Approved": "bg-amber-500",
-  Paid:                 "bg-tertiary",
+  "Partially Approved": "bg-secondary",
+  Paid:                 "bg-success",
   Rejected:             "bg-error",
 };
 

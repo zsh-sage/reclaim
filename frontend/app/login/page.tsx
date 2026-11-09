@@ -5,13 +5,19 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useAuth } from "@/context/AuthContext";
-import { Mail, Lock, Eye, EyeOff, ArrowRight, Users } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, ArrowRight, Users, ShieldCheck, Loader2 } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
+import dynamic from "next/dynamic";
+import { SegmentedControl } from "glisse";
 import LoadingOverlay from "@/components/LoadingOverlay";
+import { btn, input as inputCls } from "@/components/ui/styles";
+
+const HeroScene = dynamic(() => import("@/components/three/HeroScene"), { ssr: false });
 
 const formSchema = z.object({
-  email: z.string().email({ message: "Enter a valid email address." }),
-  password: z.string().min(1, { message: "Password is required." }),
+  email: z.string().email({ message: "Enter a valid email address, e.g. name@company.com." }),
+  password: z.string().min(1, { message: "Enter your password to continue." }),
 });
 
 // ─── Main Component ──────────────────────────────────────────────────────────
@@ -63,7 +69,7 @@ export default function LoginPage() {
     try {
       await login(values.email, values.password);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Login failed. Please check your credentials.";
+      const message = err instanceof Error ? err.message : "Login failed. Check your email and password, then try again.";
       setError(message);
     } finally {
       setIsValidating(false);
@@ -100,153 +106,202 @@ export default function LoginPage() {
   }, [restrictionToast]);
 
   const handleForgotPassword = () => {
-    setRestrictionToast("Feature Restricted during MVP Stages");
+    setRestrictionToast("Password reset is restricted during the MVP stage.");
   };
 
   return (
     <>
       <LoadingOverlay show={isLoading} />
-      <main className="flex w-full min-h-dvh h-dvh overflow-hidden">
-        {/* Left Side: Split Gradient Anchor */}
-        <div className="hidden lg:flex w-1/2 split-gradient relative overflow-hidden items-center justify-center p-12 xl:p-16">
-          {/* Decorative Elements */}
-          <div
-            aria-hidden="true"
-            className="absolute inset-0 bg-[radial-gradient(circle_at_30%_40%,rgba(147,150,255,0.15),transparent_60%),radial-gradient(circle_at_70%_60%,rgba(158,0,180,0.12),transparent_60%)] opacity-40 mix-blend-overlay"
-          ></div>
-          <div className="relative z-10 text-on-primary max-w-xl">
-            <span className="inline-flex items-center rounded-full border border-white/35 bg-white/10 px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.15em] shadow-sm backdrop-blur-sm">
-              From receipt to reimbursement — in minutes, not days
+      <main className="flex min-h-dvh w-full bg-white">
+        {/* ── Left: brand panel ───────────────────────────────── */}
+        <section className="mesh-ink relative hidden w-[46%] flex-col justify-between overflow-hidden p-10 text-white lg:flex xl:p-14">
+          <div aria-hidden="true" className="dot-grid-light absolute inset-0 [mask-image:radial-gradient(80%_60%_at_30%_0%,black,transparent)]" />
+          <div aria-hidden="true" className="absolute -right-48 top-1/4 h-[640px] w-[640px] animate-drift-a rounded-full" style={{ background: "radial-gradient(closest-side, #105bff, transparent)", opacity: 0.35 }} />
+          <div aria-hidden="true" className="absolute -bottom-56 -left-10 h-[600px] w-[600px] animate-drift-b rounded-full" style={{ background: "radial-gradient(closest-side, #9e00b4, transparent)", opacity: 0.35 }} />
+
+          <Link href="/" className="relative z-10 flex w-fit items-center gap-2 rounded-full">
+            <Image src="/images/logo.svg" alt="" width={28} height={28} className="h-7 w-7 brightness-0 invert" priority />
+            <span className="font-headline text-[20px] font-semibold tracking-[-0.03em]" translate="no">
+              Reclaim<span className="text-accent">.</span>
             </span>
-            <div className="flex items-center gap-4 mb-4">
-              <Image src="/images/logo.svg" alt="Reclaim Logo" width={64} height={64} className="w-16 h-16 object-contain brightness-0 invert" priority />
-              <h1 className="font-headline text-5xl xl:text-6xl font-extrabold tracking-tight leading-tight">
-                Reclaim.
-              </h1>
-            </div>
-            <p className="text-base xl:text-lg opacity-90 font-light leading-relaxed max-w-lg text-justify">
-              An AI expense platform that pairs OCR with an intelligent agent that thinks, evaluates, and proposes decisions for every claim. By enabling HR to operate through &quot;efficiency by exception,&quot; the agent auto-clears valid submissions and isolates only policy violations or suspicious edits for final human review, instantly turning scattered receipts into audit-ready data.
+          </Link>
+
+          <div className="relative z-10 h-[340px] xl:h-[400px]">
+            <HeroScene className="h-full w-full" />
+          </div>
+
+          <div className="relative z-10 max-w-md">
+            <h1 className="font-headline text-[38px] font-semibold leading-[1.05] tracking-[-0.04em] xl:text-[46px]">
+              Reasoned by AI. <span className="text-gradient-light">Paid via PayPal.</span>
+            </h1>
+            <p className="mt-4 text-[15px] leading-relaxed text-white/65">
+              An agent evaluates every claim against your policy. Valid submissions are approved and
+              paid out through PayPal automatically; only violations and suspicious edits reach a human.
             </p>
           </div>
-          {/* Floating accent blobs */}
-          <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-tertiary rounded-full blur-[120px] opacity-40"></div>
-          <div className="absolute top-1/4 -right-24 w-72 h-72 bg-primary rounded-full blur-[100px] opacity-30"></div>
-          <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(transparent_96%,rgba(255,255,255,0.09)_96%),linear-gradient(90deg,transparent_96%,rgba(255,255,255,0.09)_96%)] bg-[size:26px_26px] opacity-10"></div>
-        </div>
+        </section>
 
-        {/* Right Side: Interaction Canvas */}
-        <div className="w-full lg:w-1/2 h-full flex flex-col items-center px-5 py-6 sm:px-8 sm:py-10 lg:px-14 lg:py-10 bg-surface overflow-y-auto">
-          <div className="w-full max-w-md my-auto py-8">
-            {/* Brand Header (Mobile Only) */}
-            <div className="lg:hidden mb-6 flex flex-col items-center justify-center gap-3 text-center">
-              <div className="flex items-center gap-2.5">
-                <Image src="/images/logo.svg" alt="Reclaim Logo" width={32} height={32} className="w-8 h-8 object-contain" />
-                <h2 className="font-headline text-2xl font-black tracking-tighter text-primary">
-                  Reclaim
-                </h2>
-              </div>
-              <span className="inline-flex items-center rounded-full border border-white/35 bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.12em]">
-                From receipt to reimbursement — in minutes, not days
+        {/* ── Right: sign-in ──────────────────────────────────── */}
+        <section className="flex min-h-dvh flex-1 flex-col items-center overflow-y-auto bg-marshmallow px-5 py-8 sm:px-8 lg:bg-white">
+          <div className="flex w-full max-w-[420px] items-center justify-between lg:hidden">
+            <Link href="/" className="flex items-center gap-2 rounded-full">
+              <Image src="/images/logo.svg" alt="" width={26} height={26} className="h-[26px] w-[26px]" priority />
+              <span className="font-headline text-[19px] font-semibold tracking-[-0.03em] text-on-surface" translate="no">
+                Reclaim<span className="text-accent">.</span>
               </span>
-            </div>
+            </Link>
+          </div>
 
-            <div className="glass-card rounded-[1.75rem] p-6 sm:p-8 shadow-ambient-lg border border-white/40">
-              <div className="min-h-10 mb-1" aria-live="polite">
-                {restrictionToast && (
-                  <div role="status" className="rounded-xl border border-tertiary/20 bg-surface-container-lowest/95 px-4 py-2.5 text-center text-xs font-semibold text-tertiary shadow-sm">
-                    {restrictionToast}
-                  </div>
-                )}
+          <div className="my-auto w-full max-w-[420px] py-10">
+            <div className="rounded-[28px] bg-white p-6 shadow-ambient-lg sm:p-8 lg:p-0 lg:shadow-none">
+              <h2 className="font-headline text-[30px] font-semibold tracking-[-0.035em] text-on-surface">
+                Sign in to Reclaim
+              </h2>
+              <p className="mt-1.5 text-[15px] text-on-surface-variant">
+                Choose your portal, or jump in with a demo account.
+              </p>
+
+              <div className="mt-7 flex justify-center sm:justify-start">
+                <SegmentedControl
+                  aria-label="Portal"
+                  items={[
+                    { value: "employee", label: "Employee" },
+                    { value: "hr", label: "HR & Finance" },
+                  ]}
+                  value={activePortal}
+                  onValueChange={(v) => setActivePortal(v as "employee" | "hr")}
+                  style={{ ["--lg-tab-width" as string]: "132px", ["--lg-tab-height" as string]: "36px" }}
+                />
               </div>
 
-              <div className="mb-7 text-center">
-                <h2 className="font-headline text-3xl font-bold tracking-tight text-on-surface mb-3">
-                  Welcome to Reclaim
-                </h2>
-                <p className="text-on-surface-variant text-sm">
-                  Sign in to continue your session
-                </p>
-              </div>
-
-              <div className="flex p-1 bg-surface-container-high rounded-full mb-8 relative overflow-hidden">
-                <div className={`absolute inset-1 w-[calc(50%-8px)] bg-surface-container-lowest rounded-full shadow-sm transition-all duration-250 ease-out ${activePortal === "hr" ? "translate-x-[calc(100%+8px)]" : "translate-x-0"}`} />
-                <button type="button" onClick={() => setActivePortal("employee")} className={`flex-1 py-2.5 text-sm rounded-full relative z-10 transition-colors duration-300 font-medium ${activePortal === "employee" ? "font-semibold text-primary" : "text-on-surface-variant hover:text-on-surface"}`}>
-                  Employee Portal
-                </button>
-                <button type="button" onClick={() => setActivePortal("hr")} className={`flex-1 py-2.5 text-sm rounded-full relative z-10 transition-colors duration-300 font-medium ${activePortal === "hr" ? "font-semibold text-primary" : "text-on-surface-variant hover:text-on-surface"}`}>
-                  HR Dashboard
-                </button>
-              </div>
-
-              {/* Demo Login Buttons */}
-              <div className="flex gap-3 mb-6">
+              <div className="mt-5 grid grid-cols-2 gap-2.5">
                 <button
                   type="button"
                   onClick={() => handleDemoLogin("employee")}
                   disabled={isValidating}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl border border-primary/20 bg-primary/5 text-sm font-semibold text-primary hover:bg-primary/10 hover:border-primary/30 disabled:opacity-50 transition-all cursor-pointer"
+                  className={`${btn.secondary} w-full px-3`}
                 >
-                  <Users className="w-4 h-4" />
-                  Login as Employee
+                  <Users className="h-4 w-4 text-primary" aria-hidden="true" />
+                  Employee Demo
                 </button>
                 <button
                   type="button"
                   onClick={() => handleDemoLogin("hr")}
                   disabled={isValidating}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl border border-primary/20 bg-primary/5 text-sm font-semibold text-primary hover:bg-primary/10 hover:border-primary/30 disabled:opacity-50 transition-all cursor-pointer"
+                  className={`${btn.secondary} w-full px-3`}
                 >
-                  <Users className="w-4 h-4" />
-                  Login as HR
+                  <ShieldCheck className="h-4 w-4 text-primary" aria-hidden="true" />
+                  HR Demo
                 </button>
               </div>
 
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-                {demoBanner && !error && (
-                  <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-center text-xs font-semibold text-primary">
-                    Signing in as {demoBanner === "hr" ? "HR" : "Employee"} demo…
-                  </div>
-                )}
-                {error && <div className="bg-error-container text-error p-3 rounded-lg text-sm text-center">{error}</div>}
+              <div className="my-6 flex items-center gap-3 text-[12px] text-on-surface-variant" aria-hidden="true">
+                <span className="h-px flex-1 bg-on-surface/10" />
+                or with email
+                <span className="h-px flex-1 bg-on-surface/10" />
+              </div>
 
-                <div className="space-y-2">
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-on-surface-variant" htmlFor="email">Email Address</label>
-                  <div className="relative group">
-                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-outline-variant group-focus-within:text-primary transition-colors w-5 h-5" />
-                    <input className="w-full pl-12 pr-4 py-3.5 bg-surface-container-lowest/60 backdrop-blur-md border border-outline/20 rounded-xl text-on-surface focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all shadow-sm" id="email" placeholder="name@company.com" type="email" {...form.register("email")} />
-                    {form.formState.errors.email && <p className="text-error text-xs mt-1">{form.formState.errors.email.message}</p>}
-                  </div>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate>
+                <div aria-live="polite" className="space-y-2 empty:hidden">
+                  {restrictionToast && (
+                    <div role="status" className="rounded-xl bg-accent-container px-4 py-2.5 text-center text-[13px] font-medium text-on-accent-container">
+                      {restrictionToast}
+                    </div>
+                  )}
+                  {demoBanner && !error && (
+                    <div role="status" className="flex items-center justify-center gap-2 rounded-xl bg-primary/[0.06] px-4 py-2.5 text-[13px] font-medium text-primary">
+                      <span className="h-1.5 w-1.5 animate-pulse-soft rounded-full bg-primary" aria-hidden="true" />
+                      Signing in as {demoBanner === "hr" ? "HR" : "Employee"} demo…
+                    </div>
+                  )}
+                  {error && (
+                    <div role="alert" className="rounded-xl bg-error-container px-4 py-2.5 text-center text-[13px] font-medium text-error">
+                      {error}
+                    </div>
+                  )}
                 </div>
 
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-on-surface-variant" htmlFor="password">Password</label>
-                    <button type="button" onClick={handleForgotPassword} className="text-xs font-semibold text-primary hover:text-primary-dim hover:underline decoration-primary/30 underline-offset-4 transition-all">Forgot Password?</button>
+                <div>
+                  <label className="mb-1.5 block text-[13px] font-medium text-on-surface" htmlFor="email">
+                    Work Email
+                  </label>
+                  <div className="relative">
+                    <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-on-surface-variant/70" aria-hidden="true" />
+                    <input
+                      className={`${inputCls} pl-10`}
+                      id="email"
+                      type="email"
+                      inputMode="email"
+                      autoComplete="email"
+                      spellCheck={false}
+                      placeholder="name@company.com"
+                      aria-invalid={!!form.formState.errors.email}
+                      aria-describedby={form.formState.errors.email ? "email-error" : undefined}
+                      {...form.register("email")}
+                    />
                   </div>
-                  <div className="relative group">
-                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-outline-variant group-focus-within:text-primary transition-colors w-5 h-5" />
-                    <input className="w-full pl-12 pr-12 py-3.5 bg-surface-container-lowest/60 backdrop-blur-md border border-outline/20 rounded-xl text-on-surface focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all shadow-sm" id="password" placeholder="••••••••" type={showPassword ? "text" : "password"} {...form.register("password")} />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-outline-variant hover:text-on-surface transition-colors">
-                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  {form.formState.errors.email && (
+                    <p id="email-error" className="mt-1.5 text-[12px] text-error">{form.formState.errors.email.message}</p>
+                  )}
+                </div>
+
+                <div>
+                  <div className="mb-1.5 flex items-center justify-between">
+                    <label className="block text-[13px] font-medium text-on-surface" htmlFor="password">
+                      Password
+                    </label>
+                    <button type="button" onClick={handleForgotPassword} className="rounded text-[13px] font-medium text-primary hover:text-primary-dim">
+                      Forgot Password?
                     </button>
-                    {form.formState.errors.password && <p className="text-error text-xs mt-1">{form.formState.errors.password.message}</p>}
                   </div>
+                  <div className="relative">
+                    <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-on-surface-variant/70" aria-hidden="true" />
+                    <input
+                      className={`${inputCls} pl-10 pr-11`}
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      autoComplete="current-password"
+                      placeholder="••••••••"
+                      aria-invalid={!!form.formState.errors.password}
+                      aria-describedby={form.formState.errors.password ? "password-error" : undefined}
+                      {...form.register("password")}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      className="absolute right-1.5 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-on-surface-variant transition-colors hover:bg-on-surface/5 hover:text-on-surface"
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}
+                    </button>
+                  </div>
+                  {form.formState.errors.password && (
+                    <p id="password-error" className="mt-1.5 text-[12px] text-error">{form.formState.errors.password.message}</p>
+                  )}
                 </div>
 
-                <button className="w-full mt-8 py-4 px-6 bg-gradient-to-r from-primary to-primary-dim text-white rounded-xl font-headline font-semibold text-lg hover:shadow-[0_0_20px_rgba(147,150,255,0.4)] active:scale-[0.98] transition-all duration-250 flex justify-center items-center gap-2 cursor-pointer" type="submit" disabled={isLoading || isValidating}>
+                <button className={`${btn.dark} ${btn.lg} mt-2 w-full`} type="submit" disabled={isLoading || isValidating}>
                   {isLoading || isValidating ? (
-                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                      Signing In…
+                    </>
                   ) : (
-                    <>Sign In <ArrowRight className="text-xl w-5 h-5" /></>
+                    <>
+                      Sign In to {activePortal === "hr" ? "HR Portal" : "Employee Portal"}
+                      <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                    </>
                   )}
                 </button>
               </form>
             </div>
+
+            <p className="mt-8 text-center text-[12px] text-on-surface-variant">
+              Role-based access · Every action is audit-logged
+            </p>
           </div>
-        </div>
-    </main>
+        </section>
+      </main>
     </>
   );
 }

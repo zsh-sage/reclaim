@@ -97,7 +97,7 @@ function DocViewer({ file }: DocViewerProps) {
 
   if (!file) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center gap-4 bg-surface-container-low/30 rounded-2xl border-2 border-dashed border-outline-variant/20 min-h-[360px]">
+      <div className="max-lg:hidden flex-1 flex flex-col items-center justify-center gap-4 bg-surface-container-low/30 rounded-2xl border-2 border-dashed border-outline-variant/20 min-h-[360px]">
         <div className="w-16 h-16 rounded-2xl bg-surface-container flex items-center justify-center">
           <FileText className="w-8 h-8 text-outline-variant/50" strokeWidth={1.25} />
         </div>
@@ -1079,7 +1079,7 @@ function CaptureReceiptContent() {
             )}
 
             {/* Split-view upload area */}
-            <div className="flex flex-col lg:flex-row gap-5 items-stretch" style={{ minHeight: 480 }}>
+            <div className="flex flex-col lg:flex-row gap-5 items-stretch lg:min-h-[480px]">
 
                 {/* ── Left: Dropzone + file list ─────────────────────────── */}
                 <div className="w-full lg:w-[380px] shrink-0 flex flex-col gap-4">

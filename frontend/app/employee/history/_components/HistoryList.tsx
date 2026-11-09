@@ -2,6 +2,7 @@
 
 import { ChevronRight } from "lucide-react";
 import { HistoryClaim, STATUS_BADGE, STATUS_DOT } from "./historyData";
+import { LifecyclePill } from "@/components/claims/StatusBadge";
 
 interface HistoryListProps {
   claims: HistoryClaim[];
@@ -78,24 +79,25 @@ export default function HistoryList({ claims, onSelectClaim }: HistoryListProps)
       </div>
 
       {/* ── Mobile: Card list ─────────────────────────── */}
-      <div className="md:hidden flex flex-col gap-3">
+      <ul className="md:hidden flex flex-col divide-y divide-on-surface/[0.06] overflow-hidden rounded-[20px] bg-white shadow-ambient">
         {claims.map((claim) => (
-          <div
-            key={claim.id}
+          <li key={claim.id}>
+          <button
+            type="button"
             onClick={() => onSelectClaim(claim)}
-            className="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant/10 flex items-center justify-between hover:bg-surface-container-highest/30 transition-colors active:scale-[0.98] cursor-pointer"
+            className="w-full px-4 py-3.5 text-left flex items-center justify-between gap-3 transition-colors active:bg-marshmallow"
           >
             {/* Left: icon + meta */}
             <div className="flex items-center gap-3 overflow-hidden">
-              <div className="p-3 bg-surface-container rounded-xl text-on-surface-variant shrink-0">
-                <claim.categoryIcon className="w-5 h-5" strokeWidth={1.75} />
+              <div className="inline-flex h-10 w-10 items-center justify-center bg-primary/[0.08] rounded-xl text-primary shrink-0">
+                <claim.categoryIcon className="w-5 h-5" strokeWidth={1.75} aria-hidden="true" />
               </div>
-              <div className="min-w-0 pr-2">
-                <h4 className="font-headline font-bold text-sm text-on-surface mb-0.5 truncate">
+              <div className="min-w-0">
+                <p className="text-[14px] font-semibold text-on-surface truncate">
                   {claim.merchant}
-                </h4>
-                <p className="font-body text-xs text-on-surface-variant truncate">
-                  {claim.date.split(",")[0]} • {claim.category}
+                </p>
+                <p className="text-[12px] text-on-surface-variant truncate">
+                  {[claim.date.split(",")[0], claim.merchant === claim.category ? claim.subCategory : claim.category].filter(Boolean).join(" · ")}
                 </p>
               </div>
             </div>
@@ -103,20 +105,17 @@ export default function HistoryList({ claims, onSelectClaim }: HistoryListProps)
             {/* Right: amount + badge */}
             <div className="flex items-center gap-2 shrink-0">
                <div className="text-right shrink-0">
-                 <p className="font-headline font-bold text-sm text-on-surface mb-1 tabular-nums">
+                 <p className="font-mono text-[14px] font-semibold text-on-surface mb-1 tabular-nums">
                    {claim.amount}
                  </p>
-                 <span
-                   className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${STATUS_BADGE[claim.status]}`}
-                 >
-                   {claim.status}
-                 </span>
+                 <LifecyclePill status={claim.status} />
                </div>
-               <ChevronRight className="w-4 h-4 text-on-surface-variant opacity-60" />
+               <ChevronRight className="w-4 h-4 text-on-surface-variant opacity-60" aria-hidden="true" />
             </div>
-          </div>
+          </button>
+          </li>
         ))}
-      </div>
+      </ul>
     </div>
   );
 }

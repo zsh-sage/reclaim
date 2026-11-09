@@ -4,6 +4,7 @@ import React, {
   createContext,
   useState,
   useEffect,
+  useRef,
   useContext,
   ReactNode,
   useCallback,
@@ -35,12 +36,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const router = useRouter();
   const pathname = usePathname();
+  const sessionChecked = useRef(false);
 
   // Reset isLoading whenever the route actually changes.
   // This is the reliable signal that router.push() has completed —
   // HRRoleGuard / EmployeeRoleGuard can then render their children.
+  // Skipped until the initial session check finishes; otherwise a hard refresh
+  // drops the overlay before getCurrentUser() resolves and the role guards
+  // see "no user" and bounce a signed-in user to /login.
   useEffect(() => {
-    setIsLoading(false);
+    if (sessionChecked.current) setIsLoading(false);
   }, [pathname]);
 
   // 1. Verify session on app start — skip if a fresh cache entry exists
@@ -49,6 +54,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const now = Date.now();
       if (_sessionCache && now - _sessionCache.ts < SESSION_TTL_MS) {
         setUser(_sessionCache.user);
+        sessionChecked.current = true;
         setIsLoading(false);
         return;
       }
@@ -61,6 +67,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         _sessionCache = null;
         setUser(null);
       } finally {
+        sessionChecked.current = true;
         setIsLoading(false);
       }
     }

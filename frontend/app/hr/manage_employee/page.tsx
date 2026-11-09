@@ -7,12 +7,21 @@ import {
   Search,
   Plus,
   Pencil,
-  MoreVertical,
   Mail,
   Building2,
-  ChevronRight
+  UserCheck,
+  ShieldCheck,
+  X,
 } from "lucide-react";
+import { SearchField } from "glisse";
+import type { ColDef, ICellRendererParams } from "ag-grid-community";
 import { getEmployees, type EmployeeRecord } from "@/lib/actions/employees";
+import { ReclaimGrid } from "@/components/grid/ReclaimGrid";
+import { LifecyclePill } from "@/components/claims/StatusBadge";
+import { Avatar } from "@/components/ui/Avatar";
+import { KpiCard } from "@/components/ui/KpiCard";
+import { PageHeader, PageShell } from "@/components/ui/PageHeader";
+import { btn } from "@/components/ui/styles";
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
@@ -38,7 +47,7 @@ function EmployeeModal({
     <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 sm:p-6">
       {/* Overlay */}
       <div
-        className="absolute inset-0 bg-inverse-surface/60 backdrop-blur-md cursor-default"
+        className="absolute inset-0 bg-ink/50 backdrop-blur-sm cursor-default"
         onClick={onClose}
       />
 
@@ -54,10 +63,12 @@ function EmployeeModal({
             </p>
           </div>
           <button
+            type="button"
             onClick={onClose}
+            aria-label="Close"
             className="p-2 rounded-full hover:bg-surface-container transition-colors cursor-pointer"
           >
-            <Plus className="w-6 h-6 rotate-45 text-on-surface-variant" />
+            <X className="w-5 h-5 text-on-surface-variant" aria-hidden="true" />
           </button>
         </div>
 
@@ -180,235 +191,188 @@ export default function ManageEmployeePage() {
     setIsModalOpen(true);
   };
 
-  const hrCount = employees.filter(e => e.role === "HR").length;
+  const hrCount = employees.filter((e) => e.role === "HR").length;
+  const activeCount = employees.filter((e) => e.is_active).length;
+
+  const columnDefs = useMemo<ColDef<EmployeeRecord>[]>(
+    () => [
+      {
+        headerName: "Employee",
+        field: "name",
+        flex: 1.6,
+        minWidth: 240,
+        filter: "agTextColumnFilter",
+        cellRenderer: (p: ICellRendererParams<EmployeeRecord>) =>
+          p.data ? (
+            <div className="flex min-w-0 items-center gap-3">
+              <Avatar name={p.data.name} size="sm" />
+              <div className="min-w-0 leading-tight">
+                <p className="truncate text-[14px] font-medium text-on-surface">{p.data.name}</p>
+                <p className="truncate text-[12px] text-on-surface-variant">{p.data.email}</p>
+              </div>
+            </div>
+          ) : null,
+      },
+      { headerName: "Company ID", field: "user_code", width: 140, cellClass: "font-mono text-[12px] text-on-surface-variant", valueFormatter: (p) => p.value ?? "—" },
+      { headerName: "Department", field: "department_name", flex: 1, minWidth: 150, filter: "agTextColumnFilter", valueFormatter: (p) => p.value ?? "—", cellClass: "text-on-surface-variant" },
+      {
+        headerName: "Role",
+        field: "role",
+        width: 120,
+        cellRenderer: (p: ICellRendererParams<EmployeeRecord, string>) => (
+          <span
+            className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset ${
+              p.value === "HR" ? "bg-accent-container text-on-accent-container ring-accent/20" : "bg-primary-container text-on-primary-container ring-primary/15"
+            }`}
+          >
+            {p.value === "HR" ? "HR Admin" : p.value}
+          </span>
+        ),
+      },
+      {
+        headerName: "Status",
+        field: "is_active",
+        width: 130,
+        cellRenderer: (p: ICellRendererParams<EmployeeRecord, boolean>) => <LifecyclePill status={p.value ? "Active" : "Inactive"} />,
+      },
+      { field: "email", hide: true },
+      {
+        headerName: "",
+        colId: "actions",
+        width: 90,
+        sortable: false,
+        resizable: false,
+        cellStyle: { justifyContent: "flex-end" },
+        cellRenderer: (p: ICellRendererParams<EmployeeRecord>) =>
+          p.data ? (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleEdit(p.data!);
+              }}
+              aria-label={`Edit ${p.data.name}`}
+              className={`${btn.icon} h-8 w-8`}
+            >
+              <Pencil className="h-4 w-4" aria-hidden="true" />
+            </button>
+          ) : null,
+      },
+    ],
+    [],
+  );
 
   return (
-    <div className="relative min-h-full p-6 md:p-10 lg:p-12">
-      {/* Ambient glow */}
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -top-20 -right-20 w-[480px] h-[480px] rounded-full bg-primary opacity-[0.07] blur-[80px]" />
-        <div className="absolute top-32 right-40 w-[320px] h-[320px] rounded-full bg-tertiary opacity-[0.06] blur-[64px]" />
-        <div className="absolute -top-8 right-[15%] w-[200px] h-[200px] rounded-full bg-primary-container opacity-[0.12] blur-[48px]" />
-      </div>
-
-      <div className="relative z-10">
-        {/* Header Section */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
-          <div className="max-w-2xl">
-            <h2
-              className="font-headline font-extrabold text-on-background mb-2 tracking-tight"
-              style={{ fontSize: "2.5rem", letterSpacing: "-0.02em" }}
-            >
-              Manage Employees
-            </h2>
-            <p className="text-on-surface-variant text-lg font-body">
-              View, edit, and manage employee access and profiles.
-            </p>
-          </div>
-
-          <button
-            onClick={handleCreate}
-            className="flex items-center justify-center gap-2 rounded-xl h-12 px-6 bg-gradient-to-r from-primary to-primary-dim text-on-primary font-body text-base font-semibold transition-all hover:shadow-[0_8px_30px_rgba(70,71,211,0.4)] hover:scale-[0.98] active:scale-95 cursor-pointer"
-          >
-            <Plus className="w-5 h-5" />
+    <PageShell>
+      <PageHeader
+        eyebrow="People"
+        title="Employees"
+        description="View and manage employee access, roles, and payout details."
+        actions={
+          <button type="button" onClick={handleCreate} className={btn.primary}>
+            <Plus className="h-4 w-4" strokeWidth={2.25} aria-hidden="true" />
             Add Employee
           </button>
-        </div>
+        }
+      />
 
-        {/* Stats Summary */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
-          {[
-            { label: "Total Employees", value: employees.length, color: "text-primary", bg: "bg-primary/5", hoverBg: "group-hover:bg-primary/15", hoverShadow: "hover:shadow-[0_16px_48px_-12px_rgba(70,71,211,0.12)]" },
-            { label: "HR Admins", value: hrCount, color: "text-amber-600", bg: "bg-amber-500/5", hoverBg: "group-hover:bg-amber-500/15", hoverShadow: "hover:shadow-[0_16px_48px_-12px_rgba(245,158,11,0.12)]" },
-          ].map((stat, i) => (
-            <div key={i} className={`bg-surface-container-lowest/70 backdrop-blur-2xl rounded-xl p-6 shadow-[0_8px_40px_-12px_rgba(44,47,49,0.06)] relative overflow-hidden group ${stat.hoverShadow} hover:-translate-y-0.5 transition-all duration-300`}>
-              <div className="relative z-10">
-                <p className="text-xs font-semibold font-headline text-on-surface-variant tracking-widest uppercase mb-2">
-                  {stat.label}
-                </p>
-                <div className="flex items-end gap-3">
-                  <span className="text-4xl font-extrabold font-headline text-on-surface">
-                    {isLoading ? "—" : stat.value}
-                  </span>
-                  <span className="text-sm text-on-surface-variant font-medium mb-1">
-                    active members
-                  </span>
-                </div>
-              </div>
-              <div className={`absolute -bottom-6 -right-6 w-36 h-36 ${stat.bg} rounded-full blur-2xl ${stat.hoverBg} group-hover:scale-110 transition-all duration-500`} />
-            </div>
-          ))}
-        </div>
+      <section aria-label="Summary" className="mb-6 grid grid-cols-3 gap-2.5 sm:gap-3 md:mb-8 md:gap-5">
+        <KpiCard label="Total Employees" value={employees.length} sub="members" icon={Users} tone="primary" loading={isLoading} />
+        <KpiCard label="Active" value={activeCount} sub="can submit claims" icon={UserCheck} tone="success" loading={isLoading} />
+        <KpiCard label="HR Admins" value={hrCount} sub="with review access" icon={ShieldCheck} tone="accent" loading={isLoading} />
+      </section>
 
-        {/* Employee Modal (Create/Edit) */}
-        <EmployeeModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          employee={selectedEmployee}
-        />
+      <EmployeeModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} employee={selectedEmployee} />
 
-        {/* Filter & Search Bar */}
-        <div className="bg-surface-container-low/50 backdrop-blur-md border border-outline-variant/10 rounded-2xl p-4 mb-6 flex flex-col sm:flex-row gap-4">
-          <div className="flex-1 relative group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant group-focus-within:text-primary transition-colors w-4 h-4" />
-            <input
-              type="text"
-              placeholder="Search by name, email, or department..."
+      <section aria-label="Employee directory" className="overflow-hidden rounded-[20px] bg-white shadow-ambient">
+        <div className="flex flex-col gap-3 border-b border-on-surface/[0.06] px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between md:px-5">
+          <div className="w-full sm:max-w-sm">
+            <SearchField
+              aria-label="Search employees"
+              placeholder="Search name, email, or department…"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 bg-surface-container-lowest border border-outline-variant/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-on-surface-variant/50"
+              onValueChange={setSearchQuery}
+              autoComplete="off"
+              spellCheck={false}
             />
           </div>
-        </div>
-
-        {/* Employee Table */}
-        <div className="bg-surface-container-lowest border border-outline-variant/10 rounded-2xl overflow-hidden shadow-ambient-lg">
-          {/* Desktop Table */}
-          <div className="hidden md:block overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-surface-container-low/50">
-                  <th className="py-4 px-6 text-xs font-semibold font-headline text-on-surface-variant uppercase tracking-wider">Employee</th>
-                  <th className="py-4 px-6 text-xs font-semibold font-headline text-on-surface-variant uppercase tracking-wider hidden md:table-cell">Department</th>
-                  <th className="py-4 px-6 text-xs font-semibold font-headline text-on-surface-variant uppercase tracking-wider">Role</th>
-                  <th className="py-4 px-6 text-xs font-semibold font-headline text-on-surface-variant uppercase tracking-wider">Status</th>
-                  <th className="py-4 px-6 text-xs font-semibold font-headline text-on-surface-variant uppercase tracking-wider text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-outline-variant/5">
-                {isLoading ? (
-                  <tr>
-                    <td colSpan={5} className="py-12 text-center text-on-surface-variant text-sm">Loading employees...</td>
-                  </tr>
-                ) : filteredEmployees.map((emp) => (
-                  <tr key={emp.user_id} className="hover:bg-surface-container/30 transition-colors group">
-                    <td className="py-4 px-6">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-linear-to-br from-primary-container to-tertiary-container flex items-center justify-center font-bold text-xs text-on-primary-container border-2 border-surface-container-lowest shadow-sm">
-                          {emp.name.charAt(0)}
-                        </div>
-                        <div>
-                          <p className="font-semibold text-sm text-on-surface">{emp.name}</p>
-                          <div className="flex items-center gap-1.5 mt-0.5">
-                            <Mail className="w-3 h-3 text-on-surface-variant/60" />
-                            <p className="text-[11px] text-on-surface-variant">{emp.email}</p>
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-4 px-6 hidden md:table-cell">
-                      <div className="flex items-center gap-2">
-                        <Building2 className="w-3.5 h-3.5 text-on-surface-variant/70" />
-                        <p className="text-sm text-on-surface-variant">{emp.department_name ?? "—"}</p>
-                      </div>
-                    </td>
-                    <td className="py-4 px-6">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                        emp.role === "HR" ? "bg-amber-100 text-amber-700" : "bg-primary/10 text-primary"
-                      }`}>
-                        {emp.role}
-                      </span>
-                    </td>
-                    <td className="py-4 px-6">
-                      <div className="flex items-center gap-1.5">
-                        <div className={`w-1.5 h-1.5 rounded-full ${emp.is_active ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-on-surface-variant/30"}`} />
-                        <p className={`text-xs font-medium ${emp.is_active ? "text-emerald-700" : "text-on-surface-variant"}`}>
-                          {emp.is_active ? "Active" : "Inactive"}
-                        </p>
-                      </div>
-                    </td>
-                    <td className="py-4 px-6 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => handleEdit(emp)}
-                          className="p-2 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-lg transition-all active:scale-90 cursor-pointer"
-                          title="Edit Employee"
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                        <button className="p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-lg transition-all cursor-pointer">
-                          <MoreVertical className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Mobile Card List */}
-          <div className="md:hidden flex flex-col gap-2 p-3">
-            {isLoading ? (
-              <div className="py-12 text-center text-on-surface-variant text-sm">Loading employees...</div>
-            ) : filteredEmployees.map((emp) => (
-              <div key={emp.user_id} className="bg-surface-container-lowest rounded-xl p-4 border border-outline-variant/10 active:scale-[0.98] transition-all">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-linear-to-br from-primary-container to-tertiary-container flex items-center justify-center font-bold text-xs text-on-primary-container border-2 border-surface-container-lowest shadow-sm shrink-0">
-                      {emp.name.charAt(0)}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="font-semibold text-sm text-on-surface truncate">{emp.name}</p>
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        <Mail className="w-3 h-3 text-on-surface-variant/60 shrink-0" />
-                        <p className="text-[11px] text-on-surface-variant truncate">{emp.email}</p>
-                      </div>
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        <Building2 className="w-3 h-3 text-on-surface-variant/60 shrink-0" />
-                        <p className="text-[11px] text-on-surface-variant">{emp.department_name ?? "—"}</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-end gap-1.5 shrink-0">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                      emp.role === "HR" ? "bg-amber-100 text-amber-700" : "bg-primary/10 text-primary"
-                    }`}>
-                      {emp.role}
-                    </span>
-                    <div className="flex items-center gap-1.5">
-                      <div className={`w-1.5 h-1.5 rounded-full ${emp.is_active ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-on-surface-variant/30"}`} />
-                      <p className={`text-[11px] font-medium ${emp.is_active ? "text-emerald-700" : "text-on-surface-variant"}`}>
-                        {emp.is_active ? "Active" : "Inactive"}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center justify-end gap-2 mt-3 pt-3 border-t border-outline-variant/10">
-                  <button
-                    onClick={() => handleEdit(emp)}
-                    className="p-2 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-lg transition-all active:scale-90 cursor-pointer"
-                    title="Edit Employee"
-                  >
-                    <Pencil className="w-4 h-4" />
-                  </button>
-                  <button className="p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-lg transition-all cursor-pointer">
-                    <MoreVertical className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {!isLoading && filteredEmployees.length === 0 && (
-            <div className="p-12 text-center">
-              <div className="inline-flex p-4 bg-surface-container rounded-full mb-4">
-                <Search className="w-8 h-8 text-on-surface-variant/40" />
-              </div>
-              <p className="font-headline font-bold text-lg text-on-surface">No employees found</p>
-              <p className="text-on-surface-variant text-sm mt-1">Try adjusting your search or filters.</p>
-            </div>
-          )}
-
           {!isLoading && (
-            <div className="p-5 text-center border-t border-outline-variant/15">
-              <span className="text-sm text-on-surface-variant font-body">
-                Showing {filteredEmployees.length} of {employees.length} employees
-              </span>
-            </div>
+            <p className="text-[13px] text-on-surface-variant tabular-nums">
+              {filteredEmployees.length} of {employees.length} employees
+            </p>
           )}
         </div>
-      </div>
-    </div>
+
+        {/* Desktop: AG Grid */}
+        <div className="hidden md:block">
+          <ReclaimGrid<EmployeeRecord>
+            rowData={isLoading ? undefined : employees}
+            loading={isLoading}
+            columnDefs={columnDefs}
+            quickFilterText={searchQuery}
+            getRowId={(p) => p.data.user_id}
+            onRowClicked={(e) => e.data && handleEdit(e.data)}
+            pagination
+            paginationPageSize={10}
+            paginationPageSizeSelector={[10, 25, 50]}
+            defaultColDef={{ sortable: true, resizable: true }}
+            overlayNoRowsTemplate='<span class="text-sm">No employees match your search.</span>'
+          />
+        </div>
+
+        {/* Mobile: cards */}
+        <ul className="divide-y divide-on-surface/[0.06] md:hidden">
+          {isLoading &&
+            Array.from({ length: 4 }).map((_, i) => (
+              <li key={i} className="flex items-center gap-3 px-4 py-4">
+                <span className="h-9 w-9 animate-pulse rounded-full bg-surface-container" />
+                <span className="flex-1 space-y-2">
+                  <span className="block h-3 w-1/2 animate-pulse rounded bg-surface-container" />
+                  <span className="block h-2.5 w-2/3 animate-pulse rounded bg-surface-container" />
+                </span>
+              </li>
+            ))}
+          {!isLoading &&
+            filteredEmployees.map((emp) => (
+              <li key={emp.user_id}>
+                <button
+                  type="button"
+                  onClick={() => handleEdit(emp)}
+                  className="flex w-full items-center gap-3 px-4 py-4 text-left transition-colors active:bg-marshmallow"
+                >
+                  <Avatar name={emp.name} />
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-2">
+                      <span className="truncate text-[14px] font-semibold text-on-surface">{emp.name}</span>
+                      {emp.role === "HR" && (
+                        <span className="rounded-full bg-accent-container px-1.5 py-0.5 text-[10px] font-semibold text-on-accent-container">HR</span>
+                      )}
+                    </span>
+                    <span className="flex items-center gap-1 truncate text-[12px] text-on-surface-variant">
+                      <Mail className="h-3 w-3 shrink-0" aria-hidden="true" />
+                      <span className="truncate">{emp.email}</span>
+                    </span>
+                    <span className="flex items-center gap-1 truncate text-[12px] text-on-surface-variant">
+                      <Building2 className="h-3 w-3 shrink-0" aria-hidden="true" />
+                      {emp.department_name ?? "—"}
+                    </span>
+                  </span>
+                  <LifecyclePill status={emp.is_active ? "Active" : "Inactive"} />
+                </button>
+              </li>
+            ))}
+        </ul>
+
+        {!isLoading && filteredEmployees.length === 0 && (
+          <div className="flex flex-col items-center px-6 py-12 text-center md:hidden">
+            <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-marshmallow text-on-surface-variant">
+              <Search className="h-6 w-6" aria-hidden="true" />
+            </span>
+            <p className="mt-3 font-semibold text-on-surface">No employees found</p>
+            <p className="mt-1 text-[13px] text-on-surface-variant">Try a different name, email, or department.</p>
+          </div>
+        )}
+      </section>
+    </PageShell>
   );
 }

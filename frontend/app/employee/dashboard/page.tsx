@@ -1,83 +1,65 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { History, CheckCircle2, CreditCard } from "lucide-react";
+import Link from "next/link";
+import { History, CheckCircle2, CreditCard, Plus, Camera, ClipboardList, ArrowUpRight } from "lucide-react";
 import { getDashboardStats } from "@/lib/actions/dashboard";
 import { useAuth } from "@/context/AuthContext";
 import type { DashboardStats } from "@/lib/api/types";
+import { PageHeader, PageShell } from "@/components/ui/PageHeader";
+import { btn } from "@/components/ui/styles";
 
-import StatCard          from "./_components/StatCard";
+import StatCard from "./_components/StatCard";
 import RecentClaimsTable from "./_components/RecentClaimsTable";
+
+const QUICK_ACTIONS = [
+  { href: "/employee/claims", label: "Upload Receipts", sub: "JPEG, PNG, or PDF · up to 10", icon: Camera },
+  { href: "/employee/drafts", label: "Resume a Draft", sub: "Pick up where you left off", icon: ClipboardList },
+  { href: "/employee/history", label: "Track Claims", sub: "Status from submission to payout", icon: History },
+];
 
 export default function EmployeeDashboardPage() {
   const { user } = useAuth();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [today, setToday] = useState("");
 
-  // Show only the first name in the greeting
   const firstName = user?.name?.split(" ")[0] ?? "there";
 
-  // Fetch dashboard stats via server action
   useEffect(() => {
     getDashboardStats().then(setStats);
   }, []);
 
-  // Render date client-only to avoid hydration mismatch
+  // Client-only date avoids a server/client hydration mismatch
   useEffect(() => {
     setToday(
-      new Date().toLocaleDateString("en-US", {
-        weekday: "short",
-        month: "long",
-        day: "numeric",
-      })
+      new Intl.DateTimeFormat(undefined, { weekday: "long", month: "long", day: "numeric" }).format(new Date()),
     );
   }, []);
 
+  const loading = stats === null;
+
   return (
-    /*
-     * The nav shell (SideNav, TopNav, BottomNav) is now provided by
-     * app/employee/layout.tsx — this page only owns the scrollable content.
-     */
-    <div className="px-4 pt-6 pb-20 md:p-8 lg:p-12 lg:pb-8">
+    <PageShell>
+      <PageHeader
+        eyebrow={today || " "}
+        title={`Welcome back, ${firstName}.`}
+        description="Here’s where your reimbursements stand today."
+        actions={
+          <Link href="/employee/claims" className={`${btn.primary} md:hidden`}>
+            <Plus className="h-4 w-4" strokeWidth={2.25} aria-hidden="true" />
+            New Claim
+          </Link>
+        }
+      />
 
-      {/* ── 1. Hero greeting ──────────────────────── */}
-      <section
-        aria-label="Welcome section"
-        className="mb-6 md:mb-10 relative"
-      >
-        {/* Background gradient decorative element */}
-        <div className="absolute -top-12 -left-12 w-64 h-64 bg-linear-to-br from-[#4647D3]/20 to-[#9E00B4]/10 rounded-full blur-3xl pointer-events-none z-0" />
-
-        <div className="flex flex-wrap items-start justify-between gap-3 relative z-10">
-          <div>
-            <h2 className="font-headline text-3xl md:text-4xl font-extrabold text-on-surface tracking-tight mb-1.5">
-              Welcome back, {firstName}.
-            </h2>
-            <p className="text-on-surface-variant font-body text-sm font-medium italic opacity-80">
-              From receipt to reimbursement — in minutes, not days
-            </p>
-          </div>
-
-          {/* Current date pill — visible on md+ */}
-          <div className="hidden md:flex items-center gap-2 px-4 py-2.5 bg-surface-container-low rounded-xl shrink-0">
-            <span className="font-label text-sm font-semibold text-primary">
-              {today || "Loading..."}
-            </span>
-          </div>
-        </div>
-      </section>
-
-      {/* ── 2. KPI Bento Grid ─────────────────── */}
-      <section
-        aria-label="Key metrics"
-        className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6 mb-6 md:mb-10"
-      >
+      <section aria-label="Key metrics" className="mb-6 grid grid-cols-2 gap-3 sm:gap-4 md:mb-8 md:grid-cols-3 md:gap-5 [&>*:last-child]:col-span-2 md:[&>*:last-child]:col-span-1">
         <StatCard
           label="Awaiting Review"
           value={stats?.awaitingReview.amount ?? "MYR —"}
           subtext={`${stats?.awaitingReview.count ?? 0} claims processing`}
           icon={History}
           variant="pending"
+          loading={loading}
         />
         <StatCard
           label="Reimbursed This Month"
@@ -85,6 +67,7 @@ export default function EmployeeDashboardPage() {
           subtext={`${stats?.reimbursedThisMonth.count ?? 0} claims settled`}
           icon={CheckCircle2}
           variant="approved"
+          loading={loading}
         />
         <StatCard
           label="Already Paid"
@@ -92,12 +75,42 @@ export default function EmployeeDashboardPage() {
           subtext={`${stats?.alreadyPaid.count ?? 0} claims paid`}
           icon={CreditCard}
           variant="paid"
+          loading={loading}
         />
       </section>
 
-      {/* ── 3. Recent Claims ──────────────────── */}
-      <RecentClaimsTable />
+      <div className="grid gap-5 xl:grid-cols-[1fr_320px]">
+        <RecentClaimsTable />
 
-    </div>
+        <aside aria-label="Quick actions" className="flex flex-col gap-3">
+          <div className="mesh-ink relative overflow-hidden rounded-[20px] p-6 text-white">
+            <div aria-hidden="true" className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-[#105bff] opacity-40 blur-3xl" />
+            <p className="relative text-[12px] font-semibold uppercase tracking-[0.12em] text-[#a5a7ff]">Tip</p>
+            <p className="relative mt-2 font-headline text-[19px] font-semibold leading-snug tracking-[-0.02em]">
+              Snap receipts as you go — AI fills in the rest.
+            </p>
+            <p className="relative mt-2 text-[13px] text-white/60">
+              Merchant, date, amount and category are extracted automatically. You only confirm.
+            </p>
+          </div>
+          {QUICK_ACTIONS.map((a) => (
+            <Link
+              key={a.href}
+              href={a.href}
+              className="group flex items-center gap-4 rounded-[18px] bg-white p-4 shadow-ambient transition-shadow hover:shadow-ambient-lg"
+            >
+              <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <a.icon className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[14px] font-semibold text-on-surface">{a.label}</span>
+                <span className="block truncate text-[12px] text-on-surface-variant">{a.sub}</span>
+              </span>
+              <ArrowUpRight className="h-4 w-4 text-on-surface-variant transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden="true" />
+            </Link>
+          ))}
+        </aside>
+      </div>
+    </PageShell>
   );
 }

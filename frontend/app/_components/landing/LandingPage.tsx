@@ -6,22 +6,22 @@ import ForWhomSection from "./ForWhomSection";
 import Header from "./Header";
 import Hero from "./Hero";
 import HowItWorks from "./HowItWorks";
-import ProblemSection from "./ProblemSection";
-import StatsBand from "./StatsBand";
+import Outcomes from "./Outcomes";
+import LazyTriageDemo from "./LazyTriageDemo";
 
 export default function LandingPage({ user }: { user: User | null }) {
   return (
-    <div className="min-h-screen flex flex-col bg-surface">
+    <div className="flex min-h-screen flex-col bg-white">
       <a href="#main" className="skip-link">
-        Skip to content
+        Skip to Content
       </a>
       <Header user={user} />
-      <main id="main" tabIndex={-1} className="flex-1 scroll-smooth focus:outline-none">
+      <main id="main" tabIndex={-1} className="flex-1 focus:outline-none">
         <Hero user={user} />
-        <ProblemSection />
+        <Outcomes />
         <HowItWorks />
+        <LazyTriageDemo />
         <FeaturesSection />
-        <StatsBand />
         <ForWhomSection />
         <DemoSection />
       </main>

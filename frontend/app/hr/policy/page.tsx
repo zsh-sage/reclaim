@@ -1202,7 +1202,7 @@ export default function PolicyStudio() {
                       <button
                         key={status}
                         onClick={() => setActiveFilter(status)}
-                        className={`px-6 py-2 rounded-lg transition-all font-medium text-sm cursor-pointer shrink-0 ${activeFilter === status
+                        className={`flex-1 lg:flex-none px-3 lg:px-6 py-2 rounded-lg transition-[background-color,color,box-shadow] font-medium text-sm cursor-pointer ${activeFilter === status
                           ? "bg-surface-container-lowest shadow-[0_4px_20px_rgba(44,47,49,0.04)] text-primary"
                           : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest/50"
                           }`}

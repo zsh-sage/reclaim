@@ -1,18 +1,66 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { TrendingUp, ChevronRight, CheckCircle2, XCircle, Zap } from "lucide-react";
+import { SegmentedControl } from "glisse";
+import type { ColDef, ICellRendererParams, RowClickedEvent } from "ag-grid-community";
+import { ChevronRight, CheckCircle2, XCircle, Zap, Inbox, ShieldAlert, Sparkles, Download } from "lucide-react";
 import type { Claim, ReimbursementRaw } from "@/lib/api/types";
 import { getHRClaims } from "@/lib/actions/hr";
-import { ClaimRow } from "@/components/claims/ClaimRow";
+import { StatusBadge } from "@/components/claims/StatusBadge";
 import { ViewAllModal } from "@/components/claims/ViewAllModal";
+import { ReclaimGrid } from "@/components/grid/ReclaimGrid";
+import { Avatar } from "@/components/ui/Avatar";
+import { KpiCard } from "@/components/ui/KpiCard";
+import { PageHeader, PageShell } from "@/components/ui/PageHeader";
+import { RingGauge } from "@/components/ui/RingGauge";
+import { btn } from "@/components/ui/styles";
+import type { AgGridReact } from "ag-grid-react";
 
 type TabKey = "attention" | "passed" | "flagged";
 
+/** "MYR 1,234.50" / "RM 12.00" → 1234.5 for numeric sorting. */
+function parseAmount(s: string): number {
+  const n = parseFloat(s.replace(/[^0-9.-]/g, ""));
+  return Number.isFinite(n) ? n : 0;
+}
+
+function EmployeeCell({ data }: ICellRendererParams<Claim>) {
+  if (!data) return null;
+  return (
+    <div className="flex min-w-0 items-center gap-3">
+      <Avatar name={data.employee.name} initials={data.employee.initials} size="sm" />
+      <div className="min-w-0 leading-tight">
+        <p className="truncate text-[14px] font-medium text-on-surface">{data.employee.name}</p>
+        {data.note && <p className="truncate text-[12px] text-on-surface-variant">{data.note}</p>}
+      </div>
+    </div>
+  );
+}
+
+function StatusCell({ data }: ICellRendererParams<Claim>) {
+  return data ? <StatusBadge status={data.status} /> : null;
+}
+
+function ActionCell({ data, context }: ICellRendererParams<Claim, unknown, { action: string }>) {
+  if (!data) return null;
+  const isView = context.action === "View";
+  return (
+    <Link
+      href={isView ? `/hr/view/${data.id}` : `/hr/review/${data.id}`}
+      onClick={(e) => e.stopPropagation()}
+      className={isView ? `${btn.ghost} h-8 px-3 text-[13px]` : `${btn.dark} h-8 px-3.5 text-[13px]`}
+    >
+      {context.action}
+      <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+    </Link>
+  );
+}
+
 export default function HRDashboardPage() {
   const router = useRouter();
-  const handleNavigate = useCallback((path: string) => router.push(path), [router]);
+  const gridRef = useRef<AgGridReact<Claim>>(null);
 
   const [activeTab, setActiveTab] = useState<TabKey>("attention");
   const [modalOpen, setModalOpen] = useState(false);
@@ -39,34 +87,20 @@ export default function HRDashboardPage() {
     const total = allReims.length;
     if (total === 0) return { autoSolveRate: 0, autoSolvedCount: 0, totalClaims: 0 };
     const autoSolved = allReims.filter(
-      (r) =>
-        r.reviewed_by == null &&
-        ["APPROVED", "DISBURSING", "PAID", "REJECTED"].includes(r.status),
+      (r) => r.reviewed_by == null && ["APPROVED", "DISBURSING", "PAID", "REJECTED"].includes(r.status),
     ).length;
-    return {
-      autoSolveRate: (autoSolved / total) * 100,
-      autoSolvedCount: autoSolved,
-      totalClaims: total,
-    };
+    return { autoSolveRate: (autoSolved / total) * 100, autoSolvedCount: autoSolved, totalClaims: total };
   }, [allReims]);
 
   const tabs: { key: TabKey; label: string; count: number }[] = [
-    { key: "attention", label: "Required Attention", count: attentionClaims.length },
-    { key: "passed", label: "Passed AI Review", count: passedClaims.length },
-    { key: "flagged", label: "Flagged AI Review", count: flaggedClaims.length },
+    { key: "attention", label: "Needs Attention", count: attentionClaims.length },
+    { key: "passed", label: "Passed AI", count: passedClaims.length },
+    { key: "flagged", label: "Auto-Rejected", count: flaggedClaims.length },
   ];
 
   const activeClaims =
-    activeTab === "attention"
-      ? attentionClaims
-      : activeTab === "passed"
-        ? passedClaims
-        : flaggedClaims;
-
-  const previewClaims = activeClaims.slice(0, activeTab === "attention" ? 5 : 3);
-
-  const actionLabel =
-    activeTab === "attention" ? "Review" : "View";
+    activeTab === "attention" ? attentionClaims : activeTab === "passed" ? passedClaims : flaggedClaims;
+  const actionLabel = activeTab === "attention" ? "Review" : "View";
 
   const modalTitle =
     activeTab === "attention"
@@ -75,256 +109,247 @@ export default function HRDashboardPage() {
         ? "Passed AI Review (last 24 h)"
         : "Flagged AI Review (last 24 h)";
 
-  const viewAllLabel =
+  const columnDefs = useMemo<ColDef<Claim>[]>(
+    () => [
+      {
+        headerName: "Employee",
+        colId: "employee",
+        valueGetter: (p) => p.data?.employee.name ?? "",
+        cellRenderer: EmployeeCell,
+        flex: 1.6,
+        minWidth: 220,
+        filter: "agTextColumnFilter",
+      },
+      { headerName: "Submitted", field: "date", flex: 1, minWidth: 130, cellClass: "text-on-surface-variant" },
+      {
+        headerName: "Amount",
+        colId: "amount",
+        valueGetter: (p) => (p.data ? parseAmount(p.data.amount) : 0),
+        valueFormatter: (p) => p.data?.amount ?? "",
+        type: "rightAligned",
+        flex: 1,
+        minWidth: 130,
+        cellClass: "font-mono tabular-nums font-medium",
+        filter: "agNumberColumnFilter",
+      },
+      { headerName: "Category", field: "category", flex: 1, minWidth: 140, filter: "agTextColumnFilter" },
+      { headerName: "AI Status", field: "status", cellRenderer: StatusCell, flex: 1.2, minWidth: 180 },
+      {
+        headerName: "",
+        colId: "action",
+        cellRenderer: ActionCell,
+        width: 120,
+        sortable: false,
+        resizable: false,
+        cellStyle: { justifyContent: "flex-end" },
+      },
+    ],
+    [],
+  );
+
+  const onRowClicked = useCallback(
+    (e: RowClickedEvent<Claim>) => {
+      if (!e.data) return;
+      router.push(actionLabel === "View" ? `/hr/view/${e.data.id}` : `/hr/review/${e.data.id}`);
+    },
+    [router, actionLabel],
+  );
+
+  const exportCsv = () =>
+    gridRef.current?.api.exportDataAsCsv({
+      fileName: `reclaim-${activeTab}-${new Date().toISOString().slice(0, 10)}.csv`,
+      columnKeys: ["employee", "date", "amount", "category", "status"],
+    });
+
+  const emptyText =
     activeTab === "attention"
-      ? "View All Pending Requests"
+      ? "No claims need attention right now."
       : activeTab === "passed"
-        ? "View All Passed Claims"
-        : "View All Flagged Claims";
+        ? "No auto-approved claims in the last 24 hours."
+        : "No auto-rejected claims in the last 24 hours.";
 
   return (
-    <div className="relative min-h-full p-6 md:p-10 lg:p-12">
-      {/* Ambient glow */}
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -top-20 -right-20 w-[480px] h-[480px] rounded-full bg-primary opacity-[0.07] blur-[80px]" />
-        <div className="absolute top-32 right-40 w-[320px] h-[320px] rounded-full bg-tertiary opacity-[0.06] blur-[64px]" />
-        <div className="absolute -top-8 right-[15%] w-[200px] h-[200px] rounded-full bg-primary-container opacity-[0.12] blur-[48px]" />
-      </div>
+    <PageShell>
+      <PageHeader
+        eyebrow="Operations"
+        title="Reimbursement Triage"
+        description="Manage exceptions and audit what the AI approved on its own."
+        actions={
+          <Link href="/hr/policy" className={btn.secondary}>
+            <Sparkles className="h-4 w-4 text-primary" aria-hidden="true" />
+            Policy Studio
+          </Link>
+        }
+      />
 
-      {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10 relative z-10">
-        <div className="max-w-2xl">
-          <h2
-            className="font-headline font-extrabold text-on-background mb-2 tracking-tight"
-            style={{ fontSize: "2.5rem", letterSpacing: "-0.02em" }}
+      {/* KPIs */}
+      <section aria-label="Key metrics" className="mb-6 grid grid-cols-2 gap-3 sm:gap-4 md:mb-8 xl:grid-cols-4 xl:gap-5">
+        <KpiCard
+          label="Auto-Solve Rate"
+          value={`${autoSolveRate.toFixed(1)}%`}
+          loading={isLoadingClaims}
+          tone="primary"
+          sub={`${autoSolvedCount} of ${totalClaims} claims cleared without HR`}
+          className="xl:col-span-1"
+        >
+          <div className="absolute right-5 top-5 hidden sm:block">
+            {!isLoadingClaims && <RingGauge value={autoSolveRate} size={56} label={`Auto-solve rate ${autoSolveRate.toFixed(1)}%`} />}
+          </div>
+        </KpiCard>
+        <KpiCard
+          label="Pending Manual Review"
+          value={attentionClaims.length}
+          loading={isLoadingClaims}
+          icon={ShieldAlert}
+          tone="accent"
+          sub="Requires HR action"
+        />
+        <KpiCard
+          label="Passed AI Review"
+          value={passedClaims.length}
+          loading={isLoadingClaims}
+          icon={Zap}
+          tone="success"
+          sub="Auto-approved · last 24 h"
+        />
+        <KpiCard
+          label="Auto-Rejected"
+          value={flaggedClaims.length}
+          loading={isLoadingClaims}
+          icon={XCircle}
+          tone="neutral"
+          sub="Employees notified · last 24 h"
+        />
+      </section>
+
+      {/* Triage queue */}
+      <section aria-labelledby="queue-heading" className="overflow-hidden rounded-[20px] bg-white shadow-ambient">
+        <div className="flex flex-col gap-4 border-b border-on-surface/[0.06] px-5 py-4 md:flex-row md:items-center md:justify-between md:px-6">
+          <div>
+            <h2 id="queue-heading" className="font-headline text-[17px] font-semibold tracking-[-0.02em] text-on-surface">
+              Claim Queue
+            </h2>
+            <p className="text-[13px] text-on-surface-variant">Sorted and bucketed by the Compliance Agent</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <SegmentedControl
+              aria-label="Queue bucket"
+              items={tabs.map((t) => ({
+                value: t.key,
+                label: (
+                  <span className="inline-flex items-center gap-1.5">
+                    {t.label}
+                    <span className="rounded-full bg-on-surface/[0.07] px-1.5 text-[11px] font-semibold tabular-nums">
+                      {isLoadingClaims ? "–" : t.count}
+                    </span>
+                  </span>
+                ),
+              }))}
+              value={activeTab}
+              onValueChange={(v) => setActiveTab(v as TabKey)}
+              style={{ ["--lg-tab-width" as string]: "clamp(104px, 28vw, 150px)", ["--lg-tab-height" as string]: "34px" }}
+            />
+            <button type="button" onClick={exportCsv} className={`${btn.secondary} ${btn.sm} max-md:hidden`}>
+              <Download className="h-3.5 w-3.5" aria-hidden="true" />
+              Export CSV
+            </button>
+          </div>
+        </div>
+
+        {activeTab !== "attention" && (
+          <div
+            role="note"
+            className={`mx-5 mt-4 flex items-start gap-2 rounded-xl px-4 py-2.5 text-[13px] md:mx-6 ${
+              activeTab === "passed" ? "bg-success-container text-on-success-container" : "bg-surface-container text-on-surface-variant"
+            }`}
           >
-            HR Dashboard
-          </h2>
-          <p className="text-primary font-body text-sm font-bold italic mb-4 tracking-wide">
-            From receipt to reimbursement — in minutes, not days
-          </p>
-          <p className="text-on-surface-variant text-lg font-body">
-            Manage exceptions and review automated approvals.
-          </p>
-        </div>
-      </div>
-
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10 relative z-10">
-        {/* Auto-Solve Rate */}
-        <div className="bg-surface-container-lowest/70 backdrop-blur-2xl rounded-xl p-6 shadow-[0_8px_40px_-12px_rgba(44,47,49,0.06)] relative overflow-hidden group hover:shadow-[0_16px_48px_-12px_rgba(70,71,211,0.12)] hover:-translate-y-0.5 transition-all duration-300">
-          <div className="relative z-10">
-            <p className="text-xs font-semibold font-headline text-on-surface-variant tracking-widest uppercase mb-2">
-              Auto-Solve Rate
-            </p>
-            <div className="flex items-end gap-3">
-              <span className="text-4xl font-extrabold font-headline text-on-surface">
-                {isLoadingClaims ? "—" : `${autoSolveRate.toFixed(1)}%`}
-              </span>
-              {!isLoadingClaims && totalClaims > 0 && (
-                <span className="flex items-center gap-1 text-sm font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md mb-1">
-                  <Zap className="w-3.5 h-3.5" strokeWidth={2.5} />
-                  {autoSolvedCount} auto-solved
-                </span>
-              )}
-            </div>
-            <p className="text-xs text-on-surface-variant mt-3">
-              {isLoadingClaims ? "Loading…" : `of ${totalClaims} total claims`}
-            </p>
-          </div>
-          <div className="absolute -bottom-6 -right-6 w-36 h-36 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/15 group-hover:scale-110 transition-all duration-500" />
-        </div>
-
-        {/* Pending Manual Reviews */}
-        <div className="bg-surface-container-lowest/70 backdrop-blur-2xl rounded-xl p-6 shadow-[0_8px_40px_-12px_rgba(44,47,49,0.06)] relative overflow-hidden group hover:shadow-[0_16px_48px_-12px_rgba(180,19,64,0.10)] hover:-translate-y-0.5 transition-all duration-300">
-          <div className="relative z-10">
-            <p className="text-xs font-semibold font-headline text-on-surface-variant tracking-widest uppercase mb-2">
-              Pending Manual Reviews
-            </p>
-            <div className="flex items-end gap-3">
-              <span className="text-4xl font-extrabold font-headline text-on-surface">
-                {attentionClaims.length}
-              </span>
-              <span className="text-sm text-on-surface-variant font-medium mb-1">
-                total requests
-              </span>
-            </div>
-            <p className="text-xs text-on-surface-variant mt-3">requires HR action</p>
-          </div>
-          <div className="absolute -bottom-6 -right-6 w-36 h-36 bg-error/5 rounded-full blur-2xl group-hover:bg-error/12 group-hover:scale-110 transition-all duration-500" />
-        </div>
-      </div>
-
-      {/* Triage Table */}
-      <div className="bg-surface-container-lowest/80 backdrop-blur-xl rounded-xl shadow-[0_12px_60px_-15px_rgba(44,47,49,0.08)] overflow-hidden relative z-10">
-        {/* Tab strip */}
-        <div className="flex border-b border-outline-variant/15 px-6 pt-4 gap-6 overflow-x-auto">
-          {tabs.map(({ key, label, count }) => {
-            const isActive = activeTab === key;
-            const badgeStyle =
-              key === "attention"
-                ? isActive
-                  ? "bg-error/10 text-error-dim"
-                  : "bg-surface-container text-on-surface-variant"
-                : key === "passed"
-                  ? isActive
-                    ? "bg-emerald-50 text-emerald-700"
-                    : "bg-surface-container text-on-surface-variant"
-                  : isActive
-                    ? "bg-amber-50 text-amber-700"
-                    : "bg-surface-container text-on-surface-variant";
-
-            return (
-              <button
-                key={key}
-                onClick={() => setActiveTab(key)}
-                className={`pb-3 text-sm font-headline font-bold transition-all duration-300 ease-out flex items-center gap-2 cursor-pointer hover:-translate-y-0.5 active:scale-95 border-b-2 whitespace-nowrap ${
-                  isActive
-                    ? "text-primary border-primary"
-                    : "text-on-surface-variant border-transparent hover:text-on-surface"
-                }`}
-              >
-                {label}
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-label font-semibold transition-colors duration-300 ${badgeStyle}`}>
-                  {count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Informational banner for auto-processed tabs */}
-        {activeTab === "passed" && (
-          <div className="mx-6 mt-4 flex items-center gap-2 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-2.5">
-            <CheckCircle2 className="w-3.5 h-3.5 shrink-0" strokeWidth={2.5} />
-            These claims were automatically approved by Reclaim AI (confidence &gt; 70%) and payment has been initiated. No HR action required.
-          </div>
-        )}
-        {activeTab === "flagged" && (
-          <div className="mx-6 mt-4 flex items-center gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-2.5">
-            <XCircle className="w-3.5 h-3.5 shrink-0" strokeWidth={2.5} />
-            These claims were automatically rejected by Reclaim AI. Employees have been notified. No HR action required.
+            {activeTab === "passed" ? (
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+            ) : (
+              <XCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+            )}
+            {activeTab === "passed"
+              ? "Automatically approved by Reclaim AI (confidence > 70%) and payment initiated. No HR action required."
+              : "Automatically rejected by Reclaim AI. Employees have been notified. No HR action required."}
           </div>
         )}
 
-        {/* Desktop Table */}
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-surface-container-low/50">
-                <th className="py-4 px-6 text-xs font-semibold font-headline text-on-surface-variant uppercase tracking-wider">
-                  Employee
-                </th>
-                <th className="py-4 px-6 text-xs font-semibold font-headline text-on-surface-variant uppercase tracking-wider hidden sm:table-cell">
-                  Date
-                </th>
-                <th className="py-4 px-6 text-xs font-semibold font-headline text-on-surface-variant uppercase tracking-wider">
-                  Amount
-                </th>
-                <th className="py-4 px-6 text-xs font-semibold font-headline text-on-surface-variant uppercase tracking-wider hidden md:table-cell">
-                  Category
-                </th>
-                <th className="py-4 px-6 text-xs font-semibold font-headline text-on-surface-variant uppercase tracking-wider hidden lg:table-cell">
-                  AI Status
-                </th>
-                <th className="py-4 px-6 text-xs font-semibold font-headline text-on-surface-variant uppercase tracking-wider text-right">
-                  Action
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-outline-variant/10">
-              {isLoadingClaims ? (
-                Array.from({ length: 3 }).map((_, i) => (
-                  <tr key={i} className="animate-pulse">
-                    <td className="py-5 px-6"><div className="flex items-center gap-3"><div className="w-9 h-9 rounded-full bg-surface-container-high shrink-0" /><div className="space-y-1.5"><div className="h-3 w-28 rounded bg-surface-container-high" /><div className="h-2.5 w-20 rounded bg-surface-container-low" /></div></div></td>
-                    <td className="py-5 px-6 hidden sm:table-cell"><div className="h-3 w-20 rounded bg-surface-container-high" /></td>
-                    <td className="py-5 px-6"><div className="h-3 w-16 rounded bg-surface-container-high" /></td>
-                    <td className="py-5 px-6 hidden md:table-cell"><div className="h-3 w-24 rounded bg-surface-container-high" /></td>
-                    <td className="py-5 px-6 hidden lg:table-cell"><div className="h-6 w-28 rounded-full bg-surface-container-high" /></td>
-                    <td className="py-5 px-6 text-right"><div className="h-3 w-12 rounded bg-surface-container-high ml-auto" /></td>
-                  </tr>
-                ))
-              ) : previewClaims.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="py-12 text-center text-sm text-on-surface-variant">
-                    {activeTab === "attention"
-                      ? "No claims require attention right now."
-                      : activeTab === "passed"
-                        ? "No auto-approved claims in the last 24 hours."
-                        : "No auto-rejected claims in the last 24 hours."}
-                  </td>
-                </tr>
-              ) : (
-                previewClaims.map((claim) => (
-                  <ClaimRow
-                    key={claim.id}
-                    claim={claim}
-                    actionLabel={actionLabel}
-                  />
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Mobile Card List */}
-        <div className="md:hidden flex flex-col gap-2 p-4">
-          {isLoadingClaims ? (
-            Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="bg-surface-container-lowest rounded-xl p-4 border border-outline-variant/10 animate-pulse">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-surface-container-high shrink-0" />
-                  <div className="flex-1 space-y-1.5">
-                    <div className="h-3 w-28 rounded bg-surface-container-high" />
-                    <div className="h-2.5 w-20 rounded bg-surface-container-low" />
-                  </div>
-                  <div className="h-3 w-12 rounded bg-surface-container-high" />
-                </div>
-              </div>
-            ))
-          ) : previewClaims.length === 0 ? (
-            <p className="py-8 text-center text-sm text-on-surface-variant">
-              Nothing here right now.
-            </p>
+        {/* Desktop grid */}
+        <div className="mt-2 hidden md:block">
+          {!isLoadingClaims && activeClaims.length === 0 ? (
+            <EmptyQueue text={emptyText} />
           ) : (
-            previewClaims.map((claim) => (
-              <button
-                key={claim.id}
-                onClick={() => {
-                  const path = actionLabel === "View" ? `/hr/view/${claim.id}` : `/hr/review/${claim.id}`;
-                  handleNavigate(path);
-                }}
-                className="bg-surface-container-lowest rounded-xl p-4 border border-outline-variant/10 text-left active:scale-[0.98] transition-all flex items-center gap-3"
-              >
-                <div className="w-9 h-9 rounded-full bg-linear-to-br from-primary-container to-tertiary-container flex items-center justify-center font-bold text-xs text-on-primary-container border-2 border-surface-container-lowest shadow-sm shrink-0">
-                  {claim.employee.initials}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm text-on-surface truncate">{claim.employee.name}</p>
-                  <p className="text-xs text-on-surface-variant mt-0.5">{claim.date} · {claim.category}</p>
-                </div>
-                <div className="flex flex-col items-end gap-1 shrink-0">
-                  <span className="font-semibold text-sm text-on-surface">{claim.amount}</span>
-                  <span className="text-primary font-semibold text-xs">{actionLabel}</span>
-                </div>
-              </button>
-            ))
+            <ReclaimGrid<Claim>
+              ref={gridRef}
+              rowData={isLoadingClaims ? undefined : activeClaims}
+              loading={isLoadingClaims}
+              columnDefs={columnDefs}
+              context={{ action: actionLabel }}
+              onRowClicked={onRowClicked}
+              getRowId={(p) => p.data.id}
+              pagination
+              paginationPageSize={8}
+              paginationPageSizeSelector={[8, 20, 50]}
+              defaultColDef={{ sortable: true, resizable: true, floatingFilter: false }}
+            />
           )}
         </div>
 
-        {/* Footer CTA */}
-        <div className="p-5 text-center border-t border-outline-variant/15">
-          <button
-            onClick={() => setModalOpen(true)}
-            className="inline-flex items-center gap-2 text-sm font-semibold font-headline text-primary hover:text-primary-dim transition-all duration-200 active:scale-95 group/cta px-4 py-2 rounded-xl hover:bg-primary/5 cursor-pointer"
-          >
-            {viewAllLabel}
-            <ChevronRight className="w-4 h-4 group-hover/cta:translate-x-0.5 transition-transform duration-150" strokeWidth={2.5} />
-          </button>
+        {/* Mobile list */}
+        <div className="md:hidden">
+          {isLoadingClaims ? (
+            <ul className="divide-y divide-on-surface/[0.06]">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <li key={i} className="flex items-center gap-3 px-5 py-4">
+                  <span className="h-9 w-9 animate-pulse rounded-full bg-surface-container" />
+                  <span className="flex-1 space-y-2">
+                    <span className="block h-3 w-1/2 animate-pulse rounded bg-surface-container" />
+                    <span className="block h-2.5 w-1/3 animate-pulse rounded bg-surface-container" />
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : activeClaims.length === 0 ? (
+            <EmptyQueue text={emptyText} />
+          ) : (
+            <ul className="divide-y divide-on-surface/[0.06]">
+              {activeClaims.slice(0, 5).map((claim) => (
+                <li key={claim.id}>
+                  <Link
+                    href={actionLabel === "View" ? `/hr/view/${claim.id}` : `/hr/review/${claim.id}`}
+                    className="flex items-center gap-3 px-5 py-4 transition-colors active:bg-marshmallow"
+                  >
+                    <Avatar name={claim.employee.name} initials={claim.employee.initials} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[14px] font-semibold text-on-surface">{claim.employee.name}</span>
+                      <span className="block truncate text-[12px] text-on-surface-variant">
+                        {claim.date} · {claim.category}
+                      </span>
+                    </span>
+                    <span className="flex shrink-0 flex-col items-end gap-0.5">
+                      <span className="font-mono text-[14px] font-semibold tabular-nums text-on-surface">{claim.amount}</span>
+                      <span className="text-[12px] font-semibold text-primary">{actionLabel}</span>
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+          {activeClaims.length > 5 && (
+            <div className="border-t border-on-surface/[0.06] p-3 text-center">
+              <button
+                type="button"
+                onClick={() => setModalOpen(true)}
+                className="inline-flex items-center gap-1 rounded-full px-4 py-2 text-[13px] font-semibold text-primary hover:bg-primary/[0.06]"
+              >
+                View All {activeClaims.length}
+                <ChevronRight className="h-4 w-4" aria-hidden="true" />
+              </button>
+            </div>
+          )}
         </div>
-      </div>
+      </section>
 
-      {/* View All Modal */}
       <ViewAllModal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
@@ -332,6 +357,18 @@ export default function HRDashboardPage() {
         claims={activeClaims}
         actionLabel={actionLabel}
       />
+    </PageShell>
+  );
+}
+
+function EmptyQueue({ text }: { text: string }) {
+  return (
+    <div className="flex flex-col items-center px-6 py-14 text-center">
+      <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-marshmallow text-on-surface-variant">
+        <Inbox className="h-6 w-6" aria-hidden="true" />
+      </span>
+      <p className="mt-3 font-semibold text-on-surface">Queue is clear</p>
+      <p className="mt-1 text-[13px] text-on-surface-variant">{text}</p>
     </div>
   );
 }

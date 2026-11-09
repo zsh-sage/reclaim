@@ -1,74 +1,213 @@
 @import "tailwindcss";
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   Reclaim Design System — v2 "ui-revamp"
+   Purple core (unchanged primary/tertiary), expanded with:
+     • Marshmallow white  #F0F0F0  — app canvas
+     • Galactic violet    #105BFF  — secondary / info / links in data
+     • Accent             #FE8500  — sparing highlight ("splash")
+   Token names keep the existing Material-style API so every page that already
+   uses bg-surface-*, text-primary, etc. inherits the new look automatically.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 @theme {
-  --color-outline: #747779;
-  --color-error: #b41340;
-  --color-surface-tint: #4647d3;
-  --color-on-tertiary-fixed-variant: #660075;
-  --color-inverse-on-surface: #9a9d9f;
-  --color-on-primary-fixed-variant: #0e009d;
-  --color-on-primary-fixed: #000000;
+  /* ── Brand ─────────────────────────────────────────────── */
   --color-primary: #4647d3;
-  --color-on-tertiary-fixed: #300038;
-  --color-surface: #f5f7f9;
-  --color-tertiary-fixed-dim: #ef6eff;
-  --color-tertiary: #9e00b4;
-  --color-on-secondary-fixed: #003853;
-  --color-primary-fixed-dim: #8387ff;
-  --color-on-secondary-container: #004c6f;
-  --color-tertiary-fixed: #f487ff;
-  --color-on-background: #2c2f31;
-  --color-surface-variant: #d9dde0;
-  --color-error-container: #f74b6d;
-  --color-surface-container-low: #eef1f3;
-  --color-error-dim: #a70138;
-  --color-primary-dim: #3939c7;
-  --color-inverse-surface: #0b0f10;
-  --color-on-surface: #2c2f31;
-  --color-on-surface-variant: #595c5e;
-  --color-secondary-container: #a4d8ff;
-  --color-on-primary: #f4f1ff;
-  --color-on-tertiary: #ffeefb;
-  --color-outline-variant: #abadaf;
-  --color-tertiary-container: #f487ff;
-  --color-on-secondary: #e9f4ff;
-  --color-surface-container-lowest: #ffffff;
-  --color-on-primary-container: #0a0081;
-  --color-secondary-dim: #00557b;
-  --color-on-tertiary-container: #580065;
-  --color-on-secondary-fixed-variant: #00567c;
-  --color-surface-container-high: #dfe3e6;
+  --color-primary-dim: #3637b8;
+  --color-on-primary: #ffffff;
+  --color-primary-container: #e4e4ff;
+  --color-on-primary-container: #1e1a8f;
   --color-primary-fixed: #9396ff;
+  --color-primary-fixed-dim: #8387ff;
+  --color-on-primary-fixed: #000000;
+  --color-on-primary-fixed-variant: #0e009d;
+  --color-surface-tint: #4647d3;
+  --color-inverse-primary: #a5a7ff;
+
+  --color-secondary: #105bff;
+  --color-secondary-dim: #0b46cc;
+  --color-on-secondary: #ffffff;
+  --color-secondary-container: #dfe8ff;
+  --color-on-secondary-container: #0a3a9e;
+  --color-secondary-fixed: #b9cdff;
+  --color-secondary-fixed-dim: #8fb0ff;
+  --color-on-secondary-fixed: #001a52;
+  --color-on-secondary-fixed-variant: #0a3a9e;
+
+  --color-tertiary: #9e00b4;
   --color-tertiary-dim: #8a009e;
-  --color-primary-container: #9396ff;
-  --color-surface-container-highest: #d9dde0;
-  --color-background: #f5f7f9;
-  --color-inverse-primary: #8083ff;
-  --color-surface-container: #e5e9eb;
-  --color-secondary-fixed: #a4d8ff;
-  --color-secondary-fixed-dim: #81ccff;
-  --color-surface-bright: #f5f7f9;
-  --color-secondary: #00628c;
-  --color-on-error: #ffefef;
-  --color-on-error-container: #510017;
-  --color-surface-dim: #d0d5d8;
+  --color-on-tertiary: #ffffff;
+  --color-tertiary-container: #f6dcfb;
+  --color-on-tertiary-container: #580065;
+  --color-tertiary-fixed: #f487ff;
+  --color-tertiary-fixed-dim: #ef6eff;
+  --color-on-tertiary-fixed: #300038;
+  --color-on-tertiary-fixed-variant: #660075;
 
-  --font-headline: "Plus Jakarta Sans", sans-serif;
-  --font-body: "Inter", sans-serif;
-  --font-label: "Inter", sans-serif;
+  --color-accent: #fe8500;
+  --color-accent-dim: #d96f00;
+  --color-accent-container: #fff0e0;
+  --color-on-accent-container: #7a3b00;
 
-  --shadow-ambient: 0 8px 40px -4px rgba(44, 47, 49, 0.06);
-  --shadow-ambient-lg: 0 12px 60px -8px rgba(44, 47, 49, 0.08);
+  --color-marshmallow: #f0f0f0;
+  /* PayPal brand blues (payout rail) */
+  --color-paypal: #003087;
+  --color-paypal-blue: #0070e0;
+  --color-paypal-sky: #009cde;
+  --color-violet: #105bff;
+  --color-ink: #0b0b1e;
+  --color-ink-2: #14142e;
+  --color-ink-3: #1e1e40;
+
+  /* ── Feedback ──────────────────────────────────────────── */
+  --color-error: #c4153f;
+  --color-error-dim: #a70138;
+  --color-on-error: #ffffff;
+  --color-error-container: #ffe3e8;
+  --color-on-error-container: #5c0019;
+  --color-success: #0e9f6e;
+  --color-success-container: #defbe9;
+  --color-on-success-container: #05603a;
+  --color-warning: #b45309;
+  --color-warning-container: #fff3d6;
+
+  /* ── Neutral surfaces (cool, slightly indigo) ─────────── */
+  --color-background: #f0f0f0;
+  --color-on-background: #14142b;
+  --color-surface: #f0f0f0;
+  --color-surface-bright: #f7f7f8;
+  --color-surface-dim: #d6d6dc;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f7f7f9;
+  --color-surface-container: #ebebef;
+  --color-surface-container-high: #e3e3e9;
+  --color-surface-container-highest: #dadae1;
+  --color-surface-variant: #e3e3e9;
+  --color-on-surface: #14142b;
+  --color-on-surface-variant: #5c5c72;
+  --color-outline: #8b8ba0;
+  --color-outline-variant: #c9c9d6;
+  --color-inverse-surface: #0b0b1e;
+  --color-inverse-on-surface: #a3a3b8;
+
+  /* ── Type scale tune: heavy weights read too loud in a
+        fintech UI, so the whole app is pulled toward Stripe/Apple
+        semibold display weights. Inter Tight is variable. ─── */
+  --font-weight-extrabold: 680;
+  --font-weight-black: 720;
+
+  /* ── Elevation: hairline + soft layered shadows ──────── */
+  --shadow-ambient:
+    0 0 0 1px rgb(20 20 43 / 0.05), 0 1px 2px rgb(20 20 43 / 0.04),
+    0 8px 24px -10px rgb(20 20 43 / 0.1);
+  --shadow-ambient-lg:
+    0 0 0 1px rgb(20 20 43 / 0.05), 0 2px 4px rgb(20 20 43 / 0.04),
+    0 28px 56px -16px rgb(20 20 43 / 0.18);
+  --shadow-float:
+    0 0 0 1px rgb(20 20 43 / 0.06), 0 12px 24px -6px rgb(20 20 43 / 0.12),
+    0 48px 96px -24px rgb(70 71 211 / 0.28);
+  --shadow-glow: 0 10px 30px -10px rgb(70 71 211 / 0.55);
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  --animate-float: float 7s ease-in-out infinite;
+  --animate-drift-a: drift-a 18s ease-in-out infinite alternate;
+  --animate-drift-b: drift-b 22s ease-in-out infinite alternate;
+  --animate-drift-c: drift-c 26s ease-in-out infinite alternate;
+  --animate-pulse-soft: pulse-soft 2.4s ease-in-out infinite;
+  --animate-shimmer: shimmer 1.6s linear infinite;
+  --animate-rail: rail 3.2s cubic-bezier(0.45, 0, 0.55, 1) infinite;
 }
 
+/* Fonts come from next/font in app/layout.tsx */
+@theme inline {
+  --font-headline: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  --font-body: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-label: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-code), ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+@keyframes float {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -10px, 0); }
+}
+@keyframes drift-a {
+  0% { transform: translate3d(-10%, -6%, 0) scale(1); }
+  100% { transform: translate3d(14%, 10%, 0) scale(1.15); }
+}
+@keyframes drift-b {
+  0% { transform: translate3d(12%, 8%, 0) scale(1.1); }
+  100% { transform: translate3d(-12%, -10%, 0) scale(0.95); }
+}
+@keyframes drift-c {
+  0% { transform: translate3d(0, 12%, 0) scale(0.9); }
+  100% { transform: translate3d(-16%, -4%, 0) scale(1.2); }
+}
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+@keyframes rail {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* ═══ Base ═══════════════════════════════════════════════════════════════ */
+
 html {
-  scroll-padding-top: 5rem;
+  scroll-padding-top: 6rem;
+  color-scheme: light;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
   background-color: var(--color-surface);
   color: var(--color-on-surface);
   font-family: var(--font-body);
+  font-feature-settings: "cv11", "ss03";
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3, h4 {
+  text-wrap: balance;
+  letter-spacing: -0.02em;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+a, button, [role="button"], summary, label, input, select, textarea {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Guaranteed, consistent keyboard focus — unlayered so it wins over any
+   `outline-none` utility left in legacy pages. Inputs keep their own ring. */
+:where(a, button, [role="button"], [role="tab"], [role="switch"], [tabindex]:not([tabindex="-1"]), summary):focus-visible {
+  outline: 2px solid var(--color-secondary);
+  outline-offset: 2px;
+  border-radius: 0.5rem;
+}
+
+::selection {
+  background: rgb(70 71 211 / 0.18);
+}
+
+/* Native selects on Windows dark-high-contrast keep legible colours */
+select {
+  background-color: var(--color-surface-container-lowest);
+  color: var(--color-on-surface);
+}
+
+.tabular-nums,
+.num {
+  font-variant-numeric: tabular-nums;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -89,48 +228,106 @@ body {
   z-index: 100;
   padding: 0.625rem 1rem;
   border-radius: 0.75rem;
-  background-color: var(--color-primary);
-  color: var(--color-on-primary);
+  background-color: var(--color-ink);
+  color: #fff;
   font-size: 0.875rem;
   font-weight: 600;
-  box-shadow: var(--shadow-ambient);
+  box-shadow: var(--shadow-ambient-lg);
   transform: translateY(-200%);
-  transition: transform 0.2s ease-out;
+  transition: transform 0.2s var(--ease-out-expo);
 }
 
 .skip-link:focus {
   transform: translateY(0);
-  outline: 2px solid var(--color-primary-fixed);
-  outline-offset: 2px;
 }
 
+/* ═══ Brand surfaces ═════════════════════════════════════════════════════ */
+
+/* Stripe-style mesh: purple core, violet depth, a breath of accent. */
 .split-gradient {
-  background: linear-gradient(135deg, #4647d3 0%, #9396ff 50%, #9e00b4 100%);
+  background-color: #2b1c9e;
+  background-image:
+    radial-gradient(at 12% 18%, #105bff 0px, transparent 50%),
+    radial-gradient(at 88% 8%, #9e00b4 0px, transparent 48%),
+    radial-gradient(at 78% 92%, rgb(254 133 0 / 0.55) 0px, transparent 42%),
+    radial-gradient(at 22% 88%, #4647d3 0px, transparent 55%),
+    linear-gradient(135deg, #3a2fd0 0%, #4647d3 45%, #6a19c4 100%);
 }
 
+.mesh-ink {
+  background-color: var(--color-ink);
+  background-image:
+    radial-gradient(60% 50% at 15% 0%, rgb(70 71 211 / 0.35), transparent 70%),
+    radial-gradient(50% 40% at 90% 10%, rgb(16 91 255 / 0.22), transparent 70%),
+    radial-gradient(40% 40% at 70% 100%, rgb(158 0 180 / 0.22), transparent 70%);
+}
+
+.text-gradient {
+  background-image: linear-gradient(100deg, #4647d3 0%, #105bff 40%, #9e00b4 75%, #fe8500 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.text-gradient-paypal {
+  background-image: linear-gradient(100deg, #003087 0%, #0070e0 55%, #009cde 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.text-gradient-light {
+  background-image: linear-gradient(100deg, #ffffff 0%, #c9cbff 45%, #ffd2a6 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Apple-style material. Pair with border-white/50 for the rim. */
 .glass-card {
-  background-color: rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  background-color: rgb(255 255 255 / 0.72);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
 }
 
-/* Custom Scrollbar */
+.surface-card {
+  background-color: var(--color-surface-container-lowest);
+  border-radius: 1.25rem;
+  box-shadow: var(--shadow-ambient);
+}
+
+.hairline {
+  box-shadow: 0 0 0 1px rgb(20 20 43 / 0.06);
+}
+
+.dot-grid {
+  background-image: radial-gradient(rgb(20 20 43 / 0.08) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+.dot-grid-light {
+  background-image: radial-gradient(rgb(255 255 255 / 0.09) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+/* ═══ Scrollbars ═════════════════════════════════════════════════════════ */
+
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 8px;
+  height: 8px;
 }
-
 ::-webkit-scrollbar-track {
   background: transparent;
 }
-
 ::-webkit-scrollbar-thumb {
-  background: var(--color-outline-variant);
+  background: rgb(20 20 43 / 0.14);
   border-radius: 10px;
-  opacity: 0.5;
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }
-
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-primary-fixed-dim);
+  background: rgb(70 71 211 / 0.4);
+  background-clip: padding-box;
 }
 
 /* Prevent iOS Safari auto-zoom on input focus */
@@ -142,17 +339,57 @@ body {
   }
 }
 
-/* Safe area inset — pushes content above browser chrome / home indicator */
+/* ═══ Safe areas ═════════════════════════════════════════════════════════ */
+
 .pb-safe {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
-
-/* Bottom nav safe padding: 64px nav + iOS home indicator */
 .pb-nav-safe {
-  padding-bottom: calc(4rem + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
 }
-
-/* Top safe padding for notched devices / status bar in PWA fullscreen mode */
+@media (min-width: 1024px) {
+  .pb-nav-safe {
+    padding-bottom: 0;
+  }
+}
 .pt-safe-top {
   padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* ═══ AG Grid polish (theme params live in components/grid) ══════════════ */
+
+.reclaim-grid .ag-row {
+  cursor: pointer;
+}
+.reclaim-grid .ag-cell {
+  display: flex;
+  align-items: center;
+}
+.reclaim-grid .ag-header-cell-text {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 11px;
+}
+
+/* glisse (Apple Liquid Glass): drive its tints from our tokens. Its own
+   defaults are in :where() so these plain :root values win. */
+:root {
+  --lg-blur: 6px;
+  --lg-fill: #4647d3;
+  --lg-on: #4647d3;
+  --lg-foreground: rgb(20 20 43 / 0.92);
+  --lg-muted: rgb(92 92 114 / 0.8);
+  --lg-ring: rgb(16 91 255 / 0.55);
+  --lg-segment-label: #14142b;
+}
+
+/* Glass on dark (ink) surfaces */
+.lg-on-dark {
+  --lg-foreground: #ffffff;
+  --lg-muted: rgb(235 235 245 / 0.7);
+  --lg-glass: rgb(255 255 255 / 0.08);
+  --lg-edge: rgb(255 255 255 / 0.14);
+  --lg-segment-track: rgb(255 255 255 / 0.08);
+  --lg-segment-thumb: rgb(255 255 255 / 0.22);
+  --lg-segment-label: #ffffff;
 }

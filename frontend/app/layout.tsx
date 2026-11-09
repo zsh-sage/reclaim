@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Plus_Jakarta_Sans } from "next/font/google"; // Import fonts
+import { Inter, Inter_Tight, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext"; // Import AuthProvider
 import ServiceWorkerRegistration from "./_components/ServiceWorkerRegistration";
@@ -8,12 +8,20 @@ import PushPermissionPrompt from "./_components/PushPermissionPrompt";
 
 const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-body", // Assign to --font-body
+  variable: "--font-sans",
+  display: "swap",
 });
 
-const plusJakartaSans = Plus_Jakarta_Sans({
+const interTight = Inter_Tight({
   subsets: ["latin"],
-  variable: "--font-headline", // Assign to --font-headline
+  variable: "--font-display",
+  display: "swap",
+});
+
+const mono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-code",
+  display: "swap",
 });
 
 export const viewport: Viewport = {
@@ -21,12 +29,12 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: "cover",
   interactiveWidget: "resizes-visual",
-  themeColor: "#f5f7f9",
+  themeColor: "#f0f0f0",
 };
 
 export const metadata: Metadata = {
   title: "Reclaim",
-  description: "From receipt to reimbursement — in minutes, not days Smart Reimbursement Automation System",
+  description: "From receipt to reimbursement in minutes, not days. AI-native expense reimbursement for global teams.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -39,7 +47,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "Reclaim",
-    description: "From receipt to reimbursement — in minutes, not days Smart Reimbursement Automation System",
+    description: "From receipt to reimbursement in minutes, not days. AI-native expense reimbursement for global teams.",
     images: [
       {
         url: "/images/logo.svg",
@@ -53,7 +61,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Reclaim",
-    description: "From receipt to reimbursement — in minutes, not days Smart Reimbursement Automation System",
+    description: "From receipt to reimbursement in minutes, not days. AI-native expense reimbursement for global teams.",
     images: ["/images/logo.svg"],
   },
 };
@@ -66,7 +74,8 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${plusJakartaSans.variable} h-full antialiased`}
+      data-theme="light"
+      className={`${inter.variable} ${interTight.variable} ${mono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <AuthProvider>

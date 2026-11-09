@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
+import { Avatar } from "@/components/ui/Avatar";
 import {
   Users,
   Settings,
@@ -96,7 +97,7 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
     >
       {/* Backdrop */}
       <div
-        className={`absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-300 ${open ? "opacity-100" : "opacity-0"}`}
+        className={`absolute inset-0 bg-ink/40 transition-opacity duration-300 ${open ? "opacity-100" : "opacity-0"}`}
         onClick={onClose}
       />
 
@@ -106,20 +107,20 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        className="absolute top-0 right-0 bottom-0 w-full md:w-[280px] md:max-w-[80vw] bg-surface-container-low border-l border-outline-variant/10 shadow-[-1px_0_20px_rgba(44,47,49,0.04)] flex flex-col h-full p-4 touch-pan-y"
+        className="absolute top-0 right-0 bottom-0 w-[86vw] max-w-[340px] bg-white rounded-l-[28px] shadow-[-24px_0_60px_-20px_rgb(20_20_43/0.35)] flex flex-col h-full px-3 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] overscroll-contain touch-pan-y"
         style={panelStyle}
       >
         {/* Close + Brand */}
         <div className="flex items-center justify-between px-4 py-3 mb-2">
           <div className="flex items-center gap-2.5">
-            <Image src="/images/logo.svg" alt="Reclaim Logo" width={28} height={28} className="w-7 h-7 object-contain" />
-            <h1 className="font-headline font-black text-xl text-primary tracking-tight">
-              Reclaim
-            </h1>
+            <Image src="/images/logo.svg" alt="" width={26} height={26} className="h-[26px] w-[26px]" />
+            <span className="font-headline text-[19px] font-semibold tracking-[-0.03em] text-on-surface" translate="no">
+              Reclaim<span className="text-accent">.</span>
+            </span>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl hover:bg-surface-container transition-all"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full hover:bg-on-surface/5 transition-colors"
             aria-label="Close navigation"
           >
             <X className="w-5 h-5 text-on-surface" strokeWidth={2} />
@@ -135,12 +136,10 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
 
         {/* User identity chip */}
         <div
-          className="flex items-center gap-3 px-4 py-3 mb-4 rounded-xl bg-surface-container/50 transition-all duration-300"
+          className="flex items-center gap-3 px-3 py-3 mb-4 rounded-2xl bg-marshmallow transition-[opacity,transform] duration-300"
           style={{ transitionDelay: open ? "80ms" : "0ms", opacity: open ? 1 : 0, transform: open ? "translateY(0)" : "translateY(8px)" }}
         >
-          <div className="w-10 h-10 rounded-full bg-linear-to-br from-primary-container to-tertiary-container shrink-0 flex items-center justify-center font-headline font-bold text-base text-on-primary-container border-2 border-surface-container-lowest shadow-sm">
-            {user?.name?.charAt(0).toUpperCase() ?? "U"}
-          </div>
+          <Avatar name={user?.name ?? "User"} size="lg" />
           <div className="flex-1 min-w-0">
             <p className="font-body font-semibold text-sm text-on-surface truncate leading-tight">
               {user?.name ?? "Employee"}
@@ -156,10 +155,10 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
           <Link
             href="/hr/manage_employee"
             onClick={onClose}
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl font-body text-sm transition-all duration-200 active:scale-[0.97] ${
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl font-body text-[15px] transition-[background-color,color,opacity,transform] duration-200 active:scale-[0.98] ${
               isManageActive
-                ? "bg-surface-container font-bold text-primary"
-                : "font-medium text-on-surface hover:bg-surface-container/60 hover:text-on-surface"
+                ? "bg-primary/[0.08] font-semibold text-primary"
+                : "font-medium text-on-surface hover:bg-on-surface/[0.04]"
             }`}
             style={{ transitionDelay: open ? "120ms" : "0ms", opacity: open ? 1 : 0, transform: open ? "translateY(0)" : "translateY(8px)" }}
           >
@@ -175,10 +174,10 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
           <Link
             href="/hr/settings"
             onClick={onClose}
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl font-body text-sm transition-all duration-200 active:scale-[0.97] ${
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl font-body text-[15px] transition-[background-color,color,opacity,transform] duration-200 active:scale-[0.98] ${
               isSettingsActive
-                ? "bg-surface-container font-bold text-primary"
-                : "font-medium text-on-surface hover:bg-surface-container/60 hover:text-on-surface"
+                ? "bg-primary/[0.08] font-semibold text-primary"
+                : "font-medium text-on-surface hover:bg-on-surface/[0.04]"
             }`}
             style={{ transitionDelay: open ? "160ms" : "0ms", opacity: open ? 1 : 0, transform: open ? "translateY(0)" : "translateY(8px)" }}
           >
@@ -194,10 +193,10 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
           <Link
             href="/hr/support"
             onClick={onClose}
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl font-body text-sm transition-all duration-200 active:scale-[0.97] ${
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl font-body text-[15px] transition-[background-color,color,opacity,transform] duration-200 active:scale-[0.98] ${
               isSupportActive
-                ? "bg-surface-container font-bold text-primary"
-                : "font-medium text-on-surface hover:bg-surface-container/60 hover:text-on-surface"
+                ? "bg-primary/[0.08] font-semibold text-primary"
+                : "font-medium text-on-surface hover:bg-on-surface/[0.04]"
             }`}
             style={{ transitionDelay: open ? "200ms" : "0ms", opacity: open ? 1 : 0, transform: open ? "translateY(0)" : "translateY(8px)" }}
           >

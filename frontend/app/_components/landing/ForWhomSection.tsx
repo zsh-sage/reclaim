@@ -1,182 +1,86 @@
 "use client";
 
-import { motion, type Variants } from "framer-motion";
 import Link from "next/link";
-import { ArrowRight, Check, UserCircle2, Users } from "lucide-react";
+import { ArrowRight, Check, UserRound, Users } from "lucide-react";
+import { Reveal, SectionIntro } from "./primitives";
 
-const HR_ITEMS = [
-  "Policy Studio — upload, edit, audit company policy",
-  "Triage Dashboard — Bucket A (passed) vs Bucket B (attention)",
-  "AI auto-clears clean claims, you handle edge cases",
-  "Full immutable audit trail per reimbursement",
+const PORTALS = [
+  {
+    key: "hr",
+    title: "Finance & HR",
+    items: ["Upload and version company policy", "Review only what AI flags", "Export a full audit trail"],
+    href: "/login?role=hr",
+    cta: "HR Portal",
+    dark: true,
+    icon: Users,
+    iconBg: "from-[#7b7cf5] to-primary",
+  },
+  {
+    key: "employee",
+    title: "Employees",
+    items: ["Snap up to ten receipts per claim", "Check the AI pre-fill, edit if needed", "Get paid to PayPal, tracked live"],
+    href: "/login?role=employee",
+    cta: "Employee Portal",
+    dark: false,
+    icon: UserRound,
+    iconBg: "from-paypal-sky to-paypal",
+  },
 ];
-
-const EMP_ITEMS = [
-  "Upload up to 10 receipts (JPEG, PNG, PDF) per claim",
-  "AI pre-fill verification — review side-by-side, edit if wrong",
-  "Real-time claim status — no more chasing HR",
-  "Personal reimbursement history with line items",
-];
-
-const containerVariants: Variants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.2, delayChildren: 0.1 },
-  },
-} as const;
-
-const cardVariants: Variants = {
-  hidden: { opacity: 0, y: 40, scale: 0.96 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    transition: { duration: 0.65, ease: "easeOut" },
-  },
-} as const;
-
-const listItemVariants: Variants = {
-  hidden: { opacity: 0, x: -15 },
-  visible: {
-    opacity: 1,
-    x: 0,
-    transition: { duration: 0.4, ease: "easeOut" },
-  },
-} as const;
 
 export default function ForWhomSection() {
   return (
-    <section className="relative py-14 lg:py-20 px-5 sm:px-8 lg:px-12 bg-surface-container-low">
-      <div className="mx-auto max-w-7xl">
-        <motion.div
-          className="max-w-2xl mb-10"
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 0.7, ease: "easeOut" }}
-        >
-          <span className="inline-flex items-center rounded-full border border-on-surface-variant/20 bg-surface-container-lowest px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">
-            Two portals
-          </span>
-          <h2 className="mt-4 font-headline text-3xl sm:text-4xl lg:text-5xl font-extrabold text-on-surface tracking-tight">
-            Built for both sides of the desk.
-          </h2>
-        </motion.div>
+    <section className="relative bg-marshmallow py-20 lg:py-32">
+      <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-10">
+        <SectionIntro eyebrow="Two portals" title="Built for both sides of the desk." />
 
-        <motion.div
-          className="grid grid-cols-1 lg:grid-cols-2 gap-6"
-          variants={containerVariants}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-60px" }}
-        >
-          <motion.div
-            variants={cardVariants}
-            whileHover={{ y: -6, transition: { duration: 0.25 } }}
-            className="relative overflow-hidden rounded-3xl bg-surface-container-lowest p-8 lg:p-10 shadow-ambient hover:shadow-ambient-lg transition-shadow duration-300"
-          >
-            <div
-              aria-hidden="true"
-              className="absolute -top-12 -right-12 w-44 h-44 rounded-bl-full bg-primary/10"
-            />
-            <div className="relative z-10">
-              <motion.div
-                className="inline-flex p-3.5 rounded-2xl bg-primary/10 text-primary mb-5"
-                whileHover={{ scale: 1.1, rotate: -5 }}
-                transition={{ type: "spring", stiffness: 300 }}
+        <div className="mt-12 grid gap-4 lg:mt-16 lg:grid-cols-2">
+          {PORTALS.map((p, i) => (
+            <Reveal key={p.key} delay={i * 0.06}>
+              <article
+                className={`relative isolate flex h-full flex-col overflow-hidden rounded-[24px] p-8 lg:p-10 ${
+                  p.dark ? "bg-ink text-white" : "bg-[#ebf5ff] text-on-surface"
+                }`}
               >
-                <Users className="w-6 h-6" strokeWidth={2} />
-              </motion.div>
-              <h3 className="font-headline text-2xl font-bold text-on-surface tracking-tight mb-2">
-                For HR Teams
-              </h3>
-              <p className="text-sm text-on-surface-variant mb-5">
-                Manage policy, monitor autonomous processing, handle edge cases.
-              </p>
-              <motion.ul
-                className="space-y-3 mb-7"
-                variants={containerVariants}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
-              >
-                {HR_ITEMS.map((item) => (
-                  <motion.li
-                    key={item}
-                    variants={listItemVariants}
-                    className="flex items-start gap-3 text-sm text-on-surface"
-                  >
-                    <span className="mt-0.5 inline-flex w-5 h-5 rounded-full bg-primary/15 text-primary items-center justify-center shrink-0">
-                      <Check className="w-3 h-3" strokeWidth={3} />
-                    </span>
-                    <span>{item}</span>
-                  </motion.li>
-                ))}
-              </motion.ul>
-              <Link
-                href="/login?role=hr"
-                className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:text-primary-dim transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded"
-              >
-                Open HR Portal
-                <ArrowRight className="w-4 h-4" />
-              </Link>
-            </div>
-          </motion.div>
-
-          <motion.div
-            variants={cardVariants}
-            whileHover={{ y: -6, transition: { duration: 0.25 } }}
-            className="relative overflow-hidden rounded-3xl bg-surface-container-lowest p-8 lg:p-10 shadow-ambient hover:shadow-ambient-lg transition-shadow duration-300"
-          >
-            <div
-              aria-hidden="true"
-              className="absolute -top-12 -right-12 w-44 h-44 rounded-bl-full bg-tertiary/10"
-            />
-            <div className="relative z-10">
-              <motion.div
-                className="inline-flex p-3.5 rounded-2xl bg-tertiary/10 text-tertiary mb-5"
-                whileHover={{ scale: 1.1, rotate: 5 }}
-                transition={{ type: "spring", stiffness: 300 }}
-              >
-                <UserCircle2 className="w-6 h-6" strokeWidth={2} />
-              </motion.div>
-              <h3 className="font-headline text-2xl font-bold text-on-surface tracking-tight mb-2">
-                For Employees
-              </h3>
-              <p className="text-sm text-on-surface-variant mb-5">
-                Submit claims, verify AI extraction, track status — without chasing.
-              </p>
-              <motion.ul
-                className="space-y-3 mb-7"
-                variants={containerVariants}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
-              >
-                {EMP_ITEMS.map((item) => (
-                  <motion.li
-                    key={item}
-                    variants={listItemVariants}
-                    className="flex items-start gap-3 text-sm text-on-surface"
-                  >
-                    <span className="mt-0.5 inline-flex w-5 h-5 rounded-full bg-tertiary/15 text-tertiary items-center justify-center shrink-0">
-                      <Check className="w-3 h-3" strokeWidth={3} />
-                    </span>
-                    <span>{item}</span>
-                  </motion.li>
-                ))}
-              </motion.ul>
-              <Link
-                href="/login?role=employee"
-                className="inline-flex items-center gap-1.5 text-sm font-semibold text-tertiary hover:text-tertiary-dim transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tertiary/40 rounded"
-              >
-                Open Employee Portal
-                <ArrowRight className="w-4 h-4" />
-              </Link>
-            </div>
-          </motion.div>
-        </motion.div>
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute -right-24 -top-24 -z-10 h-80 w-80 rounded-full"
+                  style={{
+                    background: p.dark
+                      ? "radial-gradient(closest-side, rgb(70 71 211 / 0.55), transparent)"
+                      : "radial-gradient(closest-side, rgb(0 156 222 / 0.25), transparent)",
+                  }}
+                />
+                <span
+                  className={`inline-flex h-12 w-12 items-center justify-center rounded-[14px] bg-linear-to-br text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.35),0_8px_20px_-8px_rgb(20_20_43/0.45)] ${p.iconBg}`}
+                >
+                  <p.icon className="h-[22px] w-[22px]" strokeWidth={1.9} aria-hidden="true" />
+                </span>
+                <h3 className="mt-6 font-headline text-[28px] font-medium tracking-[-0.035em]">{p.title}</h3>
+                <ul className="mt-8 space-y-4">
+                  {p.items.map((item) => (
+                    <li key={item} className="flex items-start gap-3 text-[15px]">
+                      <Check
+                        className={`mt-0.5 h-4 w-4 shrink-0 ${p.dark ? "text-[#a5a7ff]" : "text-paypal-blue"}`}
+                        strokeWidth={2.5}
+                        aria-hidden="true"
+                      />
+                      <span className={p.dark ? "text-white/80" : "text-on-surface-variant"}>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  href={p.href}
+                  className={`group mt-12 inline-flex items-center gap-1.5 self-start text-[15px] font-medium ${
+                    p.dark ? "text-white" : "text-on-surface"
+                  }`}
+                >
+                  {p.cta}
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+                </Link>
+              </article>
+            </Reveal>
+          ))}
+        </div>
       </div>
     </section>
   );

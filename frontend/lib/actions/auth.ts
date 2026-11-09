@@ -49,7 +49,9 @@ export async function login(
     const cookieStore = await cookies();
     cookieStore.set("session", access_token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      // Secure in production. ALLOW_INSECURE_COOKIES=1 is only for previewing a
+      // production build over plain http://localhost, where browsers drop Secure cookies.
+      secure: process.env.NODE_ENV === "production" && process.env.ALLOW_INSECURE_COOKIES !== "1",
       path: "/",
       maxAge: 60 * 60 * 24 * 8, // 8 days (matches backend JWT expiry)
       sameSite: "lax",

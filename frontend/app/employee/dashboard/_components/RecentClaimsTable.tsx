@@ -1,173 +1,157 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plane, UtensilsCrossed, Monitor, ChevronRight } from "lucide-react";
-import { LucideIcon } from "lucide-react";
+import { Plane, UtensilsCrossed, Monitor, ChevronRight, Inbox, type LucideIcon } from "lucide-react";
+import type { ColDef, ICellRendererParams, RowClickedEvent } from "ag-grid-community";
 import { getRecentClaims } from "@/lib/actions/dashboard";
 import type { ClaimSummary } from "@/lib/api/types";
+import { ReclaimGrid } from "@/components/grid/ReclaimGrid";
+import { LifecyclePill } from "@/components/claims/StatusBadge";
 
-/* ─── Types ──────────────────────────────────────────── */
-type ClaimStatus = "Pending" | "Approved" | "Paid" | "Rejected";
-
-interface DisplayClaim extends ClaimSummary {
-  categoryIcon: LucideIcon;
-}
-
-/* ─── Icon mapping ───────────────────────────────────── */
 const CATEGORY_ICON_MAP: Record<string, LucideIcon> = {
   Travel: Plane,
   Meals: UtensilsCrossed,
   Equipment: Monitor,
 };
 
-function mapClaimForDisplay(claim: ClaimSummary): DisplayClaim {
-  return {
-    ...claim,
-    categoryIcon: CATEGORY_ICON_MAP[claim.category] ?? Monitor,
-  };
+function IdCell({ value }: ICellRendererParams<ClaimSummary, string>) {
+  if (!value) return null;
+  return (
+    <span className="rounded-md bg-marshmallow px-2 py-1 font-mono text-[12px] text-on-surface-variant" title={value} translate="no">
+      {value.slice(0, 8)}
+    </span>
+  );
 }
 
-/* ─── Status styling maps ────────────────────────────── */
-const STATUS_BADGE: Record<ClaimStatus, string> = {
-  "Pending":    "bg-secondary-container/50 text-on-secondary-container",
-  "Approved":   "bg-primary/10 text-primary",
-  "Paid": "bg-tertiary/10 text-tertiary",
-  "Rejected": "bg-error/10 text-error",
-};
+function PolicyCell({ data }: ICellRendererParams<ClaimSummary>) {
+  if (!data) return null;
+  const Icon = CATEGORY_ICON_MAP[data.category] ?? Monitor;
+  return (
+    <div className="flex min-w-0 items-center gap-2.5">
+      <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/[0.08] text-primary">
+        <Icon className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
+      </span>
+      <span className="truncate text-on-surface">{data.category}</span>
+    </div>
+  );
+}
 
-const STATUS_DOT: Record<ClaimStatus, string> = {
-  "Pending":    "bg-secondary",
-  "Approved":   "bg-primary",
-  "Paid": "bg-tertiary",
-  "Rejected": "bg-error",
-};
+function StatusCell({ value }: ICellRendererParams<ClaimSummary, string>) {
+  return value ? <LifecyclePill status={value} /> : null;
+}
 
-/* ─── Component ──────────────────────────────────────── */
 export default function RecentClaimsTable() {
-  const [claims, setClaims] = useState<DisplayClaim[]>([]);
+  const [claims, setClaims] = useState<ClaimSummary[] | null>(null);
   const router = useRouter();
 
   useEffect(() => {
-    getRecentClaims(3).then((data) => {
-      setClaims(data.map(mapClaimForDisplay));
-    });
+    getRecentClaims(5).then(setClaims);
   }, []);
 
+  const columnDefs = useMemo<ColDef<ClaimSummary>[]>(
+    () => [
+      { headerName: "Claim", field: "id", cellRenderer: IdCell, width: 112, sortable: false },
+      { headerName: "Date", field: "date", flex: 1, minWidth: 112, cellClass: "text-on-surface-variant" },
+      { headerName: "Policy", field: "category", cellRenderer: PolicyCell, flex: 1.3, minWidth: 150 },
+      { headerName: "Receipts", field: "subCategory", flex: 0.9, minWidth: 96 },
+      { headerName: "Amount", field: "amountNumeric", valueFormatter: (p) => p.data?.amount ?? "", type: "rightAligned", flex: 1, minWidth: 108, cellClass: "font-mono tabular-nums font-medium" },
+      { headerName: "Status", field: "status", cellRenderer: StatusCell, flex: 1, minWidth: 116 },
+    ],
+    [],
+  );
+
+  const onRowClicked = useCallback(
+    (e: RowClickedEvent<ClaimSummary>) => {
+      if (e.data) router.push(`/employee/history?claimId=${e.data.id}`);
+    },
+    [router],
+  );
+
   return (
-    <section
-      aria-labelledby="recent-claims-heading"
-      className="bg-surface-container-low rounded-2xl p-4 md:p-6 shadow-[0_8px_40px_-12px_rgba(44,47,49,0.06)]"
-    >
-      {/* Section header */}
-      <div className="flex justify-between items-center mb-5">
-        <h3
-          id="recent-claims-heading"
-          className="font-headline text-xl font-bold text-on-surface"
-        >
-          Recent Claims
-        </h3>
-        <button
+    <section aria-labelledby="recent-claims-heading" className="min-w-0 overflow-hidden rounded-[20px] bg-white shadow-ambient">
+      <div className="flex items-center justify-between border-b border-on-surface/[0.06] px-5 py-4 md:px-6">
+        <div>
+          <h2 id="recent-claims-heading" className="font-headline text-[17px] font-semibold tracking-[-0.02em] text-on-surface">
+            Recent Claims
+          </h2>
+          <p className="text-[13px] text-on-surface-variant">Your latest submissions</p>
+        </div>
+        <Link
           id="recent-claims-view-all-btn"
-          onClick={() => router.push("/employee/history")}
-          className="text-primary font-body text-sm font-semibold hover:underline underline-offset-4 flex items-center gap-1 active:scale-95 transition-transform"
+          href="/employee/history"
+          className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-[13px] font-semibold text-primary transition-colors hover:bg-primary/[0.06]"
         >
           View All
-          <ChevronRight className="w-4 h-4" strokeWidth={2.5} />
-        </button>
+          <ChevronRight className="h-4 w-4" aria-hidden="true" />
+        </Link>
       </div>
 
-      {/* ── Desktop: Full table ───────────────────────── */}
-      <div className="hidden md:block overflow-x-auto bg-surface-container-lowest rounded-xl border border-outline-variant/10">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-surface-container-low text-on-surface-variant font-body text-xs uppercase tracking-wider">
-              <th className="p-4 font-semibold rounded-tl-xl">Claim ID</th>
-              <th className="p-4 font-semibold">Date</th>
-              <th className="p-4 font-semibold">Policy</th>
-              <th className="p-4 font-semibold">Receipts</th>
-              <th className="p-4 font-semibold">Amount</th>
-              <th className="p-4 font-semibold rounded-tr-xl">Status</th>
-            </tr>
-          </thead>
-          <tbody className="font-body text-sm">
-            {claims.map((claim) => (
-              <tr
-                key={claim.id}
-                onClick={() => router.push(`/employee/history?claimId=${claim.id}`)}
-                className="border-t border-outline-variant/5 hover:bg-surface-container-highest/40 transition-colors cursor-pointer group"
-              >
-                <td className="p-4 font-medium text-on-surface" title={claim.id}>
-                  <span className="font-mono text-xs bg-surface-container px-2 py-1 rounded-lg">
-                    {claim.id.slice(0, 8)}
-                  </span>
-                </td>
-                <td className="p-4 text-on-surface-variant">{claim.date}</td>
-                <td className="p-4">
-                  <div className="flex items-center gap-2.5">
-                    <div className="p-1.5 bg-surface-variant rounded-lg text-on-surface-variant">
-                      <claim.categoryIcon className="w-4 h-4" strokeWidth={1.75} />
-                    </div>
-                    <span className="text-on-surface">{claim.category}</span>
-                  </div>
-                </td>
-                <td className="p-4 text-on-surface">{claim.subCategory}</td>
-                <td className="p-4 font-semibold text-on-surface tabular-nums">
-                  {claim.amount}
-                </td>
-                <td className="p-4">
-                  <span
-                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${STATUS_BADGE[claim.status as ClaimStatus] ?? ""}`}
-                  >
-                    <span
-                      className={`w-1.5 h-1.5 rounded-full ${STATUS_DOT[claim.status as ClaimStatus] ?? ""}`}
-                    />
-                    {claim.status}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* ── Mobile: Card list ─────────────────────────── */}
-      <div className="md:hidden flex flex-col gap-3">
-        {claims.map((claim) => (
-          <div
-            key={claim.id}
-            onClick={() => router.push(`/employee/history?claimId=${claim.id}`)}
-            className="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant/10 flex items-center justify-between hover:bg-surface-container-highest/30 transition-colors active:scale-[0.98]"
-          >
-            {/* Left: icon + meta */}
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-surface-container rounded-xl text-on-surface-variant shrink-0">
-                <claim.categoryIcon className="w-5 h-5" strokeWidth={1.75} />
-              </div>
-              <div>
-                <h4 className="font-headline font-bold text-sm text-on-surface mb-0.5">
-                  {claim.category}
-                </h4>
-                <p className="font-body text-xs text-on-surface-variant">
-                  {claim.date.split(",")[0]} &bull; <span title={claim.id}>{claim.id.slice(0, 8)}</span>
-                </p>
-              </div>
-            </div>
-
-            {/* Right: amount + badge */}
-            <div className="text-right shrink-0 ml-2">
-              <p className="font-headline font-bold text-sm text-on-surface mb-1 tabular-nums">
-                {claim.amount}
-              </p>
-              <span
-                className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${STATUS_BADGE[claim.status as ClaimStatus] ?? ""}`}
-              >
-                {claim.status}
-              </span>
-            </div>
+      {claims !== null && claims.length === 0 ? (
+        <div className="flex flex-col items-center px-6 py-14 text-center">
+          <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-marshmallow text-on-surface-variant">
+            <Inbox className="h-6 w-6" aria-hidden="true" />
+          </span>
+          <p className="mt-3 font-semibold text-on-surface">No claims yet</p>
+          <p className="mt-1 text-[13px] text-on-surface-variant">Upload your first receipt to get reimbursed.</p>
+          <Link href="/employee/claims" className="mt-4 text-[13px] font-semibold text-primary hover:text-primary-dim">
+            Upload a Claim →
+          </Link>
+        </div>
+      ) : (
+        <>
+          {/* Desktop: AG Grid */}
+          <div className="hidden md:block">
+            <ReclaimGrid<ClaimSummary>
+              rowData={claims ?? undefined}
+              loading={claims === null}
+              columnDefs={columnDefs}
+              onRowClicked={onRowClicked}
+              getRowId={(p) => p.data.id}
+            />
           </div>
-        ))}
-      </div>
+
+          {/* Mobile: cards */}
+          <ul className="flex flex-col divide-y divide-on-surface/[0.06] md:hidden">
+            {(claims ?? []).map((claim) => {
+              const Icon = CATEGORY_ICON_MAP[claim.category] ?? Monitor;
+              return (
+                <li key={claim.id}>
+                  <Link
+                    href={`/employee/history?claimId=${claim.id}`}
+                    className="flex items-center gap-3 px-5 py-4 transition-colors active:bg-marshmallow"
+                  >
+                    <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/[0.08] text-primary">
+                      <Icon className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[14px] font-semibold text-on-surface">{claim.category}</span>
+                      <span className="block truncate text-[12px] text-on-surface-variant">
+                        {claim.date.split(",")[0]} · <span className="font-mono">{claim.id.slice(0, 8)}</span>
+                      </span>
+                    </span>
+                    <span className="flex shrink-0 flex-col items-end gap-1">
+                      <span className="font-mono text-[14px] font-semibold text-on-surface tabular-nums">{claim.amount}</span>
+                      <LifecyclePill status={claim.status} />
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+            {claims === null &&
+              Array.from({ length: 3 }).map((_, i) => (
+                <li key={i} className="flex items-center gap-3 px-5 py-4">
+                  <span className="h-10 w-10 animate-pulse rounded-xl bg-surface-container" />
+                  <span className="flex-1 space-y-2">
+                    <span className="block h-3 w-1/2 animate-pulse rounded bg-surface-container" />
+                    <span className="block h-2.5 w-1/3 animate-pulse rounded bg-surface-container" />
+                  </span>
+                </li>
+              ))}
+          </ul>
+        </>
+      )}
     </section>
   );
 }

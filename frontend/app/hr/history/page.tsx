@@ -1,503 +1,321 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
-import {
-  History,
-  Search,
-  ChevronRight,
-  ChevronLeft,
-  ExternalLink,
-  Inbox,
-  CheckCircle2,
-  XCircle,
-  Clock,
-  Banknote,
-  Filter,
-} from "lucide-react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { SegmentedControl, SearchField } from "glisse";
+import type { AgGridReact } from "ag-grid-react";
+import type { ColDef, ICellRendererParams, RowClickedEvent } from "ag-grid-community";
+import { History, ChevronRight, ChevronLeft, ExternalLink, Inbox, CheckCircle2, XCircle, Banknote, Download } from "lucide-react";
 import { getHRHistory, type HistoryClaim } from "@/lib/actions/hr";
-// ─── Types ────────────────────────────────────────────────────────────────────
+import { ReclaimGrid } from "@/components/grid/ReclaimGrid";
+import { LifecyclePill } from "@/components/claims/StatusBadge";
+import { Avatar } from "@/components/ui/Avatar";
+import { KpiCard } from "@/components/ui/KpiCard";
+import { PageHeader, PageShell } from "@/components/ui/PageHeader";
+import { btn } from "@/components/ui/styles";
 
-type ClaimStatus = "Approved" | "Rejected" | "Paid";
+type ClaimStatus = HistoryClaim["status"];
+type StatusFilter = "All" | ClaimStatus;
 
-// ─── Status Config ────────────────────────────────────────────────────────────
+const ITEMS_PER_PAGE = 8;
 
-const STATUS_CONFIG: Record<
-  ClaimStatus,
-  { label: string; bg: string; text: string; icon: typeof CheckCircle2; dot: string }
-> = {
-  Paid: {
-    label: "Paid",
-    bg: "bg-emerald-50 border border-emerald-200",
-    text: "text-emerald-700",
-    icon: Banknote,
-    dot: "bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.5)]",
-  },
-  Approved: {
-    label: "Approved",
-    bg: "bg-primary/8 border border-primary/20",
-    text: "text-primary",
-    icon: CheckCircle2,
-    dot: "bg-primary shadow-[0_0_6px_rgba(70,71,211,0.4)]",
-  },
-  Rejected: {
-    label: "Rejected",
-    bg: "bg-red-50 border border-red-200",
-    text: "text-red-600",
-    icon: XCircle,
-    dot: "bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.4)]",
-  },
-};
+function fmtAmount(amount: number, currency: string) {
+  try {
+    return new Intl.NumberFormat("en-MY", { style: "currency", currency: currency || "MYR", currencyDisplay: "code" }).format(amount);
+  } catch {
+    return `RM ${new Intl.NumberFormat("en-MY", { minimumFractionDigits: 2 }).format(amount)}`;
+  }
+}
 
-// ─── Skeleton Row ─────────────────────────────────────────────────────────────
-
-function SkeletonRow() {
+function IdCell({ value }: ICellRendererParams<HistoryClaim, string>) {
+  if (!value) return null;
   return (
-    <tr className="border-b border-outline-variant/5">
-      <td className="py-4 px-6 w-32"><div className="h-4 bg-surface-container rounded-full animate-pulse w-full" /></td>
-      <td className="py-4 px-6"><div className="h-4 bg-surface-container rounded-full animate-pulse w-3/4" /></td>
-      <td className="py-4 px-6"><div className="h-4 bg-surface-container rounded-full animate-pulse w-2/3" /></td>
-      <td className="py-4 px-6 w-32"><div className="h-4 bg-surface-container rounded-full animate-pulse w-full" /></td>
-      <td className="py-4 px-6 w-32"><div className="h-4 bg-surface-container rounded-full animate-pulse w-full" /></td>
-      <td className="py-4 px-6 w-28"><div className="h-4 bg-surface-container rounded-full animate-pulse w-full" /></td>
-      <td className="py-4 px-6 w-24"><div className="h-4 bg-surface-container rounded-full animate-pulse w-full" /></td>
-    </tr>
+    <span className="rounded-md bg-marshmallow px-2 py-1 font-mono text-[12px] text-on-surface-variant" title={value} translate="no">
+      {value.slice(0, 11)}
+    </span>
   );
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────────
+function EmployeeCell({ data }: ICellRendererParams<HistoryClaim>) {
+  if (!data) return null;
+  return (
+    <div className="flex min-w-0 items-center gap-3">
+      <Avatar name={data.employeeName} size="sm" />
+      <div className="min-w-0 leading-tight">
+        <p className="truncate text-[14px] font-medium text-on-surface">{data.employeeName}</p>
+        <p className="truncate text-[12px] text-on-surface-variant">{data.department}</p>
+      </div>
+    </div>
+  );
+}
 
-const ITEMS_PER_PAGE = 6;
+function StatusCell({ value }: ICellRendererParams<HistoryClaim, string>) {
+  return value ? <LifecyclePill status={value} /> : null;
+}
+
+function ViewCell({ data }: ICellRendererParams<HistoryClaim>) {
+  if (!data) return null;
+  return (
+    <Link
+      href={`/hr/view/${data.reim_id}`}
+      onClick={(e) => e.stopPropagation()}
+      className={`${btn.ghost} h-8 px-3 text-[13px]`}
+    >
+      View
+      <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+    </Link>
+  );
+}
 
 export default function HRHistoryPage() {
+  const router = useRouter();
+  const gridRef = useRef<AgGridReact<HistoryClaim>>(null);
   const [data, setData] = useState<HistoryClaim[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"All" | ClaimStatus>("All");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("All");
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     setIsLoading(true);
     getHRHistory()
       .then(setData)
-      .catch(() => setError("Failed to load claim history. Please try again."))
+      .catch(() => setError("Couldn’t load claim history. Check your connection and refresh the page."))
       .finally(() => setIsLoading(false));
   }, []);
 
-  // ── Filtering ──
-  const filtered = useMemo(() => {
-    let result = data;
-    if (statusFilter !== "All") {
-      result = result.filter((c) => c.status === statusFilter);
-    }
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(
-        (c) =>
-          c.employeeName.toLowerCase().includes(q) ||
-          c.id.toLowerCase().includes(q) ||
-          c.policyName.toLowerCase().includes(q),
-      );
-    }
-    return result;
-  }, [data, searchQuery, statusFilter]);
-
-  // ── Pagination ──
-  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
-  const paginated = filtered.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE,
+  // Status filter is applied to rowData; text search uses AG Grid's quick filter on desktop.
+  const byStatus = useMemo(
+    () => (statusFilter === "All" ? data : data.filter((c) => c.status === statusFilter)),
+    [data, statusFilter],
   );
+
+  // Mobile list mirrors the same search semantics.
+  const filtered = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return byStatus;
+    return byStatus.filter(
+      (c) =>
+        c.employeeName.toLowerCase().includes(q) ||
+        c.id.toLowerCase().includes(q) ||
+        c.policyName.toLowerCase().includes(q) ||
+        c.department.toLowerCase().includes(q),
+    );
+  }, [byStatus, searchQuery]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+  const paginated = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, statusFilter]);
 
-  // ── KPI Summary ──
   const kpis = useMemo(() => {
-    const fmt = (v: number) =>
-      `RM ${new Intl.NumberFormat("en-MY", { minimumFractionDigits: 2 }).format(v)}`;
     const approved = data.filter((c) => c.status === "Approved" || c.status === "Paid");
     const rejected = data.filter((c) => c.status === "Rejected");
-    const totalPaid = data
-      .filter((c) => c.status === "Paid")
-      .reduce((s, c) => s + c.amount, 0);
+    const totalPaid = data.filter((c) => c.status === "Paid").reduce((s, c) => s + c.amount, 0);
     return {
       total: data.length,
       approved: approved.length,
       rejected: rejected.length,
-      totalPaid: fmt(totalPaid),
+      totalPaid: fmtAmount(totalPaid, "MYR"),
     };
   }, [data]);
 
+  const columnDefs = useMemo<ColDef<HistoryClaim>[]>(
+    () => [
+      { headerName: "Claim ID", field: "id", cellRenderer: IdCell, width: 150 },
+      { headerName: "Employee", field: "employeeName", cellRenderer: EmployeeCell, flex: 1.5, minWidth: 210, filter: "agTextColumnFilter" },
+      { headerName: "Policy / Category", field: "policyName", flex: 1.4, minWidth: 180, cellClass: "text-on-surface-variant", filter: "agTextColumnFilter", tooltipField: "policyName" },
+      {
+        headerName: "Amount",
+        field: "amount",
+        type: "rightAligned",
+        flex: 1,
+        minWidth: 140,
+        valueFormatter: (p) => (p.data ? fmtAmount(p.data.amount, p.data.currency) : ""),
+        cellClass: "font-mono tabular-nums font-medium",
+        filter: "agNumberColumnFilter",
+      },
+      { headerName: "Resolved", field: "dateResolved", flex: 1, minWidth: 130, cellClass: "text-on-surface-variant" },
+      { headerName: "Status", field: "status", cellRenderer: StatusCell, width: 140 },
+      { headerName: "", colId: "view", cellRenderer: ViewCell, width: 110, sortable: false, resizable: false, cellStyle: { justifyContent: "flex-end" } },
+      // Hidden searchable fields so the quick filter matches department too.
+      { field: "department", hide: true },
+    ],
+    [],
+  );
+
+  const onRowClicked = useCallback(
+    (e: RowClickedEvent<HistoryClaim>) => {
+      if (e.data) router.push(`/hr/view/${e.data.reim_id}`);
+    },
+    [router],
+  );
+
+  const exportCsv = () =>
+    gridRef.current?.api.exportDataAsCsv({
+      fileName: `reclaim-history-${new Date().toISOString().slice(0, 10)}.csv`,
+      columnKeys: ["id", "employeeName", "department", "policyName", "amount", "dateResolved", "status"],
+      processCellCallback: (p) => (p.column.getColId() === "amount" && p.node?.data ? String(p.node.data.amount) : p.value),
+    });
+
   return (
-    <div className="relative min-h-full p-6 md:p-10 lg:p-12">
-      {/* Ambient glow */}
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -top-20 -right-20 w-[480px] h-[480px] rounded-full bg-primary opacity-[0.07] blur-[80px]" />
-        <div className="absolute top-32 right-40 w-[320px] h-[320px] rounded-full bg-tertiary opacity-[0.06] blur-[64px]" />
-        <div className="absolute -top-8 right-[15%] w-[200px] h-[200px] rounded-full bg-primary-container opacity-[0.12] blur-[48px]" />
-      </div>
+    <PageShell>
+      <PageHeader
+        eyebrow="Records"
+        title="Claim History"
+        description="Every resolved claim — auto-processed and HR-reviewed — in one place."
+        actions={
+          <button type="button" onClick={exportCsv} disabled={isLoading || data.length === 0} className={`${btn.secondary} max-md:hidden`}>
+            <Download className="h-4 w-4" aria-hidden="true" />
+            Export CSV
+          </button>
+        }
+      />
 
-      <div className="relative z-10">
-        {/* ── Header ── */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
-          <div className="max-w-2xl">
-            <h2
-              className="font-headline font-extrabold text-on-background mb-2 tracking-tight"
-              style={{ fontSize: "2.5rem", letterSpacing: "-0.02em" }}
-            >
-              Claim History
-            </h2>
-            <p className="text-on-surface-variant text-lg font-body">
-              All resolved claims — auto-processed and HR-reviewed, combined.
-            </p>
-          </div>
+      <section aria-label="Summary" className="mb-6 grid grid-cols-2 gap-3 md:mb-8 md:gap-5 lg:grid-cols-4">
+        <KpiCard label="Total Resolved" value={kpis.total} sub="all time" icon={History} tone="primary" loading={isLoading} />
+        <KpiCard label="Approved / Paid" value={kpis.approved} sub="claims" icon={CheckCircle2} tone="violet" loading={isLoading} />
+        <KpiCard label="Rejected" value={kpis.rejected} sub="claims" icon={XCircle} tone="error" loading={isLoading} />
+        <KpiCard label="Total Disbursed" value={kpis.totalPaid} sub="paid out" icon={Banknote} tone="success" loading={isLoading} />
+      </section>
+
+      {error && (
+        <div role="alert" className="mb-6 flex items-center gap-3 rounded-2xl bg-error-container px-5 py-4 text-[14px] text-error">
+          <XCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
+          {error}
         </div>
+      )}
 
-        {/* ── KPI Summary Cards ── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          {[
-            {
-              label: "Total Resolved",
-              value: isLoading ? "—" : kpis.total.toString(),
-              sub: "all time",
-              color: "text-on-surface",
-              bg: "bg-primary/5",
-              hoverShadow: "hover:shadow-[0_16px_48px_-12px_rgba(70,71,211,0.10)]",
-              icon: History,
-              iconColor: "text-primary",
-            },
-            {
-              label: "Approved / Paid",
-              value: isLoading ? "—" : kpis.approved.toString(),
-              sub: "claims",
-              color: "text-primary",
-              bg: "bg-primary/5",
-              hoverShadow: "hover:shadow-[0_16px_48px_-12px_rgba(70,71,211,0.12)]",
-              icon: CheckCircle2,
-              iconColor: "text-primary",
-            },
-            {
-              label: "Rejected",
-              value: isLoading ? "—" : kpis.rejected.toString(),
-              sub: "claims",
-              color: "text-red-600",
-              bg: "bg-red-500/5",
-              hoverShadow: "hover:shadow-[0_16px_48px_-12px_rgba(239,68,68,0.10)]",
-              icon: XCircle,
-              iconColor: "text-red-500",
-            },
-            {
-              label: "Total Disbursed",
-              value: isLoading ? "—" : kpis.totalPaid,
-              sub: "paid out",
-              color: "text-emerald-700",
-              bg: "bg-emerald-500/5",
-              hoverShadow: "hover:shadow-[0_16px_48px_-12px_rgba(16,185,129,0.10)]",
-              icon: Banknote,
-              iconColor: "text-emerald-600",
-            },
-          ].map((stat, i) => {
-            const Icon = stat.icon;
-            return (
-              <div
-                key={i}
-                className={`bg-surface-container-lowest/70 backdrop-blur-2xl rounded-xl p-5 shadow-[0_8px_40px_-12px_rgba(44,47,49,0.06)] relative overflow-hidden group ${stat.hoverShadow} hover:-translate-y-0.5 transition-all duration-300`}
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <p className="text-xs font-semibold font-headline text-on-surface-variant tracking-widest uppercase">
-                    {stat.label}
-                  </p>
-                  <div className={`p-1.5 rounded-lg ${stat.bg}`}>
-                    <Icon className={`w-3.5 h-3.5 ${stat.iconColor}`} strokeWidth={2} />
-                  </div>
-                </div>
-                <p className={`text-2xl font-extrabold font-headline ${stat.color}`}>
-                  {stat.value}
-                </p>
-                <p className="text-xs text-on-surface-variant/70 mt-0.5">{stat.sub}</p>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* ── Search & Filter Bar ── */}
-        <div className="bg-surface-container-low/50 backdrop-blur-md border border-outline-variant/10 rounded-2xl p-4 mb-6 flex flex-col sm:flex-row gap-3">
-          <div className="flex-1 relative group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant group-focus-within:text-primary transition-colors w-4 h-4" />
-            <input
-              type="text"
-              placeholder="Search by employee name, claim ID, or policy…"
+      <section aria-label="Resolved claims" className="overflow-hidden rounded-[20px] bg-white shadow-ambient">
+        <div className="flex flex-col gap-3 border-b border-on-surface/[0.06] px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between md:px-5">
+          <div className="w-full sm:max-w-sm">
+            <SearchField
+              aria-label="Search claims"
+              placeholder="Search claims…"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 bg-surface-container-lowest border border-outline-variant/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-on-surface-variant/50"
+              onValueChange={setSearchQuery}
+              autoComplete="off"
+              spellCheck={false}
             />
           </div>
-
-          <div className="flex items-center gap-2 shrink-0">
-            <Filter className="w-4 h-4 text-on-surface-variant shrink-0" />
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
-              className="bg-surface-container-lowest border border-outline-variant/10 rounded-xl px-4 py-3 text-sm font-medium text-on-surface-variant outline-none focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
-            >
-              <option value="All">All Statuses</option>
-              <option value="Approved">Approved</option>
-              <option value="Paid">Paid</option>
-              <option value="Rejected">Rejected</option>
-            </select>
-          </div>
+          <SegmentedControl
+            aria-label="Filter by status"
+            items={[
+              { value: "All", label: "All" },
+              { value: "Approved", label: "Approved" },
+              { value: "Paid", label: "Paid" },
+              { value: "Rejected", label: "Rejected" },
+            ]}
+            value={statusFilter}
+            onValueChange={(v) => setStatusFilter(v as StatusFilter)}
+            style={{ ["--lg-tab-width" as string]: "clamp(72px, 21vw, 92px)" }}
+          />
         </div>
 
-        {/* ── Error State ── */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-5 py-4 mb-6 flex items-center gap-3">
-            <XCircle className="w-4 h-4 shrink-0" />
-            {error}
-          </div>
-        )}
+        {/* Desktop: AG Grid */}
+        <div className="hidden md:block">
+          <ReclaimGrid<HistoryClaim>
+            ref={gridRef}
+            rowData={isLoading ? undefined : byStatus}
+            loading={isLoading}
+            columnDefs={columnDefs}
+            quickFilterText={searchQuery}
+            onRowClicked={onRowClicked}
+            getRowId={(p) => p.data.reim_id}
+            pagination
+            paginationPageSize={10}
+            paginationPageSizeSelector={[10, 25, 50, 100]}
+            defaultColDef={{ sortable: true, resizable: true }}
+            tooltipShowDelay={400}
+            overlayNoRowsTemplate={
+              data.length === 0
+                ? '<span class="text-sm">Resolved claims appear here once they age out of the dashboard.</span>'
+                : '<span class="text-sm">No claims match. Try a different search or status.</span>'
+            }
+          />
+        </div>
 
-        {/* ── Table / Cards ── */}
-        <div className="bg-surface-container-lowest/80 backdrop-blur-xl rounded-xl shadow-[0_12px_60px_-15px_rgba(44,47,49,0.08)] relative z-10">
-
-          {/* Desktop Table */}
-          <div className="hidden md:block overflow-x-auto">
-            <table className="w-full table-fixed text-left border-collapse">
-              <thead>
-                <tr className="bg-surface-container-low/50 text-on-surface-variant uppercase tracking-wider text-[10px] font-bold font-headline">
-                  <th className="py-4 px-6 w-32">Claim ID</th>
-                  <th className="py-4 px-6">Employee</th>
-                  <th className="py-4 px-6">Policy / Category</th>
-                  <th className="py-4 px-6 w-32 text-right">Amount</th>
-                  <th className="py-4 px-6 w-32">Resolved</th>
-                  <th className="py-4 px-6 w-28">Status</th>
-                  <th className="py-4 px-6 w-24 text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-outline-variant/5">
-                {/* Skeleton */}
-                {isLoading &&
-                  [...Array(ITEMS_PER_PAGE)].map((_, i) => <SkeletonRow key={i} />)}
-
-                {/* Rows */}
-                {!isLoading &&
-                  paginated.map((claim) => {
-                    const cfg = STATUS_CONFIG[claim.status];
-                    const StatusIcon = cfg.icon;
-                    const formatted = `RM ${new Intl.NumberFormat("en-MY", {
-                      minimumFractionDigits: 2,
-                    }).format(claim.amount)}`;
-
-                    return (
-                      <tr
-                        key={claim.id}
-                        className="hover:bg-surface-container/30 transition-colors group"
-                      >
-                        {/* Claim ID */}
-                        <td className="py-4 px-6 align-middle whitespace-nowrap">
-                          <span
-                            className="font-mono text-xs font-semibold text-on-surface-variant bg-surface-container px-2 py-1 rounded-lg"
-                            title={claim.id}
-                          >
-                            {claim.id.slice(0, 8)}
-                          </span>
-                        </td>
-
-                        {/* Employee */}
-                        <td className="py-4 px-6 align-middle overflow-hidden">
-                          <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-full bg-linear-to-br from-primary-container to-tertiary-container flex items-center justify-center font-bold text-[10px] text-on-primary-container border-2 border-surface-container-lowest shadow-sm shrink-0">
-                              {claim.employeeInitial}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="font-semibold text-sm text-on-surface truncate">
-                                {claim.employeeName}
-                              </p>
-                              <p className="text-[10px] text-on-surface-variant truncate">
-                                {claim.department}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-
-                        {/* Policy */}
-                        <td className="py-4 px-6 align-middle overflow-hidden">
-                          <p className="text-sm text-on-surface-variant truncate">
-                            {claim.policyName}
-                          </p>
-                        </td>
-
-                        {/* Amount */}
-                        <td className="py-4 px-6 text-right align-middle">
-                          <div className="flex items-center justify-end gap-1 whitespace-nowrap">
-                            <span className="font-semibold text-sm text-on-surface font-mono tabular-nums">
-                              {formatted}
-                            </span>
-                          </div>
-                        </td>
-
-                        {/* Resolved Date */}
-                        <td className="py-4 px-6 align-middle whitespace-nowrap overflow-hidden">
-                          <div className="flex items-center gap-1.5 truncate">
-                            <Clock className="w-3 h-3 text-on-surface-variant/50 shrink-0" />
-                            <span className="text-xs text-on-surface-variant truncate">
-                              {claim.dateResolved}
-                            </span>
-                          </div>
-                        </td>
-
-                        {/* Status Badge */}
-                        <td className="py-4 px-6 align-middle">
-                          <span
-                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${cfg.bg} ${cfg.text}`}
-                          >
-                            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${cfg.dot}`} />
-                            {cfg.label}
-                          </span>
-                        </td>
-
-                        {/* View Action */}
-                        <td className="py-4 px-6 text-right align-middle whitespace-nowrap">
-                          <Link
-                            href={`/hr/view/${claim.reim_id}`}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-on-surface-variant hover:text-primary hover:bg-primary/10 transition-all active:scale-90 cursor-pointer"
-                          >
-                            View
-                            <ExternalLink className="w-3 h-3" strokeWidth={2} />
-                          </Link>
-                        </td>
-                      </tr>
-                    );
-                  })}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Mobile Card List */}
-          <div className="md:hidden flex flex-col gap-3 p-4">
+        {/* Mobile: cards */}
+        <div className="md:hidden">
+          <ul className="divide-y divide-on-surface/[0.06]">
             {isLoading &&
-              [...Array(ITEMS_PER_PAGE)].map((_, i) => (
-                <div key={i} className="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant/10 flex items-center gap-3 animate-pulse">
-                  <div className="w-9 h-9 rounded-full bg-surface-container shrink-0" />
-                  <div className="flex-1 space-y-2">
-                    <div className="h-3 bg-surface-container rounded-full w-2/3" />
-                    <div className="h-2.5 bg-surface-container rounded-full w-1/2" />
-                  </div>
-                  <div className="h-3 bg-surface-container rounded-full w-16 shrink-0" />
-                </div>
+              Array.from({ length: 5 }).map((_, i) => (
+                <li key={i} className="flex items-center gap-3 px-4 py-4">
+                  <span className="h-9 w-9 animate-pulse rounded-full bg-surface-container" />
+                  <span className="flex-1 space-y-2">
+                    <span className="block h-3 w-2/3 animate-pulse rounded bg-surface-container" />
+                    <span className="block h-2.5 w-1/2 animate-pulse rounded bg-surface-container" />
+                  </span>
+                </li>
               ))}
-
             {!isLoading &&
-              paginated.map((claim) => {
-                const cfg = STATUS_CONFIG[claim.status];
-                const formatted = `RM ${new Intl.NumberFormat("en-MY", {
-                  minimumFractionDigits: 2,
-                }).format(claim.amount)}`;
-
-                return (
-                  <Link
-                    href={`/hr/view/${claim.reim_id}`}
-                    key={claim.id}
-                    className="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant/10 flex items-center justify-between hover:bg-surface-container-highest/30 transition-colors active:scale-[0.98] cursor-pointer"
-                  >
-                    <div className="flex items-center gap-3 overflow-hidden">
-                      <div className="w-9 h-9 rounded-full bg-linear-to-br from-primary-container to-tertiary-container flex items-center justify-center font-bold text-[10px] text-on-primary-container border-2 border-surface-container-lowest shadow-sm shrink-0">
-                        {claim.employeeInitial}
-                      </div>
-                      <div className="min-w-0 pr-2">
-                        <h4 className="font-headline font-bold text-sm text-on-surface mb-0.5 truncate">
-                          {claim.employeeName}
-                        </h4>
-                        <p className="font-body text-xs text-on-surface-variant truncate">
-                          {claim.policyName}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <div className="text-right shrink-0">
-                        <p className="font-headline font-bold text-sm text-on-surface mb-1 tabular-nums">
-                          {formatted}
-                        </p>
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${cfg.bg} ${cfg.text}`}>
-                          <span className={`w-1 h-1 rounded-full ${cfg.dot}`} />
-                          {cfg.label}
-                        </span>
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-on-surface-variant opacity-60" />
-                    </div>
+              paginated.map((claim) => (
+                <li key={claim.reim_id}>
+                  <Link href={`/hr/view/${claim.reim_id}`} className="flex items-center gap-3 px-4 py-4 transition-colors active:bg-marshmallow">
+                    <Avatar name={claim.employeeName} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[14px] font-semibold text-on-surface">{claim.employeeName}</span>
+                      <span className="block truncate text-[12px] text-on-surface-variant">{claim.policyName}</span>
+                    </span>
+                    <span className="flex shrink-0 flex-col items-end gap-1">
+                      <span className="font-mono text-[13px] font-semibold tabular-nums text-on-surface">{fmtAmount(claim.amount, claim.currency)}</span>
+                      <LifecyclePill status={claim.status} />
+                    </span>
                   </Link>
-                );
-              })}
-          </div>
+                </li>
+              ))}
+          </ul>
 
-        </div>
-
-          {/* Empty State */}
           {!isLoading && filtered.length === 0 && (
-            <div className="p-16 text-center">
-              <div className="inline-flex p-4 bg-surface-container rounded-full mb-4">
-                <Inbox className="w-8 h-8 text-on-surface-variant/40" />
-              </div>
-              <p className="font-headline font-bold text-lg text-on-surface">
-                No claims found
-              </p>
-              <p className="text-on-surface-variant text-sm mt-1">
+            <div className="flex flex-col items-center px-6 py-14 text-center">
+              <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-marshmallow text-on-surface-variant">
+                <Inbox className="h-6 w-6" aria-hidden="true" />
+              </span>
+              <p className="mt-3 font-semibold text-on-surface">No claims found</p>
+              <p className="mt-1 text-[13px] text-on-surface-variant">
                 {data.length === 0
-                  ? "Resolved claims will appear here once they age out of the dashboard."
-                  : "Try adjusting your search or filter criteria."}
+                  ? "Resolved claims appear here once they age out of the dashboard."
+                  : "Try a different search or status."}
               </p>
             </div>
           )}
 
-          {/* ── Pagination Footer ── */}
-          {!isLoading && filtered.length > 0 && (
-            <div className="px-6 py-4 border-t border-outline-variant/10 flex items-center justify-between gap-4">
-              <p className="text-xs text-on-surface-variant">
-                Showing{" "}
-                <span className="font-semibold text-on-surface">
-                  {(currentPage - 1) * ITEMS_PER_PAGE + 1}–
-                  {Math.min(currentPage * ITEMS_PER_PAGE, filtered.length)}
-                </span>{" "}
-                of{" "}
-                <span className="font-semibold text-on-surface">{filtered.length}</span>{" "}
-                results
+          {!isLoading && filtered.length > ITEMS_PER_PAGE && (
+            <div className="flex items-center justify-between gap-3 border-t border-on-surface/[0.06] px-4 py-3">
+              <p className="text-[12px] text-on-surface-variant tabular-nums">
+                {(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, filtered.length)} of {filtered.length}
               </p>
               <div className="flex items-center gap-1">
                 <button
+                  type="button"
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
-                  className="p-2 rounded-lg text-on-surface-variant hover:bg-surface-container disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-90 cursor-pointer"
                   aria-label="Previous page"
+                  className={`${btn.icon} h-9 w-9 disabled:opacity-30`}
                 >
-                  <ChevronLeft className="w-4 h-4" />
+                  <ChevronLeft className="h-4 w-4" aria-hidden="true" />
                 </button>
-                {[...Array(Math.min(totalPages, 7))].map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setCurrentPage(i + 1)}
-                    className={`w-8 h-8 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                      currentPage === i + 1
-                        ? "bg-primary text-on-primary shadow-sm"
-                        : "text-on-surface-variant hover:bg-surface-container"
-                    }`}
-                  >
-                    {i + 1}
-                  </button>
-                ))}
+                <span className="px-2 text-[12px] font-medium text-on-surface tabular-nums">
+                  {currentPage} / {totalPages}
+                </span>
                 <button
+                  type="button"
                   onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
-                  className="p-2 rounded-lg text-on-surface-variant hover:bg-surface-container disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-90 cursor-pointer"
                   aria-label="Next page"
+                  className={`${btn.icon} h-9 w-9 disabled:opacity-30`}
                 >
-                  <ChevronRight className="w-4 h-4" />
+                  <ChevronRight className="h-4 w-4" aria-hidden="true" />
                 </button>
               </div>
             </div>
           )}
         </div>
-      </div>
+      </section>
+    </PageShell>
   );
 }

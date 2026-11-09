@@ -161,26 +161,24 @@ function HistoryPageContent() {
   return (
     <div className="px-4 pt-6 pb-24 md:px-8 md:pt-8 md:pb-12 lg:px-12 lg:pt-10 lg:pb-10 max-w-screen-xl mx-auto w-full">
       {/* Ambient gradient blob */}
-      <div
-        aria-hidden
-        className="pointer-events-none fixed -top-24 -left-24 w-96 h-96 rounded-full bg-linear-to-br from-primary/15 to-tertiary/10 blur-3xl z-0"
-      />
 
       <div className="relative z-10 flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
         {/* ── Header ── */}
         <div className="flex flex-col gap-1">
-          <h2
-            className="font-headline font-extrabold text-3xl md:text-4xl text-on-surface tracking-tight"
-            style={{ letterSpacing: "-0.02em" }}
-          >
+          <h2 className="font-headline text-[28px] font-semibold leading-[1.1] tracking-[-0.03em] text-on-surface md:text-[34px]">
             History
           </h2>
-          <p className="text-base text-on-surface-variant font-body leading-relaxed flex items-center gap-2">
-            <span className="font-semibold text-on-surface">Total Reimbursed: {summary.total}</span>
-            <span className="text-outline-variant">•</span>
-            <span>Pending: {summary.pending}</span>
-          </p>
+          <dl className="mt-3 flex flex-wrap gap-2">
+            <div className="rounded-2xl bg-white px-4 py-2.5 shadow-ambient">
+              <dt className="text-[12px] text-on-surface-variant">Total reimbursed</dt>
+              <dd className="font-headline text-[18px] font-semibold tracking-[-0.02em] text-on-surface tabular-nums">{summary.total}</dd>
+            </div>
+            <div className="rounded-2xl bg-white px-4 py-2.5 shadow-ambient">
+              <dt className="text-[12px] text-on-surface-variant">Pending</dt>
+              <dd className="font-headline text-[18px] font-semibold tracking-[-0.02em] text-on-surface tabular-nums">{summary.pending}</dd>
+            </div>
+          </dl>
         </div>
 
         {/* ── Localized Search Bar ── */}
@@ -191,10 +189,10 @@ function HistoryPageContent() {
           />
           <input
             type="search"
-            placeholder="Search by merchant, category or ID…"
+            placeholder="Search merchant, category, or ID…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-surface-container-lowest border border-outline-variant/30 text-on-surface text-sm rounded-xl py-2.5 pl-10 pr-4 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all placeholder:text-on-surface-variant/40 shadow-sm"
+            className="w-full h-11 bg-white text-on-surface text-sm rounded-xl pl-10 pr-4 shadow-[0_0_0_1px_rgb(20_20_43/0.1),0_1px_2px_rgb(20_20_43/0.04)] focus:outline-none focus:shadow-[0_0_0_1px_var(--color-secondary),0_0_0_4px_rgb(16_91_255/0.15)] transition-shadow placeholder:text-on-surface-variant/60"
           />
         </div>
 
